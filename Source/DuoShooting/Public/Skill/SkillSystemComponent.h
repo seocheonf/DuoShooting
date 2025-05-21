@@ -31,7 +31,6 @@ public:
 	
 	//=====변수=====
 private:
-	
 	//스킬 쿨타임
 	UPROPERTY()
 	float SkillCoolTime;
@@ -47,7 +46,6 @@ private:
 	//스킬 시스템과 종속적인 입력 처리 모음
 	UPROPERTY()
 	class UInputMappingContext* IMC_SkillSystem;
-	
 	
 protected:
 public:

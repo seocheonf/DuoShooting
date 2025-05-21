@@ -17,7 +17,7 @@ enum class EHeroState : uint8
 	LastIndex
 };
 
-UCLASS()
+UCLASS(Abstract)
 class DUOSHOOTING_API AHeroBase : public ACharacter
 {
 	GENERATED_BODY()
@@ -40,6 +40,7 @@ public:
 	//=====변수=====
 private:
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
+	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
 protected:
 	//영웅 상태 (bitmask)
@@ -54,10 +55,6 @@ private:
 	//영웅 상태 bitmask 계산 제거
 	void RemoveCurrentHeroState(EHeroState oldState);
 protected:
-	//생성자 단에서 초기화할 함수입니다. Super를 실행해주세요.
-	virtual void InitConstructor();
-	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
-	FORCEINLINE virtual class USkillSystemComponent* InitSkillSystemComponent() { return nullptr; };
 	//일단은 참고만 할 수 있게 놔뒀습니다. 필요하면 상의 후 const를 지워주세요.
 	USkillSystemComponent* GetSkillSystemComponent() const;
 public:

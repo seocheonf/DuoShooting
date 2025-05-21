@@ -1,9 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
-#include "InputActionValue.h"
 #include "DuoShooting/Public/Player/HeroBase.h"
-
 #include "EnhancedInputComponent.h"
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 
@@ -14,7 +11,6 @@ AHeroBase::AHeroBase()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	InitConstructor();
 }
 
 // Called when the game starts or when spawned
@@ -59,11 +55,6 @@ void AHeroBase::RemoveCurrentHeroState(EHeroState oldState)
 {
 	int32 oldStateBitmask = 1 << (int8)oldState;
 	CurrentHeroState &= (~oldStateBitmask);
-}
-
-void AHeroBase::InitConstructor()
-{
-	SkillSystemComp = InitSkillSystemComponent();
 }
 
 USkillSystemComponent* AHeroBase::GetSkillSystemComponent() const

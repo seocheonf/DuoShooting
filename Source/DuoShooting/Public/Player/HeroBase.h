@@ -9,10 +9,12 @@
 UENUM()
 enum class EHeroState : uint8
 {
-	Idle,
+	Idle = 0,
 	Attack,
 	Die,
-	NoSkill
+	NoSkill,
+	UnVisible,
+	LastIndex
 };
 
 UCLASS()
@@ -40,13 +42,17 @@ private:
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	class USkillSystemComponent* SkillSystemComp;
 protected:
-	//영웅 상태
-	enum class EHeroState CurrentState;
+	//영웅 상태 (bitmask)
+	int32 CurrentHeroState;
 public:
 	//=====함수=====
 private:
 	//스킬 시스템에 본인과 본인의 입력을 등록하는 함수입니다.
 	void InitSkillSystemInput(class UInputComponent* playerInputComponent);
+	//영웅 상태 bitmask 계산 추가
+	void AddCurrentHeroState(EHeroState newState);
+	//영웅 상태 bitmask 계산 제거
+	void RemoveCurrentHeroState(EHeroState oldState);
 protected:
 	//생성자 단에서 초기화할 함수입니다. Super를 실행해주세요.
 	virtual void InitConstructor();
@@ -55,6 +61,6 @@ protected:
 	//일단은 참고만 할 수 있게 놔뒀습니다. 필요하면 상의 후 const를 지워주세요.
 	USkillSystemComponent* GetSkillSystemComponent() const;
 public:
-	//외부에서 영웅의 상태에 대한 정보가 필요할 때 사용합니다.
-	enum class EHeroState GetCurrentState();
+	//영웅 상태 bitmask 결과. 영웅의 상태에 대한 정보가 필요할 때 사용합니다.
+	TArray<EHeroState> GetCurrentHeroState();
 };

@@ -49,6 +49,18 @@ void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent
 	}
 }
 
+void AHeroBase::AddCurrentHeroState(EHeroState newState)
+{
+	int32 newStateBitmask = 1 << (int8)newState;
+	CurrentHeroState |= newStateBitmask;
+}
+
+void AHeroBase::RemoveCurrentHeroState(EHeroState oldState)
+{
+	int32 oldStateBitmask = 1 << (int8)oldState;
+	CurrentHeroState &= (~oldStateBitmask);
+}
+
 void AHeroBase::InitConstructor()
 {
 	SkillSystemComp = InitSkillSystemComponent();
@@ -59,7 +71,13 @@ USkillSystemComponent* AHeroBase::GetSkillSystemComponent() const
 	return SkillSystemComp;
 }
 
-enum EHeroState AHeroBase::GetCurrentState()
+TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 {
-	return CurrentState;
+	TArray<EHeroState> result;
+	for (int8 i = 0; i < (int8)EHeroState::LastIndex; i++)
+	{
+		if (CurrentHeroState & (1 << i))
+			result.Add((EHeroState)i);
+	}
+	return result;
 }

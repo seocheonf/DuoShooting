@@ -21,12 +21,13 @@ UCLASS(Abstract)
 class DUOSHOOTING_API AHeroBase : public ACharacter
 {
 	GENERATED_BODY()
-
+	
 	//=====재 정의 함수=====
 public:
 	// Sets default values for this character's properties
 	AHeroBase();
-	
+private:
+	virtual void NotifyControllerChanged() override;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -39,6 +40,31 @@ public:
 	
 	//=====변수=====
 private:
+	//히어로 공통 속성
+	UPROPERTY(EditAnywhere)	// 기본 체력
+	float MaxHealth;
+	UPROPERTY(EditAnywhere)	// 현재 체력
+	float CurrentHealth;
+	UPROPERTY(EditAnywhere)	// 기본 스피드
+	float DefaultSpeed;
+	//히어로 공통 인풋
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputMappingContext* IMC_HeroDefault;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Move;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Look;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Jump;
+	// 1인칭 카메라
+	/** First person camera */
+	UPROPERTY(VisibleAnywhere, Category = Camera)
+	class UCameraComponent* FirstPersonCameraComp;
+	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
+	UPROPERTY(EditDefaultsOnly, Category = UI)
+	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;
+	UPROPERTY()
+	class UShootingMainWidget* ShootingMainWidget;
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
@@ -48,6 +74,10 @@ protected:
 public:
 	//=====함수=====
 private:
+	// 기본 인풋
+	void InputMove(const struct FInputActionValue& value);
+	void InputLook(const struct FInputActionValue& value);
+	void InputJump(const struct FInputActionValue& value);
 	//스킬 시스템에 본인과 본인의 입력을 등록하는 함수입니다.
 	void InitSkillSystemInput(class UInputComponent* playerInputComponent);
 	//영웅 상태 bitmask 계산 추가

@@ -182,6 +182,11 @@ void AHeroBase::RemoveCurrentHeroState(EHeroState oldState)
 	CurrentHeroState &= (~oldStateBitmask);
 }
 
+void AHeroBase::SetSkillSystemComponent(USkillSystemComponent* targetSystem)
+{
+	SkillSystemComp = targetSystem;
+}
+
 USkillSystemComponent* AHeroBase::GetSkillSystemComponent() const
 {
 	return SkillSystemComp;

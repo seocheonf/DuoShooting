@@ -28,14 +28,23 @@ public:
 
 	//=====변수=====
 private:
+	//솜브라 스킬 입력
+	class UInputAction* IA_EMP;
+	class UInputAction* IA_Hack;
+	class UInputAction* IA_Virus;
+	class UInputAction* IA_Translocator;
 protected:
 public:
 	//=====함수=====
 protected:
 	virtual void SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent) override;
-public:
 	//==고유 함수 영역==
 private:
+	//솜브라 스킬에 반응하는 함수
+	void OnEMP(const struct FInputActionValue& value);
+	void OnHack(const struct FInputActionValue& value);
+	void OnVirus(const struct FInputActionValue& value);
+	void OnTranslocator(const struct FInputActionValue& value);
 protected:
 public:
 };

@@ -12,6 +12,11 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
+	ConstructorHelpers::FObjectFinder<UInputMappingContext> imc(TEXT("'/Game/DuoShooting/Inputs/Sombra/IMC_Sombra.IMC_Sombra'"));
+	if (imc.Succeeded())
+	{
+		IMC_SkillSystem = imc.Object; 
+	}
 }
 
 
@@ -32,5 +37,12 @@ void USombraSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+void USombraSkillSystemComponent::SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent)
+{
+	Super::SetupHeroInputInfo(enhancedInputComponent);
+
+	
 }
 

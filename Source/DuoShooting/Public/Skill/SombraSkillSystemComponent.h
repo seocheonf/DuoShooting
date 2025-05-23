@@ -32,6 +32,7 @@ protected:
 public:
 	//=====함수=====
 protected:
+	virtual void SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent) override;
 public:
 	//==고유 함수 영역==
 private:

@@ -86,10 +86,11 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, 
 			}
 			if (coolTimerContents->CurrentTime >= coolTimerContents->EndTime)
 			{
+				float excessDeltaTime = coolTimerContents->CurrentTime - coolTimerContents->EndTime;
 				FNotifyTimerEnd notifyEnd = RemoveTimer(coolTimerContents->TimerHandle);
 				if (notifyEnd.IsBound())
 				{
-					notifyEnd.Execute(0.1f);
+					notifyEnd.Execute(excessDeltaTime);
 				}
 			}
 			

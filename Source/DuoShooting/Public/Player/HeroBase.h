@@ -42,11 +42,15 @@ public:
 private:
 	//히어로 공통 속성
 	UPROPERTY(EditAnywhere)	// 기본 체력
-	float MaxHealth;
+	float MaxHealth = 100.0f;
 	UPROPERTY(EditAnywhere)	// 현재 체력
-	float CurrentHealth;
+	float CurrentHealth = 100.0f;
+	UPROPERTY(EditAnywhere)	// 최대 총알 개수
+	float MaxBullet;
+	UPROPERTY(EditAnywhere)	// 현재 총알 개수
+	float CurrentBullet;
 	UPROPERTY(EditAnywhere)	// 기본 스피드
-	float DefaultSpeed;
+	float DefaultSpeed = 400.0f;
 	//히어로 공통 인풋
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputMappingContext* IMC_HeroDefault;
@@ -56,10 +60,14 @@ private:
 	class UInputAction* IA_Look;
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* IA_Jump;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Fire;
 	// 1인칭 카메라
-	/** First person camera */
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class UCameraComponent* FirstPersonCameraComp;
+	// 히트스캔 발사기 컴포넌트
+	UPROPERTY(VisibleAnywhere, Blueprintable, Category = Shooting)
+	class UHitscanEmitterComponent* HitscanEmitterComp;
 	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
 	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;
@@ -78,6 +86,11 @@ private:
 	void InputMove(const struct FInputActionValue& value);
 	void InputLook(const struct FInputActionValue& value);
 	void InputJump(const struct FInputActionValue& value);
+	void InputFire_Enter(const struct FInputActionValue& value);
+	void InputFire_Exit(const struct FInputActionValue& value);
+	// 체력 변경
+	void SetHealth(float hp);
+	void ReduceHealth(float hp);
 	//스킬 시스템에 본인과 본인의 입력을 등록하는 함수입니다.
 	void InitSkillSystemInput(class UInputComponent* playerInputComponent);
 	//영웅 상태 bitmask 계산 추가
@@ -90,4 +103,7 @@ protected:
 public:
 	//영웅 상태 bitmask 결과. 영웅의 상태에 대한 정보가 필요할 때 사용합니다.
 	TArray<EHeroState> GetCurrentHeroState();
+	//데미지 입기
+	void ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator, AActor* damageCauser);
+	UCameraComponent* GetCamera() const { return FirstPersonCameraComp; }
 };

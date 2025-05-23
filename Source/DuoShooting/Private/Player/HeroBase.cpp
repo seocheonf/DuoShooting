@@ -5,9 +5,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
+#include "Attack/HitscanEmitterComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-//#include "Blueprint/UserWidget.h"
 #include "UI/ShootingMainWidget.h"
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -19,12 +19,7 @@ AHeroBase::AHeroBase()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	MaxHealth = 100.0f;
-	MaxHealth = CurrentHealth;
-
-	DefaultSpeed = 400.0f;
-	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
-
+	// 리소스 찾기
 	// IMC 등록
 	{
 		ConstructorHelpers::FObjectFinder<UInputMappingContext> TempIMC(
@@ -48,16 +43,27 @@ AHeroBase::AHeroBase()
 		if (TempIA.Succeeded()) { IA_Jump = TempIA.Object; }
 	}
 	{
+		ConstructorHelpers::FObjectFinder<UInputAction> TempIA(
+			TEXT("'/Game/DuoShooting/Inputs/HeroDefaults/IA_HeroFire.IA_HeroFire'"));
+		if (TempIA.Succeeded()) { IA_Fire = TempIA.Object; }
+	}
+	{
 		ConstructorHelpers::FClassFinder<UShootingMainWidget> TempWidget(
 			TEXT("'/Game/DuoShooting/UIs/WBP_ShootingMainWidget.WBP_ShootingMainWidget_C'"));
 		if (TempWidget.Succeeded()) { ShootingMainWidgetFactory = TempWidget.Class; }
 	}
+
+	// 스피드 적용
+	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 
 	// 카메라 생성
 	FirstPersonCameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComp->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComp->SetRelativeLocation(FVector(0.0f, 0.0f, 80.f));
 	FirstPersonCameraComp->bUsePawnControlRotation = true;
+
+	// 히트스캔 발사기 컴포넌트 생성
+	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("TestHitScanComponent"));
 }
 
 void AHeroBase::NotifyControllerChanged()
@@ -108,6 +114,8 @@ void AHeroBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(IA_Jump, ETriggerEvent::Started, this, &AHeroBase::InputJump);
 		EnhancedInputComponent->BindAction(IA_Look, ETriggerEvent::Triggered, this, &AHeroBase::InputLook);
 		EnhancedInputComponent->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroBase::InputMove);
+		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AHeroBase::InputFire_Enter);
+		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AHeroBase::InputFire_Exit);
 	}
 
 	//스킬 시스템에 Input정보 넘기기
@@ -139,6 +147,16 @@ void AHeroBase::InputLook(const FInputActionValue& value)
 void AHeroBase::InputJump(const FInputActionValue& value)
 {
 	Jump();
+}
+
+void AHeroBase::InputFire_Enter(const FInputActionValue& value)
+{
+	if (HitscanEmitterComp) HitscanEmitterComp->StartTrigger();
+}
+
+void AHeroBase::InputFire_Exit(const FInputActionValue& value)
+{
+	if (HitscanEmitterComp) HitscanEmitterComp->EndTrigger();
 }
 
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
@@ -178,4 +196,25 @@ TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 			result.Add((EHeroState)i);
 	}
 	return result;
+}
+
+// 내가 아닌 다른 공격이 부를 함수
+void AHeroBase::ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator,
+                          AActor* damageCauser)
+{
+	// 피해를 준 컨트롤러와 액터 정보가 전송되므로 팀 관련 처리시 이부분이 쓰일지도?
+	float actualDamage = TakeDamage(damage, damageEvent, instigator, damageCauser);
+	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
+	ReduceHealth(actualDamage);
+}
+
+void AHeroBase::SetHealth(float hp)
+{
+	CurrentHealth = FMath::Clamp(hp, 0.0f, MaxHealth);
+	UE_LOG(LogTemp, Warning, TEXT("%s의 체력이 %f가 되었습니다"), *GetName(), CurrentHealth);
+}
+
+void AHeroBase::ReduceHealth(float hp)
+{
+	SetHealth(CurrentHealth - hp);
 }

@@ -98,6 +98,8 @@ private:
 	//영웅 상태 bitmask 계산 제거
 	void RemoveCurrentHeroState(EHeroState oldState);
 protected:
+	//스킬 컴포넌트를 상속받은 클래스에서 설정할 수 있도록 했습니다.
+	void SetSkillSystemComponent(USkillSystemComponent* targetSystem);
 	//일단은 참고만 할 수 있게 놔뒀습니다. 필요하면 상의 후 const를 지워주세요.
 	USkillSystemComponent* GetSkillSystemComponent() const;
 public:

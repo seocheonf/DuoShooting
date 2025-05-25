@@ -26,10 +26,7 @@ void UHitscanEmitterComponent::BeginPlay()
 	Super::BeginPlay();
 
 	Owner = Cast<AHeroBase>(GetOwner());
-	if (Owner)
-	{
-		OwnerCamera = Owner->GetCamera();
-	}
+	if (Owner) { OwnerCamera = Owner->GetCamera(); }
 	else UE_LOG(LogTemp, Error, TEXT("UHitscanComponent이 AHeroBase 주인을 찾지 못하고 카메라도 가져오지 못함"));
 }
 
@@ -40,6 +37,7 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	// 트리거되어있다면 연사
 	if (bTriggered)
 	{
 		FireTimer += DeltaTime;

@@ -51,6 +51,10 @@ private:
 	// 방향 정확도 (0일 떄 완전히 정확함 숫자가 커질수록 난사)
 	float Spread = 0.0f;
 
+	// 에임 드리프트
+	float AimDriftScalar;	// 한발당 반동값
+	float MaxAimDrift;		// 에임드리프트 최대각도
+
 	// 하나 쏘기
 	void SingleLineTrace();
 	

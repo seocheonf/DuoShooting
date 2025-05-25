@@ -2,6 +2,8 @@
 
 
 #include "DuoShooting/Public/Player/TracerHero.h"
+#include "Skill/TracerSkillSystemComponent.h"
+#include "EnhancedInputComponent.h"
 
 
 // Sets default values
@@ -9,13 +11,14 @@ ATracerHero::ATracerHero()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	SetSkillSystemComponent(CreateDefaultSubobject<UTracerSkillSystemComponent>("SkillSystemComp"));
 }
 
 // Called when the game starts or when spawned
 void ATracerHero::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
@@ -29,4 +32,3 @@ void ATracerHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
-

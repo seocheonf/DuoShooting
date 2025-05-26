@@ -110,6 +110,12 @@ void USombraSkillSystemComponent::OnTranslocator(const struct FInputActionValue&
 
 void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 {
+	//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
+	{
+		TargetPlayer->SetMeshVisibility(false);
+		TargetPlayer->SetCollisionEnable(false);
+	}
+	
 	FVector start = TargetPlayer->GetActorLocation();
 	//이동 시 무적으로 할 거라 임시변수로 괜찮음. 중간에 끊을 일이 없을 것으로 판단
 	FTimerHandle timerHandle;
@@ -127,6 +133,12 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	
 	auto EndTranslocator = [&, end](float deltaTime)->void
 	{
+		//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
+		{
+			TargetPlayer->SetMeshVisibility(true);
+			TargetPlayer->SetCollisionEnable(true);
+		}
+		
 		UE_LOG(LogTemp, Error, TEXT("End"));
 		TargetPlayer->SetActorLocation(end);
 	};

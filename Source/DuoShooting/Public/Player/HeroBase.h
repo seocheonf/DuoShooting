@@ -103,6 +103,8 @@ protected:
 	//일단은 참고만 할 수 있게 놔뒀습니다. 필요하면 상의 후 const를 지워주세요.
 	USkillSystemComponent* GetSkillSystemComponent() const;
 public:
+	// 스피드
+	float GetDefaultSpeed() const { return DefaultSpeed; }
 	//영웅 상태 bitmask 결과. 영웅의 상태에 대한 정보가 필요할 때 사용합니다.
 	TArray<EHeroState> GetCurrentHeroState();
 	//데미지 입기

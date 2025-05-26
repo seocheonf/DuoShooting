@@ -10,7 +10,7 @@ ASombraHero::ASombraHero()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	SkillSystemComp = CreateDefaultSubobject<USombraSkillSystemComponent>("SkillSystemComp");
+	SetSkillSystemComponent(CreateDefaultSubobject<USombraSkillSystemComponent>("SkillSystemComp"));
 }
 
 // Called when the game starts or when spawned

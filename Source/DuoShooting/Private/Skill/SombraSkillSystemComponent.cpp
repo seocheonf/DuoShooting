@@ -4,7 +4,10 @@
 
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
+#include "Camera/CameraComponent.h"
 #include "Player/HeroBase.h"
+#include "Skill/SombraSkill/TranslocatorProjectile.h"
+#include "Tool/CoolTimerManagerComponent.h"
 
 // Sets default values for this component's properties
 USombraSkillSystemComponent::USombraSkillSystemComponent()
@@ -47,7 +50,13 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 	{
 		IMC_SkillSystem = imc.Object; 
 	}
-	
+
+	//발사체 원본 불러오기
+	ConstructorHelpers::FClassFinder<ATranslocatorProjectile> translocatorProjectile(TEXT("/Script/Engine.Blueprint'/Game/DuoShooting/Blueprints/Characters/Skill/Sombra/BP_TranslocatorProjectile.BP_TranslocatorProjectile_C'"));
+	if (translocatorProjectile.Succeeded())
+	{
+		OriginTranslocatorProjectile = translocatorProjectile.Class;
+	}
 }
 
 
@@ -94,6 +103,37 @@ void USombraSkillSystemComponent::OnVirus(const struct FInputActionValue& value)
 
 void USombraSkillSystemComponent::OnTranslocator(const struct FInputActionValue& value)
 {
-	TargetPlayer->GetActorLocation();
+	UCameraComponent* playerCamera = TargetPlayer->GetCamera();
+	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile);
+	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), playerCamera->GetForwardVector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
+}
+
+void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
+{
+	FVector start = TargetPlayer->GetActorLocation();
+	//이동 시 무적으로 할 거라 임시변수로 괜찮음. 중간에 끊을 일이 없을 것으로 판단
+	FTimerHandle timerHandle;
+
+	//람다식으로 넘길 거라 매개체가 되어줄 델리게이트 변수
+	FDoTimerTick doTimerTick;
+	FNotifyTimerEnd notifyTimerEnd;
+	
+	auto TickTranslocator = [&, start, end](float deltaTime, float currentTime)->void
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Tick"));
+		FVector nextEnd = FMath::Lerp(start, end, currentTime / MoveTime);
+		TargetPlayer->SetActorLocation(nextEnd);
+	};
+	
+	auto EndTranslocator = [&, end](float deltaTime)->void
+	{
+		UE_LOG(LogTemp, Error, TEXT("End"));
+		TargetPlayer->SetActorLocation(end);
+	};
+
+	doTimerTick.BindLambda(TickTranslocator);
+	notifyTimerEnd.BindLambda(EndTranslocator);
+	
+	CoolTimerManagerComp->RegisterCoolTimerAll(timerHandle, 0.f, MoveTime, 0.0003f, doTimerTick, notifyTimerEnd);
 }
 

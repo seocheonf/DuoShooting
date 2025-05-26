@@ -29,14 +29,14 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ∏Æº“Ω∫ √£±‚
-	// IMC µÓ∑œ
+	// Î¶¨ÏÜåÏä§ Ï∞æÍ∏∞
+	// IMC Îì±Î°ù
 	{
 		ConstructorHelpers::FObjectFinder<UInputMappingContext> TempIMC(
 			TEXT("'/Game/DuoShooting/Inputs/Tracer/IMC_Tracer.IMC_Tracer'"));
 		if (TempIMC.Succeeded()) { IMC_SkillSystem = TempIMC.Object; }
 	}
-	// IA µÓ∑œ
+	// IA Îì±Î°ù
 	{
 		ConstructorHelpers::FObjectFinder<UInputAction> TempIA(
 			TEXT("'/Game/DuoShooting/Inputs/Tracer/IA_TracerBlink.IA_TracerBlink'"));
@@ -49,8 +49,20 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 	}
 
 	Records.Init(RecordLength);
-}
 
+	FTransformSnapshot test(FVector(1.0, 22.0, 333.0f), FRotator(10.3f, -119.1f, 50.5f));
+	Records.Push_Back(test);
+
+	bool empty;
+	FTransformSnapshot result = Records.Pop_Back(empty);
+
+	UE_LOG(LogTemp, Warning, TEXT("popbacktest: %s, %s"), *result.Location.ToString(), *result.Rotation.ToString());
+	if (empty)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("popbacktest: now empty"));
+	}
+	
+}
 
 // Called when the game starts
 void UTracerSkillSystemComponent::BeginPlay()
@@ -58,7 +70,7 @@ void UTracerSkillSystemComponent::BeginPlay()
 	Super::BeginPlay();
 
 	Owner = Cast<ATracerHero>(GetOwner());
-	if (!Owner) { UE_LOG(LogTemp, Warning, TEXT("UTracerSkillSystemComponentø°º≠ ATracerHero ≈∏¿‘¿« Owner∏¶ √£¡ˆ ∏¯«‘")); }
+	if (!Owner) { UE_LOG(LogTemp, Warning, TEXT("UTracerSkillSystemComponentÏóêÏÑú ATracerHero ÌÉÄÏûÖÏùò OwnerÎ•º Ï∞æÏßÄ Î™ªÌï®")); }
 
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordPoints,
 	                                       RecordInterval, true);
@@ -87,7 +99,7 @@ void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 
 void UTracerSkillSystemComponent::SetupHeroInputInfo(UEnhancedInputComponent* enhancedInputComponent)
 {
-	//Super::SetupHeroInputInfo(enhancedInputComponent); // ¿Ã∞≈ «Æ∏È ∆®±‰¥Ÿ
+	//Super::SetupHeroInputInfo(enhancedInputComponent); // Ïù¥Í±∞ ÌíÄÎ©¥ ÌäïÍ∏¥Îã§
 
 	enhancedInputComponent->BindAction(IA_Blink, ETriggerEvent::Started, this,
 	                                   &UTracerSkillSystemComponent::InputBlink);
@@ -102,44 +114,44 @@ void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 
 void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 {
-	CurrentSkillState = ETracerSkillState::RECALL;
+	ActivateRecall();
 }
 
-// ¡°∏Í »∞º∫»≠
+// Ï†êÎ©∏ ÌôúÏÑ±Ìôî
 void UTracerSkillSystemComponent::ActivateBlink()
 {
-	// ¿ÃπÃ Ω∫≈≥¿Ã Ω««‡¡ﬂ¿Ã∏È ∏Æ≈œ
+	// Ïù¥ÎØ∏ Ïä§ÌÇ¨Ïù¥ Ïã§ÌñâÏ§ëÏù¥Î©¥ Î¶¨ÌÑ¥
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("∆Æ∑π¿Ãº≠ ¡°∏Í »∞º∫»≠ ∫“∞° - CurrentSkillState∞° %s"),
+		UE_LOG(LogTemp, Warning, TEXT("Ìä∏Î†àÏù¥ÏÑú Ï†êÎ©∏ ÌôúÏÑ±Ìôî Î∂àÍ∞Ä - CurrentSkillStateÍ∞Ä %s"),
 		       *UEnum::GetValueAsString(CurrentSkillState));
 		return;
 	}
 
 	CurrentSkillState = ETracerSkillState::BLINK;
-	UE_LOG(LogTemp, Warning, TEXT("¡°∏Í »∞º∫»≠"));
+	UE_LOG(LogTemp, Warning, TEXT("Ï†êÎ©∏ ÌôúÏÑ±Ìôî"));
 
-	// ¿œ¡§ Ω√∞£ µ⁄ ∫Ò»∞º∫»≠«œ±‚
+	// ÏùºÏ†ï ÏãúÍ∞Ñ Îí§ ÎπÑÌôúÏÑ±ÌôîÌïòÍ∏∞
 	GetWorld()->GetTimerManager().SetTimer(BlinkTimerHandle, this, &UTracerSkillSystemComponent::DeactivateBlink,
 	                                       BlinkDuration,
 	                                       false);
 }
 
-// «¡∑π¿”∫∞ ¡°∏Í ∑Œ¡˜
+// ÌîÑÎ†àÏûÑÎ≥Ñ Ï†êÎ©∏ Î°úÏßÅ
 void UTracerSkillSystemComponent::TickBlink()
 {
-	// ¡°∏Í πÊ«‚
+	// Ï†êÎ©∏ Î∞©Ìñ•
 	FVector BlinkDirection;
 
-	// ¿œ¥‹, ZπÊ«‚¿ª æ¯æÿ ¡°∫∞πÊ«‚¿ª ∞ËªÍ«œ¿⁄
-	// ƒ≥∏Ø≈Õ∞° ¿Ãµø«œ∞Ì ¿÷¥Ÿ∏È «ÿ¥Á πÊ«‚¿∏∑Œ
+	// ÏùºÎã®, ZÎ∞©Ìñ•ÏùÑ ÏóÜÏï§ Ï†êÎ≥ÑÎ∞©Ìñ•ÏùÑ Í≥ÑÏÇ∞ÌïòÏûê
+	// Ï∫êÎ¶≠ÌÑ∞Í∞Ä Ïù¥ÎèôÌïòÍ≥† ÏûàÎã§Î©¥ Ìï¥Îãπ Î∞©Ìñ•ÏúºÎ°ú
 	FVector CurrentVelocity = Owner->GetCharacterMovement()->Velocity;
 	CurrentVelocity.Z = 0.0f;
 	if (!CurrentVelocity.IsNearlyZero())
 	{
 		BlinkDirection = CurrentVelocity.GetSafeNormal();
 	}
-	// ƒ≥∏Ø≈Õ ¿Ãµø¿Ã æ¯¿∏∏È ±◊≥… æ’πÊ«‚¿∏∑Œ
+	// Ï∫êÎ¶≠ÌÑ∞ Ïù¥ÎèôÏù¥ ÏóÜÏúºÎ©¥ Í∑∏ÎÉ• ÏïûÎ∞©Ìñ•ÏúºÎ°ú
 	else
 	{
 		BlinkDirection = Owner->GetActorForwardVector();
@@ -147,7 +159,7 @@ void UTracerSkillSystemComponent::TickBlink()
 		BlinkDirection.Normalize();
 	}
 
-	// ¥‹ ƒ≥∏Ø≈Õ∞° ∂•ø° ¥Íæ∆ ¿÷¥Ÿ∏È ∞ÊªÁ∑Œ±Ó¡ˆ ∞Ì∑¡«ÿº≠ Z√‡πÊ«‚¿ª √ﬂ∞°
+	// Îã® Ï∫êÎ¶≠ÌÑ∞Í∞Ä ÎïÖÏóê ÎãøÏïÑ ÏûàÎã§Î©¥ Í≤ΩÏÇ¨Î°úÍπåÏßÄ Í≥†Î†§Ìï¥ÏÑú ZÏ∂ïÎ∞©Ìñ•ÏùÑ Ï∂îÍ∞Ä
 	const FFindFloorResult& Floor = Owner->GetCharacterMovement()->CurrentFloor;
 	if (Floor.IsWalkableFloor())
 	{
@@ -157,7 +169,7 @@ void UTracerSkillSystemComponent::TickBlink()
 		BlinkDirection.Normalize();
 	}
 
-	// Ω«¡¶∑Œ øÚ¡˜¿Ã±‚
+	// Ïã§Ï†úÎ°ú ÏõÄÏßÅÏù¥Í∏∞
 	FHitResult Hit;
 	Owner->GetCharacterMovement()->SafeMoveUpdatedComponent(
 		BlinkDirection * BlinkSpeed * GetWorld()->GetDeltaSeconds(),
@@ -167,52 +179,50 @@ void UTracerSkillSystemComponent::TickBlink()
 	);
 }
 
-// ¡°∏Í ∫Ò»∞º∫»≠
+// Ï†êÎ©∏ ÎπÑÌôúÏÑ±Ìôî
 void UTracerSkillSystemComponent::DeactivateBlink()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
 
-	UE_LOG(LogTemp, Warning, TEXT("¡°∏Í ∫Ò»∞º∫»≠"));
+	UE_LOG(LogTemp, Warning, TEXT("Ï†êÎ©∏ ÎπÑÌôúÏÑ±Ìôî"));
 }
 
-// ≈•ø° ¿ßƒ° ±‚∑œ
+// ÌÅêÏóê ÏúÑÏπò Í∏∞Î°ù
 void UTracerSkillSystemComponent::RecordPoints()
 {
-	UE_LOG(LogTemp, Warning, TEXT("∆Æ∑π¿Ãº≠¥¬ ¡ˆ≥™ø‘¥¯ ±ÊµÈ¿ª ±‚∑œ ¡ﬂ"));
+	UE_LOG(LogTemp, Warning, TEXT("Ìä∏Î†àÏù¥ÏÑúÎäî ÏßÄÎÇòÏôîÎçò Í∏∏Îì§ÏùÑ Í∏∞Î°ù Ï§ë"));
 
 	FTransformSnapshot snapshot(Owner->GetActorLocation(), Owner->GetActorRotation());
 	Records.Push_Back(snapshot);
 }
 
-// Ω√∞£ ø™«‡ »∞º∫»≠
+// ÏãúÍ∞Ñ Ïó≠Ìñâ ÌôúÏÑ±Ìôî
 void UTracerSkillSystemComponent::ActivateRecall()
 {
-	// ¿ÃπÃ Ω∫≈≥¿Ã Ω««‡¡ﬂ¿Ã∏È ∏Æ≈œ
+	// Ïù¥ÎØ∏ Ïä§ÌÇ¨Ïù¥ Ïã§ÌñâÏ§ëÏù¥Î©¥ Î¶¨ÌÑ¥
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("∆Æ∑π¿Ãº≠ Ω√∞£ ø™«‡ »∞º∫»≠ ∫“∞° - CurrentSkillState∞° %s"),
+		UE_LOG(LogTemp, Warning, TEXT("Ìä∏Î†àÏù¥ÏÑú ÏãúÍ∞Ñ Ïó≠Ìñâ ÌôúÏÑ±Ìôî Î∂àÍ∞Ä - CurrentSkillStateÍ∞Ä %s"),
 			   *UEnum::GetValueAsString(CurrentSkillState));
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Ω√∞£ø™«‡ »∞º∫»≠"));
+	CurrentSkillState = ETracerSkillState::RECALL;
+	UE_LOG(LogTemp, Warning, TEXT("ÏãúÍ∞ÑÏó≠Ìñâ ÌôúÏÑ±Ìôî"));
 
-	// Ω√∞£ø™«‡øÎ ≈∏¿Ã∏”∑Œ ¿¸»Ø
+	// ÏãúÍ∞ÑÏó≠ÌñâÏö© ÌÉÄÏù¥Î®∏Î°ú Ï†ÑÌôò
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecallPoints,
 								   RecallInterval / RecordLength, true);
-
-	CurrentSkillState = ETracerSkillState::RECALL;
 }
 
-// ≈•ø°º≠ ¿ßƒ° ≤®≥ªº≠ ¿Ãµø«œ±‚
+// ÌÅêÏóêÏÑú ÏúÑÏπò Í∫ºÎÇ¥ÏÑú Ïù¥ÎèôÌïòÍ∏∞
 void UTracerSkillSystemComponent::RecallPoints()
 {
-
 	bool isEmpty;
 	FTransformSnapshot snapshot = Records.Pop_Back(isEmpty);
 	Owner->SetActorLocationAndRotation(snapshot.Location, snapshot.Rotation);
-	UE_LOG(LogTemp, Warning, TEXT("¡ˆ≥™ø‘¥¯ ±ÊµÈ¿ª ≤®≥ª ∫∏±‚ (%s, %s)"), *snapshot.Location.ToString(), *snapshot.Rotation.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("ÏßÄÎÇòÏôîÎçò Í∏∏Îì§ÏùÑ Í∫ºÎÇ¥ Î≥¥Í∏∞ (%s, %s)"), *snapshot.Location.ToString(), *snapshot.Rotation.ToString());
 
 	if (isEmpty)
 	{
@@ -220,14 +230,14 @@ void UTracerSkillSystemComponent::RecallPoints()
 	}
 }
 
-// Ω√∞£ ø™«‡ ∫Ò»∞º∫»≠
+// ÏãúÍ∞Ñ Ïó≠Ìñâ ÎπÑÌôúÏÑ±Ìôî
 void UTracerSkillSystemComponent::DeactivateRecall()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
 	
-	UE_LOG(LogTemp, Warning, TEXT("Ω√∞£ø™«‡ ∫Ò»∞º∫»≠"));
+	UE_LOG(LogTemp, Warning, TEXT("ÏãúÍ∞ÑÏó≠Ìñâ ÎπÑÌôúÏÑ±Ìôî"));
 
-	// Ω√∞£±‚∑œøÎ ≈∏¿Ã∏”∑Œ ¿¸»Ø
+	// ÏãúÍ∞ÑÍ∏∞Î°ùÏö© ÌÉÄÏù¥Î®∏Î°ú Ï†ÑÌôò
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordPoints,
 									   RecordInterval, true);

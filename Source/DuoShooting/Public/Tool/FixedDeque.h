@@ -56,7 +56,7 @@ void FixedDeque<T>::Push_Back(const T& element)
 template <typename T>
 T FixedDeque<T>::Pop_Back(bool& OutEmpty)
 {
-	CurrentHead = (CurrentHead - 1) % MaxSize;
+	CurrentHead = (CurrentHead - 1 + MaxSize) % MaxSize;
 	CurrentSize = FMath::Max(CurrentSize - 1 + MaxSize, 0);
 	OutEmpty = CurrentSize == 0;
 	return Elements[CurrentHead];

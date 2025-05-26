@@ -34,10 +34,9 @@ void UCoolTimerManagerComponent::TickComponent(float DeltaTime, ELevelTick TickT
 	// ...
 }
 
-FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle* timerHandle)
+FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle timerHandle)
 {
-	GetWorld()->GetTimerManager().ClearTimer(*timerHandle);
-	FNotifyTimerEnd notifyEnd;
+	FNotifyTimerEnd notifyEnd = nullptr;
 	if (CoolTimerContentsMap.Contains(timerHandle))
 	{
 		notifyEnd = CoolTimerContentsMap[timerHandle]->NotifyTimerEnd;
@@ -45,6 +44,7 @@ FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle* timerHandl
 		CoolTimerContentsMap[timerHandle] = nullptr;
 		CoolTimerContentsMap.Remove(timerHandle);
 	}
+	GetWorld()->GetTimerManager().ClearTimer(timerHandle);
 	return notifyEnd;
 }
 
@@ -55,20 +55,18 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, 
 {
 	UE_LOG(LogTemp, Error, TEXT("register start"));
 
-	if (CoolTimerContentsMap.Contains(&timerHandle))
+	if (CoolTimerContentsMap.Contains(timerHandle))
 	{
 		UE_LOG(LogTemp, Error, TEXT("register inner"));
 		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
-		CoolTimerContentsMap[&timerHandle] = nullptr;
-		CoolTimerContentsMap.Remove(&timerHandle);
+		CoolTimerContentsMap[timerHandle] = nullptr;
+		CoolTimerContentsMap.Remove(timerHandle);
 	}
 	
 	TSharedPtr<CoolTimerContents> coolTimerContents = MakeShared<CoolTimerContents>();
-	CoolTimerContentsMap.Add(&timerHandle, coolTimerContents);
 	
 	coolTimerContents->CurrentTime = startTime;
 	coolTimerContents->EndTime = endTime;
-	coolTimerContents->TimerHandle = &timerHandle;
 
 	if (nullptr != doTimerTick)
 		coolTimerContents->DoTimerTick.BindUObject(functionOwner, doTimerTick);
@@ -95,7 +93,10 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, 
 				}
 			}
 			
-		}, inRate, timerParameters);	
+		}, inRate, timerParameters);
+	
+	coolTimerContents->TimerHandle = timerHandle;
+	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
 };
 
 template <class UserClass>
@@ -115,20 +116,18 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 {
 	//UE_LOG(LogTemp, Error, TEXT("register start"));
 
-	if (CoolTimerContentsMap.Contains(&timerHandle))
+	if (CoolTimerContentsMap.Contains(timerHandle))
 	{
 		//UE_LOG(LogTemp, Error, TEXT("register inner"));
 		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
-		CoolTimerContentsMap[&timerHandle] = nullptr;
-		CoolTimerContentsMap.Remove(&timerHandle);
+		CoolTimerContentsMap[timerHandle] = nullptr;
+		CoolTimerContentsMap.Remove(timerHandle);
 	}
 	
 	TSharedPtr<CoolTimerContents> coolTimerContents = MakeShared<CoolTimerContents>();
-	CoolTimerContentsMap.Add(&timerHandle, coolTimerContents);
 	
 	coolTimerContents->CurrentTime = startTime;
 	coolTimerContents->EndTime = endTime;
-	coolTimerContents->TimerHandle = &timerHandle;
 
 	if (doTimerTick.IsBound())
 		coolTimerContents->DoTimerTick = doTimerTick;
@@ -156,4 +155,8 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 			}
 			
 		}, inRate, timerParameters);
+
+	coolTimerContents->TimerHandle = timerHandle;
+	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
+
 };

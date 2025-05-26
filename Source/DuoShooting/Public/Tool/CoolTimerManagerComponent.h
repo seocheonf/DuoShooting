@@ -24,7 +24,7 @@ public:
 	float EndTime;
 
 	//쿨타임 계산 제어 핸들
-	FTimerHandle* TimerHandle;
+	FTimerHandle TimerHandle;
 	//쿨타임 지속 시간동안 할 일
 	FDoTimerTick DoTimerTick;
 	//쿨타임 종료시 할 일
@@ -52,12 +52,12 @@ public:
 	//변수
 private:
 	//쿨타임 관리 대상이 되는 TimerHandle에 대해 쿨타임 계산에 필요한 정보 저장을 위한 자료구조.
-	TMap<FTimerHandle*, TSharedPtr<CoolTimerContents>> CoolTimerContentsMap;
+	TMap<FTimerHandle, TSharedPtr<CoolTimerContents>> CoolTimerContentsMap;
 	//함수
 private:
 public:
 	//쿨타임 관리 대상으로 부터 제거. notify end는 무시됨
-	FNotifyTimerEnd RemoveTimer(FTimerHandle* timerHandle);
+	FNotifyTimerEnd RemoveTimer(FTimerHandle timerHandle);
 
 	/**
 	 * 쿨타임 도중 할 일과, 쿨타임 종료 시 할 일을 모두 설정한다.

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "SkillSystemComponent.h"
+#include "Tool/FixedDeque.h"
 #include "TracerSkillSystemComponent.generated.h"
 
 UENUM(BlueprintType)
@@ -12,6 +13,21 @@ enum class ETracerSkillState : uint8
 	NONE UMETA(DisplayName = "없음"),
 	BLINK UMETA(DisplayName = "점멸"),
 	RECALL UMETA(DisplayName = "시간 역행")
+};
+
+USTRUCT(BlueprintType)
+struct FTransformSnapshot
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVector Location;
+
+	UPROPERTY()
+	FRotator Rotation;
+
+	FTransformSnapshot();
+	FTransformSnapshot(const FVector& Location, const FRotator& Rotation);
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -48,7 +64,7 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float BlinkDuration = 0.05f;
 	UPROPERTY(EditDefaultsOnly)
-	float BlinkDistance = 200.0f;
+	int32 BlinkSpeed = 20000;
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
 	// 시간 역행 관련
@@ -56,10 +72,12 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float RecordInterval = 0.05f;	// 얼마나 자주 기록할것인지
 	UPROPERTY(EditDefaultsOnly)
-	int32 RecordLength = 1000;		// 몇개까지 기록할 것인지
-	TQueue<FVector> RecordedPoints;	// 기록할 큐
+	int32 RecordLength = 100;		// 몇개까지 기록할 것인지
+	FixedDeque<FTransformSnapshot> Records;
+	UPROPERTY(VisibleAnywhere)
+	FTimerHandle RecallTimerHandle;
 	UPROPERTY(EditDefaultsOnly)
-	float RecallInterval = 0.05f;	// 
+	float RecallInterval = 1.0f;	// 얼마나 빨리 역행할것인지?
 
 protected:
 public:
@@ -78,8 +96,8 @@ private:
 	void DeactivateBlink();
 	// 시간 역행 관련
 	void RecordPoints();
+	void RecallPoints();
 	void ActivateRecall();
-	void TickRecall();
 	void DeactivateRecall();
 protected:
 public:

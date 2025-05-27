@@ -19,6 +19,32 @@ ATracerHero::ATracerHero()
 void ATracerHero::BeginPlay()
 {
 	Super::BeginPlay();
+
+	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
+}
+
+void ATracerHero::InputMove(const struct FInputActionValue& value)
+{
+	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::BLINK) return;
+	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::RECALL) return;
+	
+	Super::InputMove(value);
+}
+
+void ATracerHero::InputLook(const struct FInputActionValue& value)
+{
+	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::BLINK) return;
+	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::RECALL) return;
+
+	Super::InputLook(value);
+}
+
+void ATracerHero::InputJump(const struct FInputActionValue& value)
+{
+	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::BLINK) return;
+	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::RECALL) return;
+
+	Super::InputJump(value);
 }
 
 // Called every frame

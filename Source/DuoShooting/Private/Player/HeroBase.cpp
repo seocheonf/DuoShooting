@@ -60,7 +60,10 @@ AHeroBase::AHeroBase()
 	FirstPersonCameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComp->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComp->SetRelativeLocation(FVector(0.0f, 0.0f, 80.f));
+
+	// 로테이션 컨트롤 설정
 	FirstPersonCameraComp->bUsePawnControlRotation = true;
+	bUseControllerRotationYaw = true;
 
 	// 히트스캔 발사기 컴포넌트 생성
 	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("TestHitScanComponent"));

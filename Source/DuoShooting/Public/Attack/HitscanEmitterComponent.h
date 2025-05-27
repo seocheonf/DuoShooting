@@ -37,6 +37,7 @@ private:
 	class UCameraComponent* OwnerCamera;
 
 	bool bTriggered = false;
+	bool bEnabled = true;
 	
 	// 연사 간격
 	float HitScanInterval = 0.025f;
@@ -64,4 +65,8 @@ public:
 
 	// 연사 정지
 	void EndTrigger();
+
+	// 사격 활성화/비활성화
+	void Enable();
+	void Disable();
 };

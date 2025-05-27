@@ -6,6 +6,7 @@
 #include "InputMappingContext.h"
 #include "Camera/CameraComponent.h"
 #include "Player/HeroBase.h"
+#include "Player/SombraHero.h"
 #include "Skill/SombraSkill/TranslocatorProjectile.h"
 #include "Tool/CoolTimerManagerComponent.h"
 
@@ -66,7 +67,7 @@ void USombraSkillSystemComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+	SombraPlayer = Cast<ASombraHero>(TargetPlayer);
 }
 
 
@@ -112,8 +113,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 {
 	//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
 	{
-		TargetPlayer->SetMeshVisibility(false);
-		TargetPlayer->SetCollisionEnable(false);
+		SombraPlayer->SetDisAppearance();
 	}
 	
 	FVector start = TargetPlayer->GetActorLocation();
@@ -135,8 +135,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	{
 		//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
 		{
-			TargetPlayer->SetMeshVisibility(true);
-			TargetPlayer->SetCollisionEnable(true);
+			SombraPlayer->SetAppearance();
 		}
 		
 		UE_LOG(LogTemp, Error, TEXT("End"));

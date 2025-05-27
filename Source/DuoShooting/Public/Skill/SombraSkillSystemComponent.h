@@ -28,6 +28,9 @@ public:
 
 	//=====변수=====
 private:
+	//솜브라 객체
+	class ASombraHero* SombraPlayer;
+	
 	//솜브라 스킬 입력
 	class UInputAction* IA_EMP;
 	class UInputAction* IA_Hack;

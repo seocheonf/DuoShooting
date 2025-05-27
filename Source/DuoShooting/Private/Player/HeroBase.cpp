@@ -223,3 +223,17 @@ void AHeroBase::ReduceHealth(float hp)
 {
 	SetHealth(CurrentHealth - hp);
 }
+
+//==김형모==
+
+void AHeroBase::SetMeshVisibility(bool bVisible)
+{
+	GetMesh()->SetVisibility(bVisible);
+}
+
+void AHeroBase::SetCollisionEnable(bool bEnable)
+{
+	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+}
+
+//==김형모==

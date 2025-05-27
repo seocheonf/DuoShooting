@@ -13,7 +13,8 @@ enum class EHeroState : uint8
 	Attack,
 	Die,
 	NoSkill,
-	UnVisible,
+	InVisible,
+	NoCollsision,
 	LastIndex
 };
 
@@ -110,4 +111,15 @@ public:
 	//데미지 입기
 	void ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator, AActor* damageCauser);
 	UCameraComponent* GetCamera() const { return FirstPersonCameraComp; }
+
+	//==김형모==
+	
+	//캐릭터 메시 시각처리 켜고 끄기
+	void SetMeshVisibility(bool bVisible);
+	//캐릭터 충돌체 켜고(hit, overlap 충돌 처리) 끄기
+	void SetCollisionEnable(bool bEnable);
+
+	
+
+	//==김형모==
 };

@@ -1,8 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "DuoShooting/Public/Skill/SombraSkillSystemComponent.h"
-#include "InputMappingContext.h"
 
+#include "EnhancedInputComponent.h"
+#include "InputMappingContext.h"
+#include "Camera/CameraComponent.h"
+#include "Player/HeroBase.h"
+#include "Skill/SombraSkill/TranslocatorProjectile.h"
+#include "Tool/CoolTimerManagerComponent.h"
 
 // Sets default values for this component's properties
 USombraSkillSystemComponent::USombraSkillSystemComponent()
@@ -12,10 +17,45 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
+	
+	//솜브라 스킬 입력 불러오기
+	//EMP
+	ConstructorHelpers::FObjectFinder<UInputAction> ia_emp(TEXT("/Script/EnhancedInput.InputAction'/Game/DuoShooting/Inputs/Sombra/IA_SombraEMP.IA_SombraEMP'"));
+	if (ia_emp.Succeeded())
+	{
+		IA_EMP = ia_emp.Object;
+	}
+	//Hack
+	ConstructorHelpers::FObjectFinder<UInputAction> ia_hack(TEXT("/Script/EnhancedInput.InputAction'/Game/DuoShooting/Inputs/Sombra/IA_SombraHack.IA_SombraHack'"));
+	if (ia_emp.Succeeded())
+	{
+		IA_Hack = ia_hack.Object;
+	}
+	//Virus
+	ConstructorHelpers::FObjectFinder<UInputAction> ia_virus(TEXT("/Script/EnhancedInput.InputAction'/Game/DuoShooting/Inputs/Sombra/IA_SombraVirus.IA_SombraVirus'"));
+	if (ia_virus.Succeeded())
+	{
+		IA_Virus = ia_virus.Object;
+	}
+	//Translocator
+	ConstructorHelpers::FObjectFinder<UInputAction> ia_translocator(TEXT("/Script/EnhancedInput.InputAction'/Game/DuoShooting/Inputs/Sombra/IA_SombraTranslocator.IA_SombraTranslocator'"));
+	if (ia_translocator.Succeeded())
+	{
+		IA_Translocator = ia_translocator.Object;
+	}
+	
+	//솜브라 스킬에 대한 IMC 불러오기
 	ConstructorHelpers::FObjectFinder<UInputMappingContext> imc(TEXT("'/Game/DuoShooting/Inputs/Sombra/IMC_Sombra.IMC_Sombra'"));
 	if (imc.Succeeded())
 	{
 		IMC_SkillSystem = imc.Object; 
+	}
+
+	//발사체 원본 불러오기
+	ConstructorHelpers::FClassFinder<ATranslocatorProjectile> translocatorProjectile(TEXT("/Script/Engine.Blueprint'/Game/DuoShooting/Blueprints/Characters/Skill/Sombra/BP_TranslocatorProjectile.BP_TranslocatorProjectile_C'"));
+	if (translocatorProjectile.Succeeded())
+	{
+		OriginTranslocatorProjectile = translocatorProjectile.Class;
 	}
 }
 
@@ -41,8 +81,71 @@ void USombraSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 
 void USombraSkillSystemComponent::SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent)
 {
-	Super::SetupHeroInputInfo(enhancedInputComponent);
+	enhancedInputComponent->BindAction(IA_EMP, ETriggerEvent::Started, this, &USombraSkillSystemComponent::OnEMP);
+	enhancedInputComponent->BindAction(IA_Hack, ETriggerEvent::Triggered, this, &USombraSkillSystemComponent::OnHack);
+	enhancedInputComponent->BindAction(IA_Virus, ETriggerEvent::Started, this, &USombraSkillSystemComponent::OnVirus);
+	enhancedInputComponent->BindAction(IA_Translocator, ETriggerEvent::Started, this, &USombraSkillSystemComponent::OnTranslocator);
+}
 
+void USombraSkillSystemComponent::OnEMP(const struct FInputActionValue& value)
+{
 	
+}
+
+void USombraSkillSystemComponent::OnHack(const struct FInputActionValue& value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("OnHack"));
+}
+
+void USombraSkillSystemComponent::OnVirus(const struct FInputActionValue& value)
+{
+}
+
+void USombraSkillSystemComponent::OnTranslocator(const struct FInputActionValue& value)
+{
+	UCameraComponent* playerCamera = TargetPlayer->GetCamera();
+	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile);
+	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), playerCamera->GetForwardVector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
+}
+
+void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
+{
+	//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
+	{
+		TargetPlayer->SetMeshVisibility(false);
+		TargetPlayer->SetCollisionEnable(false);
+	}
+	
+	FVector start = TargetPlayer->GetActorLocation();
+	//이동 시 무적으로 할 거라 임시변수로 괜찮음. 중간에 끊을 일이 없을 것으로 판단
+	FTimerHandle timerHandle;
+
+	//람다식으로 넘길 거라 매개체가 되어줄 델리게이트 변수
+	FDoTimerTick doTimerTick;
+	FNotifyTimerEnd notifyTimerEnd;
+	
+	auto TickTranslocator = [&, start, end](float deltaTime, float currentTime)->void
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Tick"));
+		FVector nextEnd = FMath::Lerp(start, end, currentTime / MoveTime);
+		TargetPlayer->SetActorLocation(nextEnd);
+	};
+	
+	auto EndTranslocator = [&, end](float deltaTime)->void
+	{
+		//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
+		{
+			TargetPlayer->SetMeshVisibility(true);
+			TargetPlayer->SetCollisionEnable(true);
+		}
+		
+		UE_LOG(LogTemp, Error, TEXT("End"));
+		TargetPlayer->SetActorLocation(end);
+	};
+
+	doTimerTick.BindLambda(TickTranslocator);
+	notifyTimerEnd.BindLambda(EndTranslocator);
+	
+	CoolTimerManagerComp->RegisterCoolTimerAll(timerHandle, 0.f, MoveTime, 0.0003f, doTimerTick, notifyTimerEnd);
 }
 

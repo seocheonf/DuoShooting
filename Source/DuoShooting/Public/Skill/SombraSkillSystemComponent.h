@@ -28,14 +28,39 @@ public:
 
 	//=====변수=====
 private:
+	//솜브라 스킬 입력
+	class UInputAction* IA_EMP;
+	class UInputAction* IA_Hack;
+	class UInputAction* IA_Virus;
+	class UInputAction* IA_Translocator;
+
+	//솜브라 Translocator
+	//발사 속력
+	float ProjectileLaunchSpeed = 7200.f;
+	//공중 유지 시간
+	float ProjectileMaxFlyingTime = 0.25f;
+	//발사체 원본
+	UPROPERTY()
+	TSubclassOf<class ATranslocatorProjectile> OriginTranslocatorProjectile; 
+	
 protected:
 public:
-	//=====함수=====
+	//=====인터페이스 함수 구현=====
 protected:
 	virtual void SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent) override;
-public:
-	//==고유 함수 영역==
+	//=====솜브라 스킬 입력 반응 함수=====
 private:
-protected:
+	//솜브라 스킬에 반응하는 함수
+	void OnEMP(const struct FInputActionValue& value);
+	void OnHack(const struct FInputActionValue& value);
+	void OnVirus(const struct FInputActionValue& value);
+	void OnTranslocator(const struct FInputActionValue& value);
+
+	//=====위치 변환기=====
+private:
+	//이동 시간
+	float MoveTime = 0.25f;
 public:
+	//솜브라 스킬 외부 트리거
+	void TriggerTranslocator(FVector end);
 };

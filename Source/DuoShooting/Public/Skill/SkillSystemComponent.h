@@ -30,7 +30,7 @@ public:
 	virtual void InitializeComponent() override;
 
 	//============쿨타임 계산 매니저===========//
-private:
+protected:
 	class UCoolTimerManagerComponent* CoolTimerManagerComp;
 
 
@@ -80,4 +80,10 @@ protected:
 public:
 	//궁극기 게이지 충전. 일부 상황(궁극기 데미지, 궁극기 사용중 등)에선 충전되지 않음.
 	void ChargeUltimateGauge(int32 amount);
+
+
+	//============변수 받아오기=============//
+public:
+	AActor* GetTargetActor();
+	
 };

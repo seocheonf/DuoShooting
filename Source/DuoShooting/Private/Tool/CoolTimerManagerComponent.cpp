@@ -34,10 +34,9 @@ void UCoolTimerManagerComponent::TickComponent(float DeltaTime, ELevelTick TickT
 	// ...
 }
 
-FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle* timerHandle)
+FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle timerHandle)
 {
-	GetWorld()->GetTimerManager().ClearTimer(*timerHandle);
-	FNotifyTimerEnd notifyEnd;
+	FNotifyTimerEnd notifyEnd = nullptr;
 	if (CoolTimerContentsMap.Contains(timerHandle))
 	{
 		notifyEnd = CoolTimerContentsMap[timerHandle]->NotifyTimerEnd;
@@ -45,34 +44,34 @@ FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle* timerHandl
 		CoolTimerContentsMap[timerHandle] = nullptr;
 		CoolTimerContentsMap.Remove(timerHandle);
 	}
+	GetWorld()->GetTimerManager().ClearTimer(timerHandle);
 	return notifyEnd;
 }
 
 template <class UserClass>
-void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime,
-	float endTime, float inRate, void(UserClass::* doTick)(float), void(UserClass::* notifyEnd)(float))
+void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, FTimerHandle& timerHandle,
+	float startTime, float endTime, float inRate, void(UserClass::* doTimerTick)(float, float),
+	void(UserClass::* notifyTimerEnd)(float))
 {
 	UE_LOG(LogTemp, Error, TEXT("register start"));
 
-	if (CoolTimerContentsMap.Contains(&timerHandle))
+	if (CoolTimerContentsMap.Contains(timerHandle))
 	{
 		UE_LOG(LogTemp, Error, TEXT("register inner"));
 		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
-		CoolTimerContentsMap[&timerHandle] = nullptr;
-		CoolTimerContentsMap.Remove(&timerHandle);
+		CoolTimerContentsMap[timerHandle] = nullptr;
+		CoolTimerContentsMap.Remove(timerHandle);
 	}
 	
 	TSharedPtr<CoolTimerContents> coolTimerContents = MakeShared<CoolTimerContents>();
-	CoolTimerContentsMap.Add(&timerHandle, coolTimerContents);
 	
 	coolTimerContents->CurrentTime = startTime;
 	coolTimerContents->EndTime = endTime;
-	coolTimerContents->TimerHandle = &timerHandle;
 
-	if (nullptr != doTick)
-		coolTimerContents->DoTimerTick.BindUObject(functionOwner, doTick);
-	if (nullptr != notifyEnd)
-		coolTimerContents->NotifyTimerEnd.BindUObject(functionOwner, notifyEnd);
+	if (nullptr != doTimerTick)
+		coolTimerContents->DoTimerTick.BindUObject(functionOwner, doTimerTick);
+	if (nullptr != notifyTimerEnd)
+		coolTimerContents->NotifyTimerEnd.BindUObject(functionOwner, notifyTimerEnd);
 
 	FTimerManagerTimerParameters timerParameters(true, true);
 	
@@ -82,7 +81,7 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, 
 			coolTimerContents->CurrentTime += GetWorld()->DeltaTimeSeconds;
 			if (coolTimerContents->DoTimerTick.IsBound())
 			{
-				coolTimerContents->DoTimerTick.Execute(GetWorld()->DeltaTimeSeconds);
+				coolTimerContents->DoTimerTick.Execute(GetWorld()->DeltaTimeSeconds, coolTimerContents->CurrentTime);
 			}
 			if (coolTimerContents->CurrentTime >= coolTimerContents->EndTime)
 			{
@@ -95,19 +94,69 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, 
 			}
 			
 		}, inRate, timerParameters);
-}
+	
+	coolTimerContents->TimerHandle = timerHandle;
+	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
+};
 
 template <class UserClass>
-void UCoolTimerManagerComponent::RegisterCoolTimerDo(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime,
-	float endTime, float inRate, void(UserClass::* doTimerTick)(float))
+void UCoolTimerManagerComponent::RegisterCoolTimerDo(UserClass* functionOwner, FTimerHandle& timerHandle,
+	float startTime, float endTime, float inRate, void(UserClass::* doTimerTick)(float, float))
 {
 	RegisterTimerAll(functionOwner, timerHandle, startTime, endTime, inRate, doTimerTick, static_cast<void(UserClass::*)(float)>(nullptr));
-}
+};
 
 template <class UserClass>
-void UCoolTimerManagerComponent::RegisterCoolTimerEnd(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime,
-	float endTime, float inRate, void(UserClass::* notifyTimerEnd)(float))
+void UCoolTimerManagerComponent::RegisterCoolTimerEnd(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*notifyTimerEnd)(float))
 {
 	RegisterTimerAll(functionOwner, timerHandle, startTime, endTime, inRate, static_cast<void(UserClass::*)(float)>(nullptr), notifyTimerEnd);
-}
+};
 
+void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle, float startTime, float endTime, float inRate, FDoTimerTick& doTimerTick, FNotifyTimerEnd& notifyTimerEnd)
+{
+	//UE_LOG(LogTemp, Error, TEXT("register start"));
+
+	if (CoolTimerContentsMap.Contains(timerHandle))
+	{
+		//UE_LOG(LogTemp, Error, TEXT("register inner"));
+		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
+		CoolTimerContentsMap[timerHandle] = nullptr;
+		CoolTimerContentsMap.Remove(timerHandle);
+	}
+	
+	TSharedPtr<CoolTimerContents> coolTimerContents = MakeShared<CoolTimerContents>();
+	
+	coolTimerContents->CurrentTime = startTime;
+	coolTimerContents->EndTime = endTime;
+
+	if (doTimerTick.IsBound())
+		coolTimerContents->DoTimerTick = doTimerTick;
+	if (notifyTimerEnd.IsBound())
+		coolTimerContents->NotifyTimerEnd = notifyTimerEnd;
+
+	FTimerManagerTimerParameters timerParameters(true, true);
+	
+	GetWorld()->GetTimerManager().SetTimer(timerHandle,
+		[this, coolTimerContents]()
+		{
+			coolTimerContents->CurrentTime += GetWorld()->DeltaTimeSeconds;
+			if (coolTimerContents->DoTimerTick.IsBound())
+			{
+				coolTimerContents->DoTimerTick.Execute(GetWorld()->DeltaTimeSeconds, coolTimerContents->CurrentTime);
+			}
+			if (coolTimerContents->CurrentTime >= coolTimerContents->EndTime)
+			{
+				float excessDeltaTime = coolTimerContents->CurrentTime - coolTimerContents->EndTime;
+				FNotifyTimerEnd notifyEnd = RemoveTimer(coolTimerContents->TimerHandle);
+				if (notifyEnd.IsBound())
+				{
+					notifyEnd.Execute(excessDeltaTime);
+				}
+			}
+			
+		}, inRate, timerParameters);
+
+	coolTimerContents->TimerHandle = timerHandle;
+	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
+
+};

@@ -91,4 +91,9 @@ void USkillSystemComponent::ChargeUltimateGauge(int32 amount)
 	SetCurrentUltimateSkillGauge(cur);
 }
 
+AActor* USkillSystemComponent::GetTargetActor()
+{
+	return Cast<AActor>(TargetPlayer);
+}
+
 

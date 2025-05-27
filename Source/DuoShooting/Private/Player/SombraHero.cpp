@@ -30,5 +30,7 @@ void ASombraHero::Tick(float DeltaTime)
 void ASombraHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	
 }
 

@@ -51,6 +51,7 @@ void FixedDeque<T>::Push_Back(const T& element)
 	Elements[CurrentHead] = element;
 	CurrentHead = (CurrentHead + 1) % MaxSize;
 	CurrentSize = FMath::Min(CurrentSize + 1, MaxSize);
+	UE_LOG(LogTemp, Warning, TEXT("FixedDeque Current Head : %d"), CurrentHead);
 }
 
 template <typename T>
@@ -59,6 +60,7 @@ T FixedDeque<T>::Pop_Back(bool& OutEmpty)
 	CurrentHead = (CurrentHead - 1 + MaxSize) % MaxSize;
 	CurrentSize = FMath::Max(CurrentSize - 1 + MaxSize, 0);
 	OutEmpty = CurrentSize == 0;
+	UE_LOG(LogTemp, Warning, TEXT("FixedDeque Current Head : %d"), CurrentHead);
 	return Elements[CurrentHead];
 }
 

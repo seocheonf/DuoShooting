@@ -15,19 +15,23 @@ enum class ETracerSkillState : uint8
 	RECALL UMETA(DisplayName = "시간 역행")
 };
 
+// 트레이서가 시간역행을 위해 일정 주기로 기록할 정보 구조체
 USTRUCT(BlueprintType)
-struct FTransformSnapshot
+struct FTracerRecallInfo
 {
 	GENERATED_BODY()
 
 	UPROPERTY()
 	FVector Location;
 
-	UPROPERTY()
-	FRotator Rotation;
+	UPROPERTY()	// 이렇게 배치하면 패딩되나?
+	float Health;
 
-	FTransformSnapshot();
-	FTransformSnapshot(const FVector& Location, const FRotator& Rotation);
+	UPROPERTY()
+	FVector2D ControlRotation;
+
+	FTracerRecallInfo();
+	FTracerRecallInfo(const FVector& location, float controlRot_Pitch, float controlRot_Yaw, float health);
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -62,23 +66,23 @@ private:
 	ETracerSkillState CurrentSkillState;
 	// 점멸 관련
 	UPROPERTY(EditDefaultsOnly)
-	float BlinkDuration = 0.05f;	// 걸리는 시간
+	float BlinkDuration = 0.1f;		// 걸리는 시간
 	UPROPERTY(EditDefaultsOnly)
-	int32 BlinkSpeed = 20000;		// 점멸 속도
+	int32 BlinkSpeed = 7000;		// 점멸 속도
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
+	FVector TestStartLocation;
 	// 시간 역행 관련
 	// 리콜할 레코드(기록) 정보
 	UPROPERTY(EditDefaultsOnly)
-	float RecordInterval = 0.05f;	// 얼마나 자주 기록할것인지
+	float RecordInterval = 0.03f;	// 몇초마다 기록할것인지
 	UPROPERTY(EditDefaultsOnly)
 	int32 RecordLength = 100;		// 몇개까지 기록할 것인지
-	FixedDeque<FTransformSnapshot> Records; // 기록 컨테이너
+	FixedDeque<FTracerRecallInfo> Records; // 기록 컨테이너
+	UPROPERTY(EditDefaultsOnly)
+	float RecallInterval = 0.91f;	// 몇초만에 역행할것인지?
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle RecallTimerHandle;
-	UPROPERTY(EditDefaultsOnly)
-	float RecallInterval = 2.0f;	// 몇초만에 역행할것인지?
-
 protected:
 public:
 	//=====함수=====
@@ -95,9 +99,10 @@ private:
 	void TickBlink();
 	void DeactivateBlink();
 	// 시간 역행 관련
-	void RecordPoints();
-	void RecallPoints();
+	void RecordInfo();
+	void RecallInfo();
 	void ActivateRecall();
+	void TickRecall(float DeltaTime);
 	void DeactivateRecall();
 protected:
 public:

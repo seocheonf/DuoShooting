@@ -86,9 +86,6 @@ private:
 	// 기본 인풋(사격)
 	virtual void InputFire_Enter(const struct FInputActionValue& value);
 	virtual void InputFire_Exit(const struct FInputActionValue& value);
-	// 체력 변경
-	void SetHealth(float hp);
-	void ReduceHealth(float hp);
 	//스킬 시스템에 본인과 본인의 입력을 등록하는 함수입니다.
 	void InitSkillSystemInput(class UInputComponent* playerInputComponent);
 	//영웅 상태 bitmask 계산 추가
@@ -109,6 +106,11 @@ public:
 	TArray<EHeroState> GetCurrentHeroState();
 	UCameraComponent* GetCamera() const { return FirstPersonCameraComp; }
 	float GetDefaultSpeed() const { return DefaultSpeed; }
+	// 체력 Get/Set
+	float GetHealth(float percent = false);
+	void SetHealth(float hp);
+	void AddHealth(float hp);
+
 	UHitscanEmitterComponent* GetHitscanEmitter() const { return HitscanEmitterComp; }
 	//데미지 입기
 	void ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator, AActor* damageCauser);

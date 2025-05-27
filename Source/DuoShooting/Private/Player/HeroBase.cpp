@@ -213,7 +213,13 @@ void AHeroBase::ApplyDamage(float damage, FDamageEvent const& damageEvent, ACont
 	// 피해를 준 컨트롤러와 액터 정보가 전송되므로 팀 관련 처리시 이부분이 쓰일지도?
 	float actualDamage = TakeDamage(damage, damageEvent, instigator, damageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
-	ReduceHealth(actualDamage);
+	AddHealth(-actualDamage);
+}
+
+float AHeroBase::GetHealth(float percent)
+{
+	if (percent) return CurrentHealth / MaxHealth;
+	else return CurrentHealth;
 }
 
 void AHeroBase::SetHealth(float hp)
@@ -222,9 +228,9 @@ void AHeroBase::SetHealth(float hp)
 	UE_LOG(LogTemp, Warning, TEXT("%s의 체력이 %f가 되었습니다"), *GetName(), CurrentHealth);
 }
 
-void AHeroBase::ReduceHealth(float hp)
+void AHeroBase::AddHealth(float hp)
 {
-	SetHealth(CurrentHealth - hp);
+	SetHealth(CurrentHealth + hp);
 }
 
 //==김형모==

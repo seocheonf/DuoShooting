@@ -120,22 +120,8 @@ void UTracerSkillSystemComponent::ActivateBlink()
 
 	CurrentSkillState = ETracerSkillState::BLINK;
 	UE_LOG(LogTemp, Warning, TEXT("점멸 활성화"));
-
-	// 일정 시간 뒤 비활성화하기
-	GetWorld()->GetTimerManager().SetTimer(BlinkTimerHandle, this, &UTracerSkillSystemComponent::DeactivateBlink,
-		BlinkDuration,
-		false);
-
-	TestStartLocation = Owner->GetActorLocation();
-}
-
-// 프레임별 점멸 로직
-void UTracerSkillSystemComponent::TickBlink()
-{
-	// 점멸 방향
-	FVector BlinkDirection;
-
-	// 일단, Z방향을 없앤 점별방향을 계산하자
+	
+	// 일단, Z방향을 없앤 점별방향 계산
 	// 캐릭터가 이동하고 있다면 해당 방향으로
 	FVector CurrentVelocity = Owner->GetCharacterMovement()->Velocity;
 	CurrentVelocity.Z = 0.0f;
@@ -150,21 +136,34 @@ void UTracerSkillSystemComponent::TickBlink()
 		BlinkDirection.Z = 0.0f;
 		BlinkDirection.Normalize();
 	}
+	
+	// 일정 시간 뒤 비활성화 예약
+	GetWorld()->GetTimerManager().SetTimer(BlinkTimerHandle, this, &UTracerSkillSystemComponent::DeactivateBlink,
+		BlinkDuration,
+		false);
 
-	// 단 캐릭터가 땅에 닿아 있다면 경사로까지 고려해서 Z축방향을 추가
+	TestStartLocation = Owner->GetActorLocation();
+}
+
+// 프레임별 점멸 로직
+void UTracerSkillSystemComponent::TickBlink()
+{
+	FVector SlopedBlinkDirection = BlinkDirection;
+	
+	// 캐릭터가 땅에 닿아 있다면 경사로까지 고려해서 Z축방향을 추가
 	const FFindFloorResult& Floor = Owner->GetCharacterMovement()->CurrentFloor;
 	if (Floor.IsWalkableFloor())
 	{
 		FVector FloorNormal = Floor.HitResult.ImpactNormal;
-		FVector SlopeRight = FVector::CrossProduct(FloorNormal, BlinkDirection);
-		BlinkDirection = FVector::CrossProduct(SlopeRight, FloorNormal);
-		BlinkDirection.Normalize();
+		FVector SlopeRight = FVector::CrossProduct(FloorNormal, SlopedBlinkDirection);
+		SlopedBlinkDirection = FVector::CrossProduct(SlopeRight, FloorNormal);
+		SlopedBlinkDirection.Normalize();
 	}
-
+	
 	// 실제로 움직이기
 	FHitResult Hit;
 	Owner->GetCharacterMovement()->SafeMoveUpdatedComponent(
-		BlinkDirection * BlinkSpeed * GetWorld()->GetDeltaSeconds(),
+		SlopedBlinkDirection * BlinkSpeed * GetWorld()->GetDeltaSeconds(),
 		Owner->GetActorRotation(),
 		true,
 		Hit

@@ -71,6 +71,7 @@ private:
 	int32 BlinkSpeed = 7000;		// 점멸 속도
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
+	FVector BlinkDirection;			// 점멸 방향
 	FVector TestStartLocation;
 	// 시간 역행 관련
 	// 리콜할 레코드(기록) 정보

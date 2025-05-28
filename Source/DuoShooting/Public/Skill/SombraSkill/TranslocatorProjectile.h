@@ -57,6 +57,9 @@ private:
 
 	//==시간 만료로 인한 종료 체크==//
 	bool bStop = false;
+
+	//operate를 했는지 여부. 한번 operate하면, 더이상 operate가 되지 말아야 함. 그 친구의 역할은 한번 하고 끝나니까.  
+	bool bOperation = false;
 	
 	//==초기화==
 #if WITH_EDITOR

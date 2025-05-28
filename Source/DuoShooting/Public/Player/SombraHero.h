@@ -59,6 +59,8 @@ protected:
 public:
 	//=====함수=====
 protected:
+	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)
+	void SetVisibilityAlpha(float alpha);
 public:
 	//모습과 충돌 드러냄 (모습은 현재 은신 여부에 영향을 받음)
 	void SetAppearance();
@@ -70,8 +72,6 @@ public:
 	void ExitStealth();
 	//은신 세부 상태 변환
 	void SetStealthState(EStealthState newState);
-	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)
-	void SetVisibilityAlpha(float alpha);
 	
 	//==고유 함수 영역==
 private:

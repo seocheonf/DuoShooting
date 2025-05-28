@@ -59,9 +59,14 @@ private:
 	class ATracerHero* Owner;
 	// Input
 	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_PulseBomb;
+	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* IA_Blink;
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* IA_Recall;
+	// 펄스 폭탄(궁극기) 관련
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class APulseBomb> PulseBombFactory;
 	// 현재 상태
 	ETracerSkillState CurrentSkillState;
 	// 점멸 관련
@@ -95,6 +100,9 @@ private:
 	// Input
 	void InputBlink(const struct FInputActionValue& value);
 	void InputRecall(const struct FInputActionValue& value);
+	void InputPulseBomb(const struct FInputActionValue& value);
+	// 펄스 폭탄 던지기
+	void ThrowPulseBomb();
 	// 점멸 관련
 	void ActivateBlink();
 	void TickBlink();

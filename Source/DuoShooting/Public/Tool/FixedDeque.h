@@ -5,8 +5,7 @@
 #include "CoreMinimal.h"
 
 // 트레이서의 시간역행을 위한 커스텀 컨테이너
-// Push Back - 큐 : 고정된 크기를 가지고 현재 헤드 사이즈를 늘려가며 가장 오래된 원소를 덮어씌우는 식이다
-// Pop Back - 스택 : 가장 최근것을 스택식으로 빼내고, 사이즈를 줄인다
+// 기록은 큐같이, 가져올때는 스택같이
 template <typename T>
 class DUOSHOOTING_API FixedDeque
 {

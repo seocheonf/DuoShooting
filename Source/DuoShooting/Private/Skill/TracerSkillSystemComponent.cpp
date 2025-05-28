@@ -7,9 +7,9 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "Attack/HitscanEmitterComponent.h"
-#include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/TracerHero.h"
+#include "Skill/TracerSkill/PulseBomb.h"
 
 
 FTracerRecallInfo::FTracerRecallInfo()
@@ -17,7 +17,8 @@ FTracerRecallInfo::FTracerRecallInfo()
 {
 }
 
-FTracerRecallInfo::FTracerRecallInfo(const FVector& location, float controlRot_Pitch, float controlRot_Yaw, float health)
+FTracerRecallInfo::FTracerRecallInfo(const FVector& location, float controlRot_Pitch, float controlRot_Yaw,
+                                     float health)
 {
 	Location = location;
 	ControlRotation.X = controlRot_Pitch;
@@ -43,6 +44,11 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 	// IA 등록
 	{
 		ConstructorHelpers::FObjectFinder<UInputAction> TempIA(
+			TEXT("'/Game/DuoShooting/Inputs/Tracer/IA_TracerPulseBomb.IA_TracerPulseBomb'"));
+		if (TempIA.Succeeded()) { IA_PulseBomb = TempIA.Object; }
+	}
+	{
+		ConstructorHelpers::FObjectFinder<UInputAction> TempIA(
 			TEXT("'/Game/DuoShooting/Inputs/Tracer/IA_TracerBlink.IA_TracerBlink'"));
 		if (TempIA.Succeeded()) { IA_Blink = TempIA.Object; }
 	}
@@ -51,6 +57,13 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 			TEXT("'/Game/DuoShooting/Inputs/Tracer/IA_TracerRecall.IA_TracerRecall'"));
 		if (TempIA.Succeeded()) { IA_Recall = TempIA.Object; }
 	}
+	// 발사체 원본
+	{
+		ConstructorHelpers::FClassFinder<APulseBomb> TempClass(
+			TEXT("'/Game/DuoShooting/Blueprints/Characters/Skill/Tracer/BP_PulseBomb.BP_PulseBomb_C'"));
+		if (TempClass.Succeeded()) { PulseBombFactory = TempClass.Class; }
+	}
+
 
 	Records.Init(RecordLength);
 }
@@ -64,13 +77,13 @@ void UTracerSkillSystemComponent::BeginPlay()
 	if (!Owner) { UE_LOG(LogTemp, Warning, TEXT("UTracerSkillSystemComponent에서 ATracerHero 타입의 Owner를 찾지 못함")); }
 
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordInfo,
-		RecordInterval, true);
+	                                       RecordInterval, true);
 }
 
 
 // Called every frame
 void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-	FActorComponentTickFunction* ThisTickFunction)
+                                                FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -92,9 +105,11 @@ void UTracerSkillSystemComponent::SetupHeroInputInfo(UEnhancedInputComponent* en
 	//Super::SetupHeroInputInfo(enhancedInputComponent); // 이거 풀면 튕긴다
 
 	enhancedInputComponent->BindAction(IA_Blink, ETriggerEvent::Started, this,
-		&UTracerSkillSystemComponent::InputBlink);
+	                                   &UTracerSkillSystemComponent::InputBlink);
 	enhancedInputComponent->BindAction(IA_Recall, ETriggerEvent::Started, this,
-		&UTracerSkillSystemComponent::InputRecall);
+	                                   &UTracerSkillSystemComponent::InputRecall);
+	enhancedInputComponent->BindAction(IA_PulseBomb, ETriggerEvent::Started, this,
+								   &UTracerSkillSystemComponent::InputPulseBomb);
 }
 
 void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
@@ -107,6 +122,24 @@ void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 	ActivateRecall();
 }
 
+void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue& value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Input Pulse Bomb"));
+	ThrowPulseBomb();
+}
+
+void UTracerSkillSystemComponent::ThrowPulseBomb()
+{
+	FVector TempStart;
+	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
+	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
+
+	FVector TempDir = Owner->GetActorForwardVector();
+	TempDir.Z = TempDir.Z + 1.0f;
+	if (bomb)
+		bomb->Launch(TempDir, 500.0f);
+}
+
 // 점멸 활성화
 void UTracerSkillSystemComponent::ActivateBlink()
 {
@@ -114,14 +147,14 @@ void UTracerSkillSystemComponent::ActivateBlink()
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 활성화 불가 - CurrentSkillState가 %s"),
-			*UEnum::GetValueAsString(CurrentSkillState));
+		       *UEnum::GetValueAsString(CurrentSkillState));
 		return;
 	}
 
 	CurrentSkillState = ETracerSkillState::BLINK;
 	UE_LOG(LogTemp, Warning, TEXT("점멸 활성화"));
-	
-	// 일단, Z방향을 없앤 점별방향 계산
+
+	// 일단, Z방향을 없앤 점멸방향 계산
 	// 캐릭터가 이동하고 있다면 해당 방향으로
 	FVector CurrentVelocity = Owner->GetCharacterMovement()->Velocity;
 	CurrentVelocity.Z = 0.0f;
@@ -136,11 +169,11 @@ void UTracerSkillSystemComponent::ActivateBlink()
 		BlinkDirection.Z = 0.0f;
 		BlinkDirection.Normalize();
 	}
-	
+
 	// 일정 시간 뒤 비활성화 예약
 	GetWorld()->GetTimerManager().SetTimer(BlinkTimerHandle, this, &UTracerSkillSystemComponent::DeactivateBlink,
-		BlinkDuration,
-		false);
+	                                       BlinkDuration,
+	                                       false);
 
 	TestStartLocation = Owner->GetActorLocation();
 }
@@ -149,7 +182,7 @@ void UTracerSkillSystemComponent::ActivateBlink()
 void UTracerSkillSystemComponent::TickBlink()
 {
 	FVector SlopedBlinkDirection = BlinkDirection;
-	
+
 	// 캐릭터가 땅에 닿아 있다면 경사로까지 고려해서 Z축방향을 추가
 	const FFindFloorResult& Floor = Owner->GetCharacterMovement()->CurrentFloor;
 	if (Floor.IsWalkableFloor())
@@ -159,7 +192,8 @@ void UTracerSkillSystemComponent::TickBlink()
 		SlopedBlinkDirection = FVector::CrossProduct(SlopeRight, FloorNormal);
 		SlopedBlinkDirection.Normalize();
 	}
-	
+	//UE_LOG(LogTemp, Warning, TEXT("SlopedBlinkDirection %s"), *SlopedBlinkDirection.ToString());
+
 	// 실제로 움직이기
 	FHitResult Hit;
 	Owner->GetCharacterMovement()->SafeMoveUpdatedComponent(
@@ -174,14 +208,16 @@ void UTracerSkillSystemComponent::TickBlink()
 void UTracerSkillSystemComponent::DeactivateBlink()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
-	UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 통계: %f의 거리 이동"), FVector::Dist(TestStartLocation, Owner->GetActorLocation()));
+	UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 통계: %f의 거리 이동"),
+	       FVector::Dist(TestStartLocation, Owner->GetActorLocation()));
 	UE_LOG(LogTemp, Warning, TEXT("점멸 비활성화"));
 }
 
 // 큐에 위치 기록
 void UTracerSkillSystemComponent::RecordInfo()
 {
-	FTracerRecallInfo snapshot(Owner->GetActorLocation(), Owner->GetControlRotation().Pitch, Owner->GetControlRotation().Yaw, Owner->GetHealth());
+	FTracerRecallInfo snapshot(Owner->GetActorLocation(), Owner->GetControlRotation().Pitch,
+	                           Owner->GetControlRotation().Yaw, Owner->GetHealth());
 	Records.Push_Back(snapshot);
 }
 
@@ -192,7 +228,7 @@ void UTracerSkillSystemComponent::ActivateRecall()
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("트레이서 시간 역행 활성화 불가 - CurrentSkillState가 %s"),
-			*UEnum::GetValueAsString(CurrentSkillState));
+		       *UEnum::GetValueAsString(CurrentSkillState));
 		return;
 	}
 
@@ -208,7 +244,7 @@ void UTracerSkillSystemComponent::ActivateRecall()
 	// 시간역행용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecallInfo,
-		RecallInterval / RecordLength, true);
+	                                       RecallInterval / RecordLength, true);
 
 	//// 튐 방지 위해 IntervalTarget을 현재값으로 채워준다
 	//IntervalTarget.Location = Owner->GetActorLocation();
@@ -248,6 +284,7 @@ void UTracerSkillSystemComponent::RecallInfo()
 	{
 		FRotator fr(info.ControlRotation.X, info.ControlRotation.Y, 0.0f);
 		Owner->SetActorLocation(info.Location);
+		Owner->SetHealth(info.Health);
 
 		if (AController* ownerController = Owner->GetController())
 			ownerController->SetControlRotation(fr);
@@ -279,7 +316,7 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 	// 시간기록용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordInfo,
-		RecordInterval, true);
+	                                       RecordInterval, true);
 }
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }

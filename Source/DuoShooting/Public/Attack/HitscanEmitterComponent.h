@@ -36,8 +36,19 @@ private:
 	UPROPERTY()
 	class UCameraComponent* OwnerCamera;
 
-	bool bTriggered = false;
+	// 최대 총알 개수
+	UPROPERTY(EditAnywhere)	
+	int32 MaxBullet = 100;
+	
+	// 현재 총알 개수
+	UPROPERTY(EditAnywhere)
+	int32 CurrentBullet = 100;
+	
+	// 사격 가능한지 (인풋 막기용)
 	bool bEnabled = true;
+	
+	// 사격이 트리거되었는지 (트리거되어있으면 연사)
+	bool bTriggered = false;
 	
 	// 연사 간격
 	float HitScanInterval = 0.025f;
@@ -55,18 +66,19 @@ private:
 	// 에임 드리프트
 	float AimDriftScalar;	// 한발당 반동값
 	float MaxAimDrift;		// 에임드리프트 최대각도
-
-	// 하나 쏘기
+	
+	// 한발 쏘기
 	void SingleLineTrace();
 	
 public:
-	// 연사 시작
+	// 연사 시작/정지
 	void StartTrigger();
-
-	// 연사 정지
 	void EndTrigger();
 
 	// 사격 활성화/비활성화
 	void Enable();
 	void Disable();
+
+	// 총알 채우기
+	void ReloadBullet();
 };

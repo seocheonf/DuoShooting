@@ -134,6 +134,7 @@ void UTracerSkillSystemComponent::ThrowPulseBomb()
 	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
 	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
 
+	// 일단 앞의 적당한 방향에 던져보는 걸로
 	FVector TempDir = Owner->GetActorForwardVector();
 	TempDir.Z = TempDir.Z + 1.0f;
 	if (bomb)

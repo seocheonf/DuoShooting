@@ -46,10 +46,6 @@ private:
 	float MaxHealth = 100.0f;
 	UPROPERTY(EditAnywhere)	// 현재 체력
 	float CurrentHealth = 100.0f;
-	UPROPERTY(EditAnywhere)	// 최대 총알 개수
-	float MaxBullet;
-	UPROPERTY(EditAnywhere)	// 현재 총알 개수
-	float CurrentBullet;
 	UPROPERTY(EditAnywhere)	// 기본 스피드
 	float DefaultSpeed = 400.0f;
 	//히어로 공통 인풋

@@ -37,16 +37,24 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
                                              FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	
+	if (!bEnabled) return;
+	if (!bTriggered) return;
+	if (CurrentBullet <= 0) return;
+	
 	// 트리거되어있다면 연사
-	if (bTriggered && bEnabled)
+	FireTimer += DeltaTime;
+	if (FireTimer >= HitScanInterval)
 	{
-		FireTimer += DeltaTime;
-		if (FireTimer >= HitScanInterval)
-		{
-			SingleLineTrace();
-			FireTimer = 0.0f;
-		}
+		SingleLineTrace();
+
+		// 총알 쓰기
+		CurrentBullet--;
+
+		// 타이머 초기화
+		FireTimer = 0.0f;
+
+		UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
 	}
 }
 
@@ -88,9 +96,8 @@ void UHitscanEmitterComponent::SingleLineTrace()
 			damageEvent.HitInfo = Result;
 
 			// 피해 주기
+			//hero->TakeDamage(DamageAmount, damageEvent, Owner->GetController(), Owner);
 			UGameplayStatics::ApplyDamage(hero, DamageAmount, Owner->GetController(), Owner, UDamageType::StaticClass());
-
-			hero->TakeDamage(DamageAmount, damageEvent, Owner->GetController(), Owner);
 		}
 	}
 }
@@ -124,3 +131,8 @@ void UHitscanEmitterComponent::Disable()
 	UE_LOG(LogTemp, Warning, TEXT("총 비활성화"));
 }
 
+void UHitscanEmitterComponent::ReloadBullet()
+{
+	CurrentBullet = MaxBullet;
+	FireTimer = 1000.0f; // 충분히 큰 수
+}

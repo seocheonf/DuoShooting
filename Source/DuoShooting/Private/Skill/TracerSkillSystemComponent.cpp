@@ -3,10 +3,11 @@
 
 #include "DuoShooting/Public/Skill/TracerSkillSystemComponent.h"
 
-#include "BlueprintEditor.h"
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
+#include "Attack/HitscanEmitterComponent.h"
+#include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Player/TracerHero.h"
 
@@ -17,7 +18,7 @@ FTransformSnapshot::FTransformSnapshot()
 }
 
 FTransformSnapshot::FTransformSnapshot(const FVector& Location, const FRotator& Rotation)
-	: Location(FVector::ZeroVector), Rotation(FRotator::ZeroRotator)
+	: Location(Location), Rotation(Rotation)
 {
 }
 
@@ -49,19 +50,6 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 	}
 
 	Records.Init(RecordLength);
-
-	FTransformSnapshot test(FVector(1.0, 22.0, 333.0f), FRotator(10.3f, -119.1f, 50.5f));
-	Records.Push_Back(test);
-
-	bool empty;
-	FTransformSnapshot result = Records.Pop_Back(empty);
-
-	UE_LOG(LogTemp, Warning, TEXT("popbacktest: %s, %s"), *result.Location.ToString(), *result.Rotation.ToString());
-	if (empty)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("popbacktest: now empty"));
-	}
-	
 }
 
 // Called when the game starts
@@ -87,12 +75,10 @@ void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	{
 	case ETracerSkillState::BLINK:
 		TickBlink();
-		RecordPoints();
 		break;
 	case ETracerSkillState::RECALL:
 		break;
 	default:
-		RecordPoints();
 		break;
 	}
 }
@@ -190,9 +176,7 @@ void UTracerSkillSystemComponent::DeactivateBlink()
 // 큐에 위치 기록
 void UTracerSkillSystemComponent::RecordPoints()
 {
-	UE_LOG(LogTemp, Warning, TEXT("트레이서는 지나왔던 길들을 기록 중"));
-
-	FTransformSnapshot snapshot(Owner->GetActorLocation(), Owner->GetActorRotation());
+	FTransformSnapshot snapshot(Owner->GetActorLocation(), Owner->GetControlRotation());
 	Records.Push_Back(snapshot);
 }
 
@@ -203,28 +187,39 @@ void UTracerSkillSystemComponent::ActivateRecall()
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("트레이서 시간 역행 활성화 불가 - CurrentSkillState가 %s"),
-			   *UEnum::GetValueAsString(CurrentSkillState));
+		       *UEnum::GetValueAsString(CurrentSkillState));
 		return;
 	}
 
 	CurrentSkillState = ETracerSkillState::RECALL;
 	UE_LOG(LogTemp, Warning, TEXT("시간역행 활성화"));
 
+	// 컴포넌트 설정값들 끄기
+	Owner->GetCharacterMovement()->DisableMovement();
+	Owner->GetHitscanEmitter()->Disable();
+	// Owner->GetCamera()->bUsePawnControlRotation = false;
+	// Owner->bUseControllerRotationYaw = false;
+
 	// 시간역행용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecallPoints,
-								   RecallInterval / RecordLength, true);
+	                                       RecallInterval / RecordLength, true);
 }
 
 // 큐에서 위치 꺼내서 이동하기
 void UTracerSkillSystemComponent::RecallPoints()
 {
-	bool isEmpty;
-	FTransformSnapshot snapshot = Records.Pop_Back(isEmpty);
-	Owner->SetActorLocationAndRotation(snapshot.Location, snapshot.Rotation);
-	UE_LOG(LogTemp, Warning, TEXT("지나왔던 길들을 꺼내 보기 (%s, %s)"), *snapshot.Location.ToString(), *snapshot.Rotation.ToString());
+	bool valid;
+	FTransformSnapshot snapshot = Records.Pop_Back(valid);
 
-	if (isEmpty)
+	if (valid)
+	{
+		Owner->SetActorLocation(snapshot.Location);
+		AController* ownerController = Owner->GetController();
+		if (ownerController)
+			ownerController->SetControlRotation(snapshot.Rotation);
+	}
+	else
 	{
 		DeactivateRecall();
 	}
@@ -234,11 +229,24 @@ void UTracerSkillSystemComponent::RecallPoints()
 void UTracerSkillSystemComponent::DeactivateRecall()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("시간역행 비활성화"));
+
+	// 혹시나 뱉어내지 않은 기록이 남아있다면 제거
+	Records.Clear();
+
+	// 컴포넌트 설정값들 켜기
+	if (Owner->GetCharacterMovement()->IsMovingOnGround())
+		Owner->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	else
+		Owner->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+
+	Owner->GetHitscanEmitter()->Enable();
 
 	// 시간기록용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordPoints,
-									   RecordInterval, true);
+	                                       RecordInterval, true);
 }
+
+ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }

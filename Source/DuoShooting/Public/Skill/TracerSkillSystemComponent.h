@@ -62,9 +62,9 @@ private:
 	ETracerSkillState CurrentSkillState;
 	// 점멸 관련
 	UPROPERTY(EditDefaultsOnly)
-	float BlinkDuration = 0.05f;
+	float BlinkDuration = 0.05f;	// 걸리는 시간
 	UPROPERTY(EditDefaultsOnly)
-	int32 BlinkSpeed = 20000;
+	int32 BlinkSpeed = 20000;		// 점멸 속도
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
 	// 시간 역행 관련
@@ -73,11 +73,11 @@ private:
 	float RecordInterval = 0.05f;	// 얼마나 자주 기록할것인지
 	UPROPERTY(EditDefaultsOnly)
 	int32 RecordLength = 100;		// 몇개까지 기록할 것인지
-	FixedDeque<FTransformSnapshot> Records;
+	FixedDeque<FTransformSnapshot> Records; // 기록 컨테이너
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle RecallTimerHandle;
 	UPROPERTY(EditDefaultsOnly)
-	float RecallInterval = 1.0f;	// 얼마나 빨리 역행할것인지?
+	float RecallInterval = 2.0f;	// 몇초만에 역행할것인지?
 
 protected:
 public:
@@ -101,4 +101,5 @@ private:
 	void DeactivateRecall();
 protected:
 public:
+	ETracerSkillState GetCurrentSkillState() const;
 };

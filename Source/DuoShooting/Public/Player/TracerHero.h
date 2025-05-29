@@ -19,7 +19,11 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
+
+	virtual void InputMove(const struct FInputActionValue& value) override;
+	virtual void InputLook(const struct FInputActionValue& value) override;
+	virtual void InputJump(const struct FInputActionValue& value) override;
+
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -29,6 +33,8 @@ public:
 
 	//=====변수=====
 private:
+	UPROPERTY()
+	class UTracerSkillSystemComponent* TracerSkillSystemComp;
 protected:
 public:
 	//=====함수=====

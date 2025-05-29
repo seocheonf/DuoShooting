@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 
-//트레이서의 시간역행을 위한 커스텀 컨테이너 
+// 트레이서의 시간역행을 위한 커스텀 컨테이너
+// Push Back - 큐 : 고정된 크기를 가지고 현재 헤드 사이즈를 늘려가며 가장 오래된 원소를 덮어씌우는 식이다
+// Pop Back - 스택 : 가장 최근것을 스택식으로 빼내고, 사이즈를 줄인다
 template <typename T>
 class DUOSHOOTING_API FixedDeque
 {
@@ -18,8 +20,9 @@ public:
 	~FixedDeque();
 
 	void Init(int32 maxSize);
+	void Clear(); 
 	void Push_Back(const T& element);
-	T Pop_Back(bool& OutEmpty);
+	T Pop_Back(bool& Valid);
 };
 
 template <typename T>
@@ -46,21 +49,45 @@ void FixedDeque<T>::Init(int32 maxSize)
 }
 
 template <typename T>
-void FixedDeque<T>::Push_Back(const T& element)
+void FixedDeque<T>::Clear()
 {
-	Elements[CurrentHead] = element;
-	CurrentHead = (CurrentHead + 1) % MaxSize;
-	CurrentSize = FMath::Min(CurrentSize + 1, MaxSize);
-	UE_LOG(LogTemp, Warning, TEXT("FixedDeque Current Head : %d"), CurrentHead);
+	CurrentSize = 0;
 }
 
 template <typename T>
-T FixedDeque<T>::Pop_Back(bool& OutEmpty)
+void FixedDeque<T>::Push_Back(const T& element)
 {
-	CurrentHead = (CurrentHead - 1 + MaxSize) % MaxSize;
-	CurrentSize = FMath::Max(CurrentSize - 1 + MaxSize, 0);
-	OutEmpty = CurrentSize == 0;
-	UE_LOG(LogTemp, Warning, TEXT("FixedDeque Current Head : %d"), CurrentHead);
+	// 현재 위치에 원소 기록
+	T debugElement = element;
+	Elements[CurrentHead] = element;
+
+	// 헤드 오른쪽으로 옮기기
+	CurrentHead = (CurrentHead + 1) % MaxSize;
+
+	// 사이즈 늘리기
+	if (CurrentSize < MaxSize) CurrentSize++;
+}
+
+// 컨테이너가 이미 비어있는 경우에는 Valid = false를 반환하며, 이때의 T는 쓰레기값
+template <typename T>
+T FixedDeque<T>::Pop_Back(bool& Valid)
+{
+	if (CurrentSize > 0)
+	{
+		// 헤드 왼쪽으로 옮기기
+		CurrentHead = (CurrentHead - 1 + MaxSize) % MaxSize;
+
+		// 사이즈 줄이기
+		if (CurrentSize > 0) CurrentSize--;
+
+		Valid = true;
+	}
+	else
+	{
+		Valid = false;
+	}
+	
+	// 현재 위치의 원소 뱉기
 	return Elements[CurrentHead];
 }
 

@@ -83,12 +83,9 @@ protected:
 public:
 	//=====함수=====
 private:
-	// 기본 인풋
-	void InputMove(const struct FInputActionValue& value);
-	void InputLook(const struct FInputActionValue& value);
-	void InputJump(const struct FInputActionValue& value);
-	void InputFire_Enter(const struct FInputActionValue& value);
-	void InputFire_Exit(const struct FInputActionValue& value);
+	// 기본 인풋(사격)
+	virtual void InputFire_Enter(const struct FInputActionValue& value);
+	virtual void InputFire_Exit(const struct FInputActionValue& value);
 	// 체력 변경
 	void SetHealth(float hp);
 	void ReduceHealth(float hp);
@@ -99,18 +96,22 @@ private:
 	//영웅 상태 bitmask 계산 제거
 	void RemoveCurrentHeroState(EHeroState oldState);
 protected:
+	// 기본 인풋(이동, 회전, 점프)
+	virtual void InputMove(const struct FInputActionValue& value);
+	virtual void InputLook(const struct FInputActionValue& value);
+	virtual void InputJump(const struct FInputActionValue& value);
 	//스킬 컴포넌트를 상속받은 클래스에서 설정할 수 있도록 했습니다.
 	void SetSkillSystemComponent(USkillSystemComponent* targetSystem);
 	//일단은 참고만 할 수 있게 놔뒀습니다. 필요하면 상의 후 const를 지워주세요.
 	USkillSystemComponent* GetSkillSystemComponent() const;
 public:
-	// 스피드
-	float GetDefaultSpeed() const { return DefaultSpeed; }
 	//영웅 상태 bitmask 결과. 영웅의 상태에 대한 정보가 필요할 때 사용합니다.
 	TArray<EHeroState> GetCurrentHeroState();
+	UCameraComponent* GetCamera() const { return FirstPersonCameraComp; }
+	float GetDefaultSpeed() const { return DefaultSpeed; }
+	UHitscanEmitterComponent* GetHitscanEmitter() const { return HitscanEmitterComp; }
 	//데미지 입기
 	void ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator, AActor* damageCauser);
-	UCameraComponent* GetCamera() const { return FirstPersonCameraComp; }
 
 	//==김형모==
 	

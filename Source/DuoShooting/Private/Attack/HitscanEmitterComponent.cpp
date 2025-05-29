@@ -38,7 +38,7 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// 트리거되어있다면 연사
-	if (bTriggered)
+	if (bTriggered && bEnabled)
 	{
 		FireTimer += DeltaTime;
 		if (FireTimer >= HitScanInterval)
@@ -105,5 +105,19 @@ void UHitscanEmitterComponent::EndTrigger()
 	if (!bTriggered) return;
 	bTriggered = false;
 	FireTimer = 1000.0f; // 충분히 큰 수
+}
+
+void UHitscanEmitterComponent::Enable()
+{
+	if (bEnabled) return;
+	bEnabled = true;
+	UE_LOG(LogTemp, Warning, TEXT("총 활성화"));
+}
+
+void UHitscanEmitterComponent::Disable()
+{
+	if (!bEnabled) return;
+	bEnabled = false;
+	UE_LOG(LogTemp, Warning, TEXT("총 비활성화"));
 }
 

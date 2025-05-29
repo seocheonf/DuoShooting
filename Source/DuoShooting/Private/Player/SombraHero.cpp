@@ -11,13 +11,20 @@ ASombraHero::ASombraHero()
 	PrimaryActorTick.bCanEverTick = true;
 
 	SetSkillSystemComponent(CreateDefaultSubobject<USombraSkillSystemComponent>("SkillSystemComp"));
+
+	ConstructorHelpers::FObjectFinder<UMaterial> mat(TEXT("/Script/Engine.Material'/Game/DuoShooting/Maps/KHM/M_MannequinTest.M_MannequinTest'"));
+	if (mat.Succeeded())
+	{
+		OriginSombraMaterial = mat.Object;
+	}
 }
 
 // Called when the game starts or when spawned
 void ASombraHero::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	SombraMaterialInstance = GetMesh()->CreateDynamicMaterialInstance(0, OriginSombraMaterial);
+	SombraMaterialInstance2 = GetMesh()->CreateDynamicMaterialInstance(1, OriginSombraMaterial);
 }
 
 // Called every frame
@@ -32,5 +39,85 @@ void ASombraHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	
+}
+
+void ASombraHero::SetAppearance()
+{
+	SetCollisionEnable(true);
+	SetMeshVisibility(true);
+}
+
+void ASombraHero::SetDisAppearance()
+{
+	SetCollisionEnable(false);
+	SetMeshVisibility(false);
+}
+
+void ASombraHero::EnterStealth()
+{
+	bStealth = true;
+	SetStealthState(EStealthState::Hidden);
+}
+
+void ASombraHero::ExitStealth()
+{
+	SetStealthState(EStealthState::None);
+	bStealth = false;
+}
+
+void ASombraHero::SetStealthState(EStealthState newState)
+{
+	if (!bStealth)
+		return;
+	
+	StealthState = newState;
+	
+	switch (StealthState)
+	{
+	case EStealthState::None:
+		SetVisibilityAlpha(1.f);
+		break;
+	case EStealthState::Detection:
+		SetVisibilityAlpha(0.5f);
+		break;
+	case EStealthState::Hidden:
+		SetVisibilityAlpha(0.f);
+		break;
+	}
+}
+
+void ASombraHero::SetVisibilityAlpha(float alpha)
+{
+	//기존 변화 종료 및 가로채기. 한번에 하나의 alpha 변화만 있어야 자연스러울 것 같았음. 
+	if (VisibilityTimerHandle.IsValid())
+		GetWorldTimerManager().ClearTimer(VisibilityTimerHandle);
+	//실행 시점에 시작 alpha와 목표 alpha를 잡아둠. 현재시간-목표시간 대비 비율로 보간할거라 그럼.
+	float captureStartAlpha = SombraMaterialAlpha;
+	float captrueGoalAlpha = alpha;
+	//새롭게 타이머를 시작하니 0으로 초기화
+	CurrentAlphaTime = 0.f;
+
+	//필요한 값들을 캡쳐
+	GetWorldTimerManager().SetTimer(VisibilityTimerHandle, [&, captureStartAlpha, captrueGoalAlpha]()->void
+	{
+		//시간 갱신
+		CurrentAlphaTime += GetWorld()->GetDeltaSeconds();
+		//시간 경과 비율로 시작-목표 alpha 값 보간
+		SombraMaterialAlpha = FMath::Lerp(captureStartAlpha, captrueGoalAlpha, CurrentAlphaTime/MaxAlphaTime);
+		//alpha 값 적용
+		SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
+		SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
+
+		//시간 완료시
+		if (CurrentAlphaTime >= MaxAlphaTime)
+		{
+			//목표 값을 정확히 적용
+			SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
+			SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
+			SombraMaterialAlpha = captrueGoalAlpha;
+			//타이머 종료
+			GetWorldTimerManager().ClearTimer(VisibilityTimerHandle);
+		}
+	}, 0.0003f, FTimerManagerTimerParameters(true, true));
 }
 

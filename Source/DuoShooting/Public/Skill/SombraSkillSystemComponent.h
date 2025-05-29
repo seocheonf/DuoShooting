@@ -4,8 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "SkillSystemComponent.h"
+#include "Player/SombraHero.h"
 #include "SombraSkillSystemComponent.generated.h"
 
+UENUM()
+enum class EDetection
+{
+	PlayerDetection = 0,
+	HitDetection = 1,
+	HackDetection = 2
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class DUOSHOOTING_API USombraSkillSystemComponent : public USkillSystemComponent
@@ -28,6 +36,9 @@ public:
 
 	//=====변수=====
 private:
+	//솜브라 객체
+	class ASombraHero* SombraPlayer;
+	
 	//솜브라 스킬 입력
 	class UInputAction* IA_EMP;
 	class UInputAction* IA_Hack;
@@ -63,4 +74,41 @@ private:
 public:
 	//솜브라 스킬 외부 트리거
 	void TriggerTranslocator(FVector end);
+
+	//=====은신=====
+private:
+	//은신 로직 핸들 - 은신 여부 확인 용 - 쿨 타이머 컴포넌트의 영향을 받음.
+	FTimerHandle CoolTimer_StealthTimerHandle;
+	//은신 감지 상태 비트마스크
+	uint32 DetectionLayer;
+	//은신 지속 시간
+	float StealthTime = 5.f;
+	//은신 적 감지 반경
+	float DetectionRadius = 400.f;
+
+	//은신 감지 상태를 변화시킨다. switch가 true일 경우 켜고, false라면 끈다.
+	void SetDetectionLayer(EDetection newDetection, bool bSwitch);
+	//은신을 시작한다.
+	void StartStealth();
+	//은신을 종료시킨다.
+	void EndStealth();
+	//은신 지속 중 할 일
+	void StealthTick(float deltaTime, float currentTime);
+	//은신 시간 종료 시 notify 함수
+	void NotifyStealthEnd(float excessDeltaTime);
+
+
+
+	
+// //Test============================
+// 	
+// 	void A()
+// 	{
+// 		//스텔스 상태 변환
+// 		SombraPlayer->EnterStealth();
+// 	}
+//
+// 	void BTick(float deltaTimes, float currentTimes);
+
+	
 };

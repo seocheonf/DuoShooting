@@ -206,14 +206,14 @@ TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 	return result;
 }
 
-// 내가 아닌 다른 공격이 부를 함수
-void AHeroBase::ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator,
-                          AActor* damageCauser)
+// 언리얼 내장 함수를 씁니다
+float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+	class AController* EventInstigator, AActor* DamageCauser)
 {
-	// 피해를 준 컨트롤러와 액터 정보가 전송되므로 팀 관련 처리시 이부분이 쓰일지도?
-	float actualDamage = TakeDamage(damage, damageEvent, instigator, damageCauser);
+	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);
+	return actualDamage;
 }
 
 float AHeroBase::GetHealth(float percent)

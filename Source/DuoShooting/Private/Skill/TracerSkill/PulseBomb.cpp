@@ -3,8 +3,9 @@
 
 #include "Skill/TracerSkill/PulseBomb.h"
 
-#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
 // Sets default values
@@ -13,12 +14,12 @@ APulseBomb::APulseBomb()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	BoxComp = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxComp"));
-	SetRootComponent(BoxComp);
-	
+	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	SetRootComponent(SphereComp);
+
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComp"));
-	StaticMeshComp->SetupAttachment(BoxComp);
-	
+	StaticMeshComp->SetupAttachment(SphereComp);
+
 	ProjectileMovementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComp"));
 	ProjectileMovementComp->bShouldBounce = false;
 	// ProjectileMovement->bRotationFollowsVelocity = true;
@@ -32,7 +33,7 @@ void APulseBomb::BeginPlay()
 {
 	Super::BeginPlay();
 
-	BoxComp->OnComponentHit.AddDynamic(this, &APulseBomb::OnHit);
+	SphereComp->OnComponentHit.AddDynamic(this, &APulseBomb::OnHit);
 }
 
 // Called every frame
@@ -41,35 +42,68 @@ void APulseBomb::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void APulseBomb::Launch(FVector direction, float speed, AController* instigator)
+{
+	direction.Normalize();
+	ProjectileMovementComp->Velocity = direction * speed;
+
+	// 부착을 위해 조금 위로 기울어진 채로 던진다
+	FRotator rot = GetActorRotation();
+	rot.Pitch += rot.Pitch - 45.0f;
+	SetActorRotation(rot);
+
+	// 던진이 저장
+	InstigatorController = instigator;
+
+	CurrentState = EPulseBombState::FLYING;
+}
+
 void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UPrimitiveComponent* otherComp,
-	FVector normalImpulse, const FHitResult& hit)
+					   FVector normalImpulse, const FHitResult& hit)
 {
 	if (ProjectileMovementComp)
 	{
 		ProjectileMovementComp->StopMovementImmediately();
 		ProjectileMovementComp->StopSimulating(hit);
 	}
-	
-	CurrentState = EPulseBombState::ATTACHED;
+
+	CurrentState = EPulseBombState::ATTACHING;
+
+	// 1초 후 터진다
+	GetWorldTimerManager().SetTimer(ExplosionTimerHandle, this, &APulseBomb::Explode, 1.0f, false);
 }
 
-void APulseBomb::Launch(FVector direction, float speed)
+void APulseBomb::Explode()
 {
-	// FActorSpawnParameters SpawnParams;
-	// SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	//
-	// FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 100.f;
-	// FRotator SpawnRotation = GetControlRotation(); // Or camera forward
-	//
-	// APulseBomb* Bomb = GetWorld()->SpawnActor<APulseBomb>(BombClass, SpawnLocation, SpawnRotation, SpawnParams);
-	//
-	// if (Bomb)
-	// {
-	// 	FVector LaunchDirection = SpawnRotation.Vector();
-	// 	Bomb->LaunchBomb(LaunchDirection, 1500.f);
-	// }
-	direction.Normalize();
-	ProjectileMovementComp->Velocity = direction * speed;
+	CurrentState = EPulseBombState::EXPLODING;
+	UE_LOG(LogTemp, Warning, TEXT("펄스 폭탄 터짐!"));
 
-	CurrentState = EPulseBombState::FLYING;
+	// 터지기
+	// 반경 내의 Authority를 가진 액터들에게만 범위형 공격을 가합니다
+	UGameplayStatics::ApplyRadialDamageWithFalloff(
+		GetWorld(),
+		MaximumDamage,
+		MinimumDamage,
+		GetActorLocation(),
+		Radius_FullDamage,
+		Radius,
+		1.0f,
+		UDamageType::StaticClass(),
+		TArray<AActor*>(),
+		this,
+		InstigatorController
+	);
+
+	// 시각화
+	DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 30, FColor::Red, false, 1.0f);
+	
+	// 임시로 터진 뒤 1초 뒤 없애자
+	GetWorldTimerManager().SetTimer(
+		ExplosionTimerHandle,
+		[this]() { if (IsValid(this)) Destroy(); },
+		1.0f,
+		false
+	);
 }
+
+

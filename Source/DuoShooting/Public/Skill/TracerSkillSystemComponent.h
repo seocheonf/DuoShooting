@@ -23,13 +23,13 @@ struct FTracerRecallInfo
 
 	UPROPERTY()
 	FVector Location;
-
-	UPROPERTY()	// 이렇게 배치하면 패딩되나?
+	
+	UPROPERTY()
 	float Health;
-
+	
 	UPROPERTY()
 	FVector2D ControlRotation;
-
+		
 	FTracerRecallInfo();
 	FTracerRecallInfo(const FVector& location, float controlRot_Pitch, float controlRot_Yaw, float health);
 };

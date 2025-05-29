@@ -5,6 +5,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Engine/DamageEvents.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/HeroBase.h"
 
 
@@ -87,7 +88,9 @@ void UHitscanEmitterComponent::SingleLineTrace()
 			damageEvent.HitInfo = Result;
 
 			// 피해 주기
-			hero->ApplyDamage(DamageAmount, damageEvent, Owner->GetController(), Owner);
+			UGameplayStatics::ApplyDamage(hero, DamageAmount, Owner->GetController(), Owner, UDamageType::StaticClass());
+
+			hero->TakeDamage(DamageAmount, damageEvent, Owner->GetController(), Owner);
 		}
 	}
 }

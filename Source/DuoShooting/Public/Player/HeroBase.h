@@ -113,8 +113,9 @@ public:
 
 	UHitscanEmitterComponent* GetHitscanEmitter() const { return HitscanEmitterComp; }
 	//데미지 입기
-	void ApplyDamage(float damage, FDamageEvent const& damageEvent, AController* instigator, AActor* damageCauser);
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
+	
 	//==김형모==
 	
 	//캐릭터 메시 시각처리 켜고 끄기

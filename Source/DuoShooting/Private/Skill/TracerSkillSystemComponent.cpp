@@ -137,7 +137,7 @@ void UTracerSkillSystemComponent::ThrowPulseBomb()
 	FVector TempDir = Owner->GetActorForwardVector();
 	TempDir.Z = TempDir.Z + 1.0f;
 	if (bomb)
-		bomb->Launch(TempDir, 500.0f);
+		bomb->Launch(TempDir, 500.0f, Owner->Controller);
 }
 
 // 점멸 활성화

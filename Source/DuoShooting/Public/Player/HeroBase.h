@@ -41,13 +41,6 @@ public:
 	
 	//=====변수=====
 private:
-	//히어로 공통 속성
-	UPROPERTY(EditAnywhere)	// 기본 체력
-	float MaxHealth = 100.0f;
-	UPROPERTY(EditAnywhere)	// 현재 체력
-	float CurrentHealth = 100.0f;
-	UPROPERTY(EditAnywhere)	// 기본 스피드
-	float DefaultSpeed = 400.0f;
 	//히어로 공통 인풋
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputMappingContext* IMC_HeroDefault;
@@ -57,8 +50,6 @@ private:
 	class UInputAction* IA_Look;
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* IA_Jump;
-	UPROPERTY(EditAnywhere, Category = Input)
-	class UInputAction* IA_Fire;
 	// 1인칭 카메라
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class UCameraComponent* FirstPersonCameraComp;
@@ -68,20 +59,27 @@ private:
 	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
 	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;
-	UPROPERTY()
-	class UShootingMainWidget* ShootingMainWidget;
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
 protected:
+	//히어로 공통 속성
+	UPROPERTY(EditAnywhere)	// 기본 체력
+	float MaxHealth = 100.0f;
+	UPROPERTY(EditAnywhere)	// 현재 체력 - 꼭 SetHealth를 통해 바꿀것
+	float CurrentHealth = 100.0f;
+	UPROPERTY(EditAnywhere)	// 최대 총알 개수
+	int32 MaxBullet = 100;
+	UPROPERTY(EditAnywhere)	// 기본 스피드
+	float DefaultSpeed = 400.0f;
+	// 공통 UI (체력, 총탄, 조준선 등)
+	UPROPERTY()
+	class UShootingMainWidget* ShootingMainWidget;
 	//영웅 상태 (bitmask)
 	int32 CurrentHeroState;
 public:
 	//=====함수=====
 private:
-	// 기본 인풋(사격)
-	virtual void InputFire_Enter(const struct FInputActionValue& value);
-	virtual void InputFire_Exit(const struct FInputActionValue& value);
 	//스킬 시스템에 본인과 본인의 입력을 등록하는 함수입니다.
 	void InitSkillSystemInput(class UInputComponent* playerInputComponent);
 	//영웅 상태 bitmask 계산 추가
@@ -101,16 +99,17 @@ public:
 	//영웅 상태 bitmask 결과. 영웅의 상태에 대한 정보가 필요할 때 사용합니다.
 	TArray<EHeroState> GetCurrentHeroState();
 	UCameraComponent* GetCamera() const { return FirstPersonCameraComp; }
+	UHitscanEmitterComponent* GetHitscanEmitter() const { return HitscanEmitterComp; }
+	UShootingMainWidget* GetShootingMainWidget() const { return ShootingMainWidget; }
 	float GetDefaultSpeed() const { return DefaultSpeed; }
 	// 체력 Get/Set
-	float GetHealth(float percent = false);
+	float GetHealth();
 	void SetHealth(float hp);
 	void AddHealth(float hp);
-
-	UHitscanEmitterComponent* GetHitscanEmitter() const { return HitscanEmitterComp; }
 	//데미지 입기
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-
+	// 최대 총알 Get
+	int32 GetMaxBullet() const { return MaxBullet; }
 	
 	//==김형모==
 	

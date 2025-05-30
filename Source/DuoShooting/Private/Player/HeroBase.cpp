@@ -43,11 +43,6 @@ AHeroBase::AHeroBase()
 		if (TempIA.Succeeded()) { IA_Jump = TempIA.Object; }
 	}
 	{
-		ConstructorHelpers::FObjectFinder<UInputAction> TempIA(
-			TEXT("'/Game/DuoShooting/Inputs/HeroDefaults/IA_HeroFire.IA_HeroFire'"));
-		if (TempIA.Succeeded()) { IA_Fire = TempIA.Object; }
-	}
-	{
 		ConstructorHelpers::FClassFinder<UShootingMainWidget> TempWidget(
 			TEXT("'/Game/DuoShooting/UIs/WBP_ShootingMainWidget.WBP_ShootingMainWidget_C'"));
 		if (TempWidget.Succeeded()) { ShootingMainWidgetFactory = TempWidget.Class; }
@@ -88,14 +83,22 @@ void AHeroBase::NotifyControllerChanged()
 void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	auto pc = Cast<APlayerController>(Controller);
 
-	// 슈팅 위젯 생성
-	if (ShootingMainWidgetFactory)
+	if (pc && IsLocallyControlled())
 	{
-		ShootingMainWidget = CreateWidget<UShootingMainWidget>(GetWorld(), ShootingMainWidgetFactory);
-		if (ShootingMainWidget != nullptr)
+		// 슈팅 위젯 생성
+		if (ShootingMainWidgetFactory)
 		{
-			ShootingMainWidget->AddToViewport(); // ZOrder?
+			ShootingMainWidget = CreateWidget<UShootingMainWidget>(GetWorld(), ShootingMainWidgetFactory);
+			if (ShootingMainWidget != nullptr)
+			{
+				ShootingMainWidget->AddToViewport(); // ZOrder?
+
+				// 히트스캔 컴포넌트에 메인위젯 전달
+				if (HitscanEmitterComp) HitscanEmitterComp->SetShootingMainWidget(ShootingMainWidget);
+			}
 		}
 	}
 }
@@ -117,8 +120,7 @@ void AHeroBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(IA_Jump, ETriggerEvent::Started, this, &AHeroBase::InputJump);
 		EnhancedInputComponent->BindAction(IA_Look, ETriggerEvent::Triggered, this, &AHeroBase::InputLook);
 		EnhancedInputComponent->BindAction(IA_Move, ETriggerEvent::Triggered, this, &AHeroBase::InputMove);
-		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this, &AHeroBase::InputFire_Enter);
-		EnhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this, &AHeroBase::InputFire_Exit);
+		HitscanEmitterComp->SetupHitscanInputInfo(EnhancedInputComponent);
 	}
 
 	//스킬 시스템에 Input정보 넘기기
@@ -150,16 +152,6 @@ void AHeroBase::InputLook(const FInputActionValue& value)
 void AHeroBase::InputJump(const FInputActionValue& value)
 {
 	Jump();
-}
-
-void AHeroBase::InputFire_Enter(const FInputActionValue& value)
-{
-	if (HitscanEmitterComp) HitscanEmitterComp->StartTrigger();
-}
-
-void AHeroBase::InputFire_Exit(const FInputActionValue& value)
-{
-	if (HitscanEmitterComp) HitscanEmitterComp->EndTrigger();
 }
 
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
@@ -206,7 +198,7 @@ TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 	return result;
 }
 
-// 언리얼 내장 함수를 씁니다
+// 데미지 입기: 언리얼 내장 함수를 씁니다
 float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
 	class AController* EventInstigator, AActor* DamageCauser)
 {
@@ -216,15 +208,18 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 	return actualDamage;
 }
 
-float AHeroBase::GetHealth(float percent)
+float AHeroBase::GetHealth()
 {
-	if (percent) return CurrentHealth / MaxHealth;
-	else return CurrentHealth;
+	return CurrentHealth;
 }
 
 void AHeroBase::SetHealth(float hp)
 {
 	CurrentHealth = FMath::Clamp(hp, 0.0f, MaxHealth);
+	if (ShootingMainWidget)
+		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+	else
+		UE_LOG(LogTemp, Warning, TEXT("ShootingMaingWidget Null"));
 	UE_LOG(LogTemp, Warning, TEXT("%s의 체력이 %f가 되었습니다"), *GetName(), CurrentHealth);
 }
 

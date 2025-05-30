@@ -73,7 +73,7 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float BlinkDuration = 0.1f;		// 걸리는 시간
 	UPROPERTY(EditDefaultsOnly)
-	int32 BlinkSpeed = 7000;		// 점멸 속도
+	int32 BlinkSpeed = 6500;		// 점멸 속도
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
 	FVector BlinkDirection;			// 점멸 방향

@@ -4,6 +4,7 @@
 #include "DuoShooting/Public/Player/TracerHero.h"
 #include "Skill/TracerSkillSystemComponent.h"
 #include "EnhancedInputComponent.h"
+#include "UI/ShootingMainWidget.h"
 
 
 // Sets default values
@@ -12,6 +13,11 @@ ATracerHero::ATracerHero()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	// 기본값 설정
+	MaxBullet = 40;
+	MaxHealth = 175;
+	CurrentHealth = 175;
+	
 	SetSkillSystemComponent(CreateDefaultSubobject<UTracerSkillSystemComponent>("SkillSystemComp"));
 }
 
@@ -21,6 +27,14 @@ void ATracerHero::BeginPlay()
 	Super::BeginPlay();
 
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
+
+	// 메인위젯에 기본값 전달
+	if (ShootingMainWidget)
+	{
+		ShootingMainWidget->InitMaxBullet(MaxBullet);
+		ShootingMainWidget->InitMaxHealth(MaxHealth);
+		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+	}
 }
 
 void ATracerHero::InputMove(const struct FInputActionValue& value)

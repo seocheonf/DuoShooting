@@ -13,4 +13,40 @@ UCLASS()
 class DUOSHOOTING_API UShootingMainWidget : public UUserWidget
 {
 	GENERATED_BODY()
+
+	float MaxHealth;
+	
+protected:
+	// 블루프린트에서 바인드
+	UPROPERTY(BlueprintReadOnly)
+	int32 CurrentHealth;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 CurrentBullet;
+	
+	// 체력
+	UPROPERTY(meta=(BindWidget))
+	class UProgressBar* HealthBar;
+
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* CurrentHealthText;
+	
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* MaxHealthText;
+
+	// 총알
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* CurrentBulletText;
+	
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* MaxBulletText;
+
+public:
+	// 초반에 해줄 것
+	void InitMaxHealth(float hp);
+	void InitMaxBullet(int32 bullets);
+
+	// 지속적으로 해줄 것
+	void SetCurrentHealth(float hp);
+	void SetCurrentBullet(int32 bullets);
 };

@@ -4,10 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "UI/ShootingMainWidget.h"
 #include "HitscanEmitterComponent.generated.h"
 
-/* 카메라 방향으로 히트스캔을 연사하는 컴포넌트
- * StartTrigger()로 연사 시작, EndTrigger()로 연사 정지
+/* 카메라 방향으로 히트스캔형 총을 연사하는 컴포넌트
  * 연사 간격, 최대거리, 한발당 공격력 등 설정가능
  */
 
@@ -36,49 +36,70 @@ private:
 	UPROPERTY()
 	class UCameraComponent* OwnerCamera;
 
-	// 최대 총알 개수
-	UPROPERTY(EditAnywhere)	
-	int32 MaxBullet = 100;
+	/// ----------인풋----------
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Fire;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Reload;
 	
-	// 현재 총알 개수
-	UPROPERTY(EditAnywhere)
-	int32 CurrentBullet = 100;
+	// 연사 시작/정지
+	void InputFire_Started();
+	void InputFire_Completed();
+
+	// 리로드
+	void InputReload();
 	
 	// 사격 가능한지 (인풋 막기용)
 	bool bEnabled = true;
 	
 	// 사격이 트리거되었는지 (트리거되어있으면 연사)
 	bool bTriggered = false;
-	
+
+	/// ----------총알----------
+	// 현재 총알 개수
+	UPROPERTY(EditAnywhere)
+	int32 CurrentBullet = 100;
+
+	void SetCurrentBullet(int32 bullets);
+
+	// 한발 쏘기
+	void SingleLineTrace();
+
+	// 재장전
+	void Reload();
+
+	/// ----------세부설정----------
 	// 연사 간격
-	float HitScanInterval = 0.025f;
+	float FireInterval = 0.025f;
 	float FireTimer = 1000.0f; // 충분히 큰 수
 
 	// 최대 거리
-	float HitScanDistance = 10000.0f;
+	float MaxDistance = 10000.0f;
 
 	// 한발당 공격력
-	float DamageAmount = 5.0f;
+	float DamagePerBullet = 5.0f;
 
 	// 방향 정확도 (0일 떄 완전히 정확함 숫자가 커질수록 난사)
-	float Spread = 0.0f;
+	float Spread = 2.0f;
 
-	// 에임 드리프트
-	float AimDriftScalar;	// 한발당 반동값
-	float MaxAimDrift;		// 에임드리프트 최대각도
-	
-	// 한발 쏘기
-	void SingleLineTrace();
+	// ----------이펙트----------
+	UPROPERTY()
+	class UParticleSystem* FireParticle = nullptr;
+
+	// ----------UI----------
+	UPROPERTY()
+	class UShootingMainWidget* ShootingMainWidget;
 	
 public:
-	// 연사 시작/정지
-	void StartTrigger();
-	void EndTrigger();
+	// 인풋 전달
+	void SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent);
 
+	// 메인위젯 인스턴스 전달
+	void SetShootingMainWidget(UShootingMainWidget* inst);
+
+	void SetHitScanSettings(float fireInterval, float damagePerBullet, float spread, float maxDist);
+	
 	// 사격 활성화/비활성화
 	void Enable();
 	void Disable();
-
-	// 총알 채우기
-	void ReloadBullet();
 };

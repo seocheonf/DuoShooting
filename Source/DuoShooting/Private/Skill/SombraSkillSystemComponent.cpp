@@ -3,8 +3,11 @@
 #include "DuoShooting/Public/Skill/SombraSkillSystemComponent.h"
 
 #include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
 #include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Player/HeroBase.h"
 #include "Player/SombraHero.h"
@@ -32,6 +35,12 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 	if (ia_emp.Succeeded())
 	{
 		IA_Hack = ia_hack.Object;
+	}
+	//HackOff
+	ConstructorHelpers::FObjectFinder<UInputAction> ia_hackOff(TEXT("/Script/EnhancedInput.InputAction'/Game/DuoShooting/Inputs/Sombra/IA_SombraHackOff.IA_SombraHackOff'"));
+	if (ia_emp.Succeeded())
+	{
+		IA_Hack = ia_hackOff.Object;
 	}
 	//Virus
 	ConstructorHelpers::FObjectFinder<UInputAction> ia_virus(TEXT("/Script/EnhancedInput.InputAction'/Game/DuoShooting/Inputs/Sombra/IA_SombraVirus.IA_SombraVirus'"));
@@ -69,6 +78,7 @@ void USombraSkillSystemComponent::BeginPlay()
 
 	// ...
 	SombraPlayer = Cast<ASombraHero>(TargetPlayer);
+	CalHackConeTrace();
 }
 
 
@@ -79,14 +89,19 @@ void USombraSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+
+	HackTick(DeltaTime);
 }
 
 void USombraSkillSystemComponent::SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent)
 {
 	enhancedInputComponent->BindAction(IA_EMP, ETriggerEvent::Started, this, &USombraSkillSystemComponent::OnEMP);
 	enhancedInputComponent->BindAction(IA_Hack, ETriggerEvent::Triggered, this, &USombraSkillSystemComponent::OnHack);
+	enhancedInputComponent->BindAction(IA_HackOff, ETriggerEvent::Completed, this, &USombraSkillSystemComponent::OnHackCancled);
 	enhancedInputComponent->BindAction(IA_Virus, ETriggerEvent::Started, this, &USombraSkillSystemComponent::OnVirus);
 	enhancedInputComponent->BindAction(IA_Translocator, ETriggerEvent::Started, this, &USombraSkillSystemComponent::OnTranslocator);
+	TargetPlayerEnhancedInputComponent = enhancedInputComponent;
+	UE_LOG(LogTemp, Error, TEXT("setupinput"));
 }
 
 void USombraSkillSystemComponent::OnEMP(const struct FInputActionValue& value)
@@ -96,7 +111,52 @@ void USombraSkillSystemComponent::OnEMP(const struct FInputActionValue& value)
 
 void USombraSkillSystemComponent::OnHack(const struct FInputActionValue& value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("OnHack"));
+	//쿨타임 적용도 필요.
+	
+	if (nullptr == HackTarget)
+	{
+		BeforeHackTarget = nullptr;
+		return;
+	}
+
+	if (BeforeHackTarget != HackTarget)
+	{
+		CurrentHackTryTime = 0;
+	}
+
+	BeforeHackTarget = HackTarget;
+
+	CurrentHackTryTime += GetWorld()->GetDeltaSeconds();
+	if (CurrentHackTryTime >= MaxHackTryTime)
+	{
+		UE_LOG(LogTemp, Error, TEXT("S"));
+		//실제 해킹을 걸었을 때 해야 할 일.
+		DrawDebugLine(GetWorld(), HackTarget->GetActorLocation(), HackTarget->GetActorLocation() + FVector::UpVector * 1000.f, FColor::Yellow, false, 1.f);
+		FTimerHandle timerHandle;
+		if (nullptr != Cast<APlayerController>(HackTarget->Controller))
+		{
+			HackTarget->GetSkillSystemComponent()->RemoveHeroInputInfo();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("not player remove input"));
+		}
+		GetWorld()->GetTimerManager().SetTimer(timerHandle, [&]()->void
+		{
+			if (nullptr == Cast<APlayerController>(HackTarget->Controller))
+			{
+				UE_LOG(LogTemp, Error, TEXT("not player resest input"));
+				return;
+			}
+			HackTarget->GetSkillSystemComponent()->ReSetupHeroInputInfo();
+		}, 1.0f, false);
+		CurrentHackTryTime = 0;
+	}
+}
+
+void USombraSkillSystemComponent::OnHackCancled(const struct FInputActionValue& value)
+{
+	CurrentHackTryTime = 0;
 }
 
 void USombraSkillSystemComponent::OnVirus(const struct FInputActionValue& value)
@@ -235,6 +295,158 @@ void USombraSkillSystemComponent::StealthTick(float deltaTime, float currentTime
 void USombraSkillSystemComponent::NotifyStealthEnd(float excessDeltaTime)
 {
 	EndStealth();
+}
+
+bool USombraSkillSystemComponent::DetectHackTarget(class AHeroBase*& outHeroBase)
+{
+	CalSecondHackTraceBaseStartPoint();
+	AHeroBase* firstHero = nullptr;
+	AHeroBase* secondHero = nullptr;
+	DetectHackTargetInFirstHackTrace(firstHero);
+	DetectHackTargetInSecondHackTrace(secondHero);
+	
+	if(nullptr == firstHero && nullptr == secondHero)
+	{
+		outHeroBase = nullptr;
+		return false;
+	}
+	if (nullptr == firstHero)
+	{
+		outHeroBase = secondHero;
+		return true;
+	}
+	if (nullptr == secondHero)
+	{
+		outHeroBase = firstHero;
+		return true;
+	}
+	
+	float firstDistance = FVector::Dist(firstHero->GetActorLocation(), TargetPlayer->GetCamera()->GetComponentLocation());
+	float secondDistance = FVector::Dist(firstHero->GetActorLocation(), TargetPlayer->GetCamera()->GetComponentLocation());
+	
+	if (firstDistance <= secondDistance)
+	{
+		outHeroBase = firstHero;
+		return true;
+	}
+	else
+	{
+		outHeroBase = secondHero;
+		return true;
+	}
+}
+
+void USombraSkillSystemComponent::CalHackConeTrace()
+{
+	HackTargetCalInfo.ra = HackTargetCalInfo.da * UKismetMathLibrary::DegTan(HackTargetCalInfo.alpha / 2);
+	HackTargetCalInfo.dbp = HackTargetCalInfo.ra / UKismetMathLibrary::DegTan(HackTargetCalInfo.beta / 2) - HackTargetCalInfo.da;
+	HackTargetCalInfo.rb = UKismetMathLibrary::DegTan(HackTargetCalInfo.beta / 2) * (HackTargetCalInfo.db + HackTargetCalInfo.dbp);
+}
+
+void USombraSkillSystemComponent::CalSecondHackTraceBaseStartPoint()
+{
+	UCameraComponent* targetCamera = TargetPlayer->GetCamera();
+	HackTargetCalInfo.SecondHackStartPoint = targetCamera->GetComponentLocation() + targetCamera->GetForwardVector() * -1 * HackTargetCalInfo.dbp; 
+}
+
+bool USombraSkillSystemComponent::DetectHackTargetInFirstHackTrace(AHeroBase*& outHeroBase)
+{
+	//감지 기반 데이터 계산
+	UCameraComponent* targetCamera = TargetPlayer->GetCamera();
+	//방향
+	FVector detectPoint = targetCamera->GetComponentLocation() + targetCamera->GetForwardVector() * HackTargetCalInfo.da / 2;
+	float halfSizeX = HackTargetCalInfo.da / 2;
+	float halfSizeY = HackTargetCalInfo.ra;
+	float halfSizeZ = HackTargetCalInfo.ra;
+	FRotator detectOrientation = UKismetMathLibrary::MakeRotFromXZ(targetCamera->GetForwardVector(), targetCamera->GetUpVector());
+
+	//
+	TArray<AActor*> outActors;
+	
+	//충돌 감지
+	TArray<FHitResult> hitResults;
+	TArray<AActor*> ignoreActors;
+	ignoreActors.Add(TargetPlayer);
+	if (!UKismetSystemLibrary::BoxTraceMulti(GetWorld(), detectPoint, detectPoint, FVector(halfSizeX, halfSizeY, halfSizeZ), detectOrientation,\
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Red, FLinearColor::Green))
+		return false;
+
+	AHeroBase* hitHero = nullptr;
+	for (auto hitResult : hitResults)
+	{
+		hitHero = Cast<AHeroBase>(hitResult.GetActor()); 
+		if (hitHero == nullptr)
+			continue;
+		
+		FVector actorLocation = hitResult.GetActor()->GetActorLocation();
+		float coneDegree = UKismetMathLibrary::DegAcos(FVector::DotProduct((actorLocation - targetCamera->GetComponentLocation()).GetSafeNormal(), targetCamera->GetForwardVector()));
+		if (coneDegree <= (HackTargetCalInfo.alpha / 2))
+		{
+			outActors.Add(hitResult.GetActor());
+		}
+	}
+
+	float distance = -1.f;
+	outHeroBase = Cast<AHeroBase>(UGameplayStatics::FindNearestActor(targetCamera->GetComponentLocation(), outActors, distance));
+
+	if (outHeroBase == nullptr)
+		return false;
+	return true;
+}
+
+bool USombraSkillSystemComponent::DetectHackTargetInSecondHackTrace(AHeroBase*& outHeroBase)
+{
+	//감지 기반 데이터 계산
+	UCameraComponent* targetCamera = TargetPlayer->GetCamera();
+	//방향
+	FVector detectPoint = targetCamera->GetComponentLocation() + targetCamera->GetForwardVector() * (HackTargetCalInfo.da + (HackTargetCalInfo.db - HackTargetCalInfo.da) / 2);
+	float halfSizeX = (HackTargetCalInfo.db - HackTargetCalInfo.da) / 2;
+	float halfSizeY = HackTargetCalInfo.rb;
+	float halfSizeZ = HackTargetCalInfo.rb;
+	FRotator detectOrientation = UKismetMathLibrary::MakeRotFromXZ(targetCamera->GetForwardVector(), targetCamera->GetUpVector());
+
+	//
+	TArray<AActor*> outActors;
+	
+	//충돌 감지
+	TArray<FHitResult> hitResults;
+	TArray<AActor*> ignoreActors;
+	ignoreActors.Add(TargetPlayer);
+	if (!UKismetSystemLibrary::BoxTraceMulti(GetWorld(), detectPoint, detectPoint, FVector(halfSizeX, halfSizeY, halfSizeZ), detectOrientation,\
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Blue, FLinearColor::Black))
+		return false;
+
+	AHeroBase* hitHero = nullptr;
+	for (auto hitResult : hitResults)
+	{
+		hitHero = Cast<AHeroBase>(hitResult.GetActor()); 
+		if (hitHero == nullptr)
+			continue;
+		
+		FVector actorLocation = hitResult.GetActor()->GetActorLocation();
+		float coneDegree = UKismetMathLibrary::DegAcos(FVector::DotProduct((actorLocation - HackTargetCalInfo.SecondHackStartPoint).GetSafeNormal(), targetCamera->GetForwardVector()));
+		if (coneDegree <= (HackTargetCalInfo.beta / 2))
+		{
+			outActors.Add(hitResult.GetActor());
+		}
+	}
+
+	float distance = -1.f;
+	outHeroBase = Cast<AHeroBase>(UGameplayStatics::FindNearestActor(targetCamera->GetComponentLocation(), outActors, distance));
+
+	if (outHeroBase == nullptr)
+		return false;
+	return true;
+}
+
+void USombraSkillSystemComponent::HackTick(float deltaTime)
+{
+	if (TargetPlayer == nullptr)
+		return;
+	
+	if (DetectHackTarget(HackTarget))
+	{
+	}
 }
 
 // //Test======================

@@ -63,6 +63,29 @@ void USkillSystemComponent::SetupHeroInfo(class AHeroBase* targetPlayer,
 	SetupHeroInputInfo(enhancedInputComponent);
 }
 
+void USkillSystemComponent::ReSetupHeroInputInfo()
+{
+	SetupHeroInfo(TargetPlayer, TargetPlayerEnhancedInputComponent);
+}
+
+void USkillSystemComponent::RemoveHeroInputInfo()
+{
+	// 현재 컨트롤러가 플레이컨트롤러가 맞다면
+	if (auto* pc = Cast<APlayerController>(TargetPlayer->Controller))
+	{
+		// UEnhancedInputLocalPlayerSubsystem를 가져와서
+		auto* subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(pc->GetLocalPlayer());
+
+		// AddMappingContext를 하고싶다.
+		subsystem->RemoveMappingContext(IMC_SkillSystem);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("not player remove input"));
+	}
+	UE_LOG(LogTemp, Error, TEXT("removeinput"));
+}
+
 void USkillSystemComponent::SetCurrentUltimateSkillGauge(int32 skillGauge)
 {
 	CurrentUltimateSkillGauge = skillGauge;

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EnhancedInputComponent.h"
 #include "SkillSystemComponent.h"
-#include "Player/SombraHero.h"
 #include "SombraSkillSystemComponent.generated.h"
 
 UENUM()
@@ -13,6 +13,22 @@ enum class EDetection
 	PlayerDetection = 0,
 	HitDetection = 1,
 	HackDetection = 2
+};
+
+USTRUCT()
+struct FHackTargetCalInfo
+{
+	GENERATED_BODY()
+	//기본 정보
+	float alpha = 50.f;
+	float beta = 30.f;
+	float da = 500.f;
+	float db = 1250.f;
+	//계산 정보
+	float ra;
+	float dbp;
+	float rb;
+	FVector SecondHackStartPoint;
 };
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -42,9 +58,21 @@ private:
 	//솜브라 스킬 입력
 	class UInputAction* IA_EMP;
 	class UInputAction* IA_Hack;
+	class UInputAction* IA_HackOff;
 	class UInputAction* IA_Virus;
 	class UInputAction* IA_Translocator;
 
+	//솜브라 스킬 입력 handle
+	uint32 Handle_IA_EMP;
+	uint32 Handle_IA_Hack;
+	uint32 Handle_IA_HackOff;
+	uint32 Handle_IA_Virus;
+	uint32 Handle_IA_Translocator;
+
+
+
+
+	
 	//솜브라 Translocator
 	//발사 속력
 	float ProjectileLaunchSpeed = 7200.f;
@@ -64,6 +92,7 @@ private:
 	//솜브라 스킬에 반응하는 함수
 	void OnEMP(const struct FInputActionValue& value);
 	void OnHack(const struct FInputActionValue& value);
+	void OnHackCancled(const struct FInputActionValue& value);
 	void OnVirus(const struct FInputActionValue& value);
 	void OnTranslocator(const struct FInputActionValue& value);
 
@@ -97,7 +126,32 @@ private:
 	//은신 시간 종료 시 notify 함수
 	void NotifyStealthEnd(float excessDeltaTime);
 
-
+	//=====해킹=====
+private:
+	//해킹 타겟 감지용 정보
+	UPROPERTY()
+	FHackTargetCalInfo HackTargetCalInfo;
+	//해킹 타겟.
+	AHeroBase* HackTarget;
+	//이전 해킹 타겟.
+	AHeroBase* BeforeHackTarget;
+	//해킹 시도 시간
+	float CurrentHackTryTime;
+	float MaxHackTryTime = 0.65f;
+	
+	
+	//해킹 타겟 감지
+	bool DetectHackTarget(class AHeroBase*& outHeroBase);
+	//해킹 용 ConeTrace 기본 값 계산 함수
+	void CalHackConeTrace();
+	//해킹 용 ConeTrace 중 두번 째 Trace에 대하여, 콘의 꼭짓점이 되는 좌표 계산
+	void CalSecondHackTraceBaseStartPoint();
+	//해킹 용 ConeTrace 중 첫번 째 Trace에 대하여, 가장 가까운 대상을 감지
+	bool DetectHackTargetInFirstHackTrace(AHeroBase*& outHeroBase);
+	//해킹 용 ConeTrace 중 두번 째 Trace에 대하여, 가장 가까운 대상을 감지
+	bool DetectHackTargetInSecondHackTrace(AHeroBase*& outHeroBase);
+	//해킹 감지 관련 tick 함수.
+	void HackTick(float deltaTime);
 
 	
 // //Test============================

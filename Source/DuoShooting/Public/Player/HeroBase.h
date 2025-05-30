@@ -102,6 +102,7 @@ protected:
 	virtual void InputJump(const struct FInputActionValue& value);
 	//스킬 컴포넌트를 상속받은 클래스에서 설정할 수 있도록 했습니다.
 	void SetSkillSystemComponent(USkillSystemComponent* targetSystem);
+public:
 	//일단은 참고만 할 수 있게 놔뒀습니다. 필요하면 상의 후 const를 지워주세요.
 	USkillSystemComponent* GetSkillSystemComponent() const;
 public:
@@ -119,7 +120,6 @@ public:
 	void SetMeshVisibility(bool bVisible);
 	//캐릭터 충돌체 켜고(hit, overlap 충돌 처리) 끄기
 	void SetCollisionEnable(bool bEnable);
-
 	
 
 	//==김형모==

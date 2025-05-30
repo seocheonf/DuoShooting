@@ -46,9 +46,9 @@ protected:
 	//스킬 시스템이 부착된 플레이어 대상
 	UPROPERTY()
 	class AHeroBase* TargetPlayer; //나중에 get만.
-
-
-
+	
+	//플레이어 입력
+	class UEnhancedInputComponent* TargetPlayerEnhancedInputComponent;
 	
 	//============스킬 컴포넌트 사용 준비============/
 protected:
@@ -58,6 +58,10 @@ public:
 	//스킬 컴포넌트에 영웅을 등록하고, 스킬 컴포넌트와 영웅의 입력을 바인딩하는 함수를 수행합니다.  
 	void SetupHeroInfo(class AHeroBase* targetPlayer, class UEnhancedInputComponent* enhancedInputComponent);
 
+	//타겟 플레이어의 InputComponent에 입력을 재 등록합니다.
+	void ReSetupHeroInputInfo();
+	//스킬 컴포넌트와 영웅의 입력을 언바인딩합니다.
+	void RemoveHeroInputInfo();
 
 
 	//============궁극기 시스템============//

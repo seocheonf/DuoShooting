@@ -48,6 +48,7 @@ FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle timerHandle
 	return notifyEnd;
 }
 
+/*
 template <class UserClass>
 void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, FTimerHandle& timerHandle,
 	float startTime, float endTime, float inRate, void(UserClass::* doTimerTick)(float, float),
@@ -96,21 +97,26 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(UserClass* functionOwner, 
 		}, inRate, timerParameters);
 	
 	coolTimerContents->TimerHandle = timerHandle;
-	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
+	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);	
 };
+*/
 
+/*
 template <class UserClass>
 void UCoolTimerManagerComponent::RegisterCoolTimerDo(UserClass* functionOwner, FTimerHandle& timerHandle,
 	float startTime, float endTime, float inRate, void(UserClass::* doTimerTick)(float, float))
 {
 	RegisterTimerAll(functionOwner, timerHandle, startTime, endTime, inRate, doTimerTick, static_cast<void(UserClass::*)(float)>(nullptr));
 };
+*/
 
+/*
 template <class UserClass>
 void UCoolTimerManagerComponent::RegisterCoolTimerEnd(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*notifyTimerEnd)(float))
 {
 	RegisterTimerAll(functionOwner, timerHandle, startTime, endTime, inRate, static_cast<void(UserClass::*)(float)>(nullptr), notifyTimerEnd);
 };
+*/
 
 void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle, float startTime, float endTime, float inRate, FDoTimerTick& doTimerTick, FNotifyTimerEnd& notifyTimerEnd)
 {
@@ -119,9 +125,9 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 	if (CoolTimerContentsMap.Contains(timerHandle))
 	{
 		//UE_LOG(LogTemp, Error, TEXT("register inner"));
-		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
 		CoolTimerContentsMap[timerHandle] = nullptr;
 		CoolTimerContentsMap.Remove(timerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
 	}
 	
 	TSharedPtr<CoolTimerContents> coolTimerContents = MakeShared<CoolTimerContents>();

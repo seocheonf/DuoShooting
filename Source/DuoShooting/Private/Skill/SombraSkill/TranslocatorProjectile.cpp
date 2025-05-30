@@ -91,6 +91,9 @@ void ATranslocatorProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, 
 
 void ATranslocatorProjectile::OnOperate()
 {
+	if (bOperation)
+		return;
+	
 	MovementComp->Velocity = FVector(0, 0, 0);
 
 	Launcher->TriggerTranslocator(GetActorLocation());
@@ -100,6 +103,8 @@ void ATranslocatorProjectile::OnOperate()
 	{
 		Destroy();
 	}, 0.25f, false);
+
+	bOperation = true;
 }
 
 void ATranslocatorProjectile::Initializer(class USombraSkillSystemComponent* launcher, const FVector& launchPoint,

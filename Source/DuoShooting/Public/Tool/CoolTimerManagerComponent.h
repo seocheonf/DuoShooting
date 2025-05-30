@@ -71,7 +71,53 @@ public:
 	 * @param notifyTimerEnd 타이머 종료시 할 일
 	 */
 	template <class UserClass>
-	void RegisterCoolTimerAll(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*doTimerTick)(float, float), void (UserClass::*notifyTimerEnd)(float));
+	void RegisterCoolTimerAll(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*doTimerTick)(float, float), void (UserClass::*notifyTimerEnd)(float))
+	{
+		UE_LOG(LogTemp, Error, TEXT("register start"));
+
+		if (CoolTimerContentsMap.Contains(timerHandle))
+		{
+			UE_LOG(LogTemp, Error, TEXT("register inner"));
+			CoolTimerContentsMap[timerHandle] = nullptr;
+			CoolTimerContentsMap.Remove(timerHandle);
+			GetWorld()->GetTimerManager().ClearTimer(timerHandle);
+		}
+	
+		TSharedPtr<CoolTimerContents> coolTimerContents = MakeShared<CoolTimerContents>();
+	
+		coolTimerContents->CurrentTime = startTime;
+		coolTimerContents->EndTime = endTime;
+
+		if (nullptr != doTimerTick)
+			coolTimerContents->DoTimerTick.BindUObject(functionOwner, doTimerTick);
+		if (nullptr != notifyTimerEnd)
+			coolTimerContents->NotifyTimerEnd.BindUObject(functionOwner, notifyTimerEnd);
+
+		FTimerManagerTimerParameters timerParameters(true, true);
+	
+		GetWorld()->GetTimerManager().SetTimer(timerHandle,
+			[this, coolTimerContents]()
+			{
+				coolTimerContents->CurrentTime += GetWorld()->DeltaTimeSeconds;
+				if (coolTimerContents->DoTimerTick.IsBound())
+				{
+					coolTimerContents->DoTimerTick.Execute(GetWorld()->DeltaTimeSeconds, coolTimerContents->CurrentTime);
+				}
+				if (coolTimerContents->CurrentTime >= coolTimerContents->EndTime)
+				{
+					float excessDeltaTime = coolTimerContents->CurrentTime - coolTimerContents->EndTime;
+					FNotifyTimerEnd notifyEnd = RemoveTimer(coolTimerContents->TimerHandle);
+					if (notifyEnd.IsBound())
+					{
+						notifyEnd.Execute(excessDeltaTime);
+					}
+				}
+			
+			}, inRate, timerParameters);
+	
+		coolTimerContents->TimerHandle = timerHandle;
+		CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
+	};
 
 	/**
 	 * 쿨타임을 등록하는 기능이다.
@@ -85,7 +131,10 @@ public:
 	 * @param doTimerTick 타이머 매 틱 할 일
 	 */
 	template <class UserClass>
-	void RegisterCoolTimerDo(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*doTimerTick)(float, float));
+	void RegisterCoolTimerDo(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*doTimerTick)(float, float))
+	{
+		RegisterTimerAll(functionOwner, timerHandle, startTime, endTime, inRate, doTimerTick, static_cast<void(UserClass::*)(float)>(nullptr));
+	};
 
 	/**
 	 * 쿨타임을 등록하는 기능이다.
@@ -99,7 +148,10 @@ public:
 	 * @param notifyTimerEnd 타이머 종료시 할 일
 	 */
 	template <class UserClass>
-	void RegisterCoolTimerEnd(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*notifyTimerEnd)(float));
+	void RegisterCoolTimerEnd(UserClass* functionOwner, FTimerHandle& timerHandle, float startTime, float endTime, float inRate, void (UserClass::*notifyTimerEnd)(float))
+	{
+		RegisterTimerAll(functionOwner, timerHandle, startTime, endTime, inRate, static_cast<void(UserClass::*)(float)>(nullptr), notifyTimerEnd);
+	};
 
 	/**
      * 쿨타임을 등록하는 기능이다.

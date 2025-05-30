@@ -5,7 +5,9 @@
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
 #include "Camera/CameraComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "Player/HeroBase.h"
+#include "Player/SombraHero.h"
 #include "Skill/SombraSkill/TranslocatorProjectile.h"
 #include "Tool/CoolTimerManagerComponent.h"
 
@@ -66,7 +68,7 @@ void USombraSkillSystemComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+	SombraPlayer = Cast<ASombraHero>(TargetPlayer);
 }
 
 
@@ -112,8 +114,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 {
 	//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
 	{
-		TargetPlayer->SetMeshVisibility(false);
-		TargetPlayer->SetCollisionEnable(false);
+		SombraPlayer->SetDisAppearance();
 	}
 	
 	FVector start = TargetPlayer->GetActorLocation();
@@ -126,7 +127,6 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	
 	auto TickTranslocator = [&, start, end](float deltaTime, float currentTime)->void
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Tick"));
 		FVector nextEnd = FMath::Lerp(start, end, currentTime / MoveTime);
 		TargetPlayer->SetActorLocation(nextEnd);
 	};
@@ -135,12 +135,13 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	{
 		//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
 		{
-			TargetPlayer->SetMeshVisibility(true);
-			TargetPlayer->SetCollisionEnable(true);
+			SombraPlayer->SetAppearance();
 		}
 		
 		UE_LOG(LogTemp, Error, TEXT("End"));
 		TargetPlayer->SetActorLocation(end);
+
+		StartStealth();
 	};
 
 	doTimerTick.BindLambda(TickTranslocator);
@@ -149,3 +150,108 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	CoolTimerManagerComp->RegisterCoolTimerAll(timerHandle, 0.f, MoveTime, 0.0003f, doTimerTick, notifyTimerEnd);
 }
 
+void USombraSkillSystemComponent::SetDetectionLayer(EDetection newDetection, bool bSwitch)
+{
+	//은신 상태가 아니라면 값도 바꾸지 말아라.
+	if (!CoolTimer_StealthTimerHandle.IsValid())
+		return;
+
+	//0이라면 전 상태는 false, 0보다 크다면 전 상태는 true
+	bool beforeState = DetectionLayer > 0;
+	
+	//bitmask 준비
+	uint32 bitmask = 1;
+	//enum값에 맞게 bitmask 값 설정
+	bitmask <<= static_cast<uint32>(newDetection);
+	
+	if (bSwitch) //스위치 온
+	{
+		//현재 layer에 적용
+		DetectionLayer |= bitmask;
+	}
+	else //스위치 오프
+	{
+		//기존 값이 true였는지 false였는지 판단
+		uint32 bitmaskCheck = DetectionLayer & bitmask;
+		//true였다면 0으로 바꾸고
+		if (bitmaskCheck == bitmask)
+		{
+			DetectionLayer -= bitmask;
+		}
+		//false였다면 그대로 내보낸다.
+	}
+
+	//0이라면 후 상태는 false, 0보다 크다면 후 상태는 true
+	bool afterState = DetectionLayer > 0;
+
+	//상태가 없었다가 추가되었는지, 마지막으로 빠져나가는 건지를 판단하기 위한 비교문.
+	//값이 /0->1이상/으로 바뀔 때, 은신 세부 상태를 Detection으로 바꾼다.
+	if (beforeState == false && afterState == true)
+	{
+		SombraPlayer->SetStealthState(EStealthState::Detection);
+	}
+	//값이 /1이상->0/으로 바뀔 때, 은신 세부 상태를 Hidden으로 바꾼다.
+	else if (beforeState == true && afterState == false)
+	{
+		SombraPlayer->SetStealthState(EStealthState::Hidden);
+	}
+}
+
+void USombraSkillSystemComponent::StartStealth()
+{
+	SombraPlayer->EnterStealth();
+	CoolTimerManagerComp->RegisterCoolTimerAll(this, CoolTimer_StealthTimerHandle, 0, StealthTime, 0.0003f, &USombraSkillSystemComponent::StealthTick, &USombraSkillSystemComponent::NotifyStealthEnd);
+}
+
+void USombraSkillSystemComponent::EndStealth()
+{
+	DetectionLayer = 0;
+	if (CoolTimer_StealthTimerHandle.IsValid())
+		CoolTimerManagerComp->RemoveTimer(CoolTimer_StealthTimerHandle);
+	SombraPlayer->ExitStealth();
+}
+
+void USombraSkillSystemComponent::StealthTick(float deltaTime, float currentTime)
+{
+	
+	//주변 적 감지
+	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+	UClass* ActorClassFilter = AHeroBase::StaticClass();
+	TArray<AActor*> ActorsToIgnore;
+	//자신은 감지 제외
+	ActorsToIgnore.Add(SombraPlayer);
+	TArray<AActor*> OutActors;
+	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SombraPlayer->GetActorLocation(), DetectionRadius, ObjectTypes, ActorClassFilter, ActorsToIgnore,OutActors);
+	if (OutActors.Num() > 0) //감지되면 mask on
+	{
+		SetDetectionLayer(EDetection::PlayerDetection, true);
+	}
+	else //감지되면 mask off
+	{
+		SetDetectionLayer(EDetection::PlayerDetection, false);
+	}
+}
+
+void USombraSkillSystemComponent::NotifyStealthEnd(float excessDeltaTime)
+{
+	EndStealth();
+}
+
+// //Test======================
+//
+//
+// void USombraSkillSystemComponent::BTick(float deltaTimes, float currentTimes)
+// {
+// 	TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
+// 	UClass* ActorClassFilter = AHeroBase::StaticClass();
+// 	TArray<AActor*> ActorsToIgnore;
+// 	TArray<AActor*> OutActors;
+// 	
+// 	UKismetSystemLibrary::SphereOverlapActors(GetWorld(), SombraPlayer->GetActorLocation(), 1000.f, ObjectTypes, ActorClassFilter, ActorsToIgnore,OutActors);
+//
+// 	if (OutActors.Num() > 0 && SombraPlayer->)
+// 	{
+// 		
+// 	}
+// 	
+// }

@@ -69,6 +69,14 @@ void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UP
 
 	CurrentState = EPulseBombState::ATTACHING;
 
+	//AttachToComponent(hitComponent, FAttachmentTransformRules::KeepWorldTransform);
+
+	StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
+
+	FVector SurfaceNormal = hit.ImpactNormal;
+	FRotator AttachRot = SurfaceNormal.ToOrientationRotator();
+	StaticMeshComp->SetWorldRotation(AttachRot);
+
 	// 1초 후 터진다
 	GetWorldTimerManager().SetTimer(ExplosionTimerHandle, this, &APulseBomb::Explode, 1.0f, false);
 }

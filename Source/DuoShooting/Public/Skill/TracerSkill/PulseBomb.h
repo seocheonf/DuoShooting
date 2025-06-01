@@ -47,7 +47,19 @@ private:
 
 	// 폭탄의 현재 상태
 	EPulseBombState CurrentState = EPulseBombState::INACTIVE;
-	
+
+	// 메쉬 부착
+	UPROPERTY(EditDefaultsOnly)
+	float AttachDuration = 0.2f;
+
+	float AttachAlpha;
+
+	FVector InitialLocation;
+	FVector TargetLocation;
+
+	FQuat InitialQuat;
+	FQuat TargetQuat;
+
 	// 최대/최소 데미지
 	UPROPERTY(EditDefaultsOnly)
 	float MaximumDamage = 350.0f;

@@ -47,6 +47,7 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	// Called every frame
@@ -81,14 +82,20 @@ private:
 	// 시간 역행 관련
 	// 리콜할 레코드(기록) 정보
 	UPROPERTY(EditDefaultsOnly)
-	float RecordInterval = 0.03f;	// 몇초마다 기록할것인지
+	float RecordInterval = 0.1f;	// 몇초마다 기록할것인지
 	UPROPERTY(EditDefaultsOnly)
-	int32 RecordLength = 100;		// 몇개까지 기록할 것인지
+	int32 RecordLength = 30;		// 몇개까지 기록할 것인지
 	FixedDeque<FTracerRecallInfo> Records; // 기록 컨테이너
 	UPROPERTY(EditDefaultsOnly)
 	float RecallInterval = 0.91f;	// 몇초만에 역행할것인지?
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle RecallTimerHandle;
+	// 시간역행 보간용 변수들
+	float TimeSinceLastRecallInterval;
+	FTracerRecallInfo IntervalOrigin;
+	FTracerRecallInfo IntervalTarget;
+	float RecallStepDuration;
+
 protected:
 public:
 	//=====함수=====

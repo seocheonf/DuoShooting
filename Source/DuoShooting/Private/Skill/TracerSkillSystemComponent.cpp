@@ -78,8 +78,18 @@ void UTracerSkillSystemComponent::BeginPlay()
 
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordInfo,
 	                                       RecordInterval, true);
+
+	RecallStepDuration = RecallInterval / RecordLength;
+	UE_LOG(LogTemp, Warning, TEXT("RecallStepDuration : %f"), RecallStepDuration);
 }
 
+// 혹시모를 타이머 
+void UTracerSkillSystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	GetWorld()->GetTimerManager().ClearTimer(BlinkTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
+}
 
 // Called every frame
 void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -93,7 +103,7 @@ void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		TickBlink();
 		break;
 	case ETracerSkillState::RECALL:
-		//TickRecall(DeltaTime);
+		TickRecall(DeltaTime);
 		break;
 	default:
 		break;
@@ -130,6 +140,9 @@ void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue&
 
 void UTracerSkillSystemComponent::ThrowPulseBomb()
 {
+	// 시간역행중에는 불가
+	if (CurrentSkillState == ETracerSkillState::RECALL) return;
+
 	FVector TempStart;
 	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
 	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
@@ -244,56 +257,48 @@ void UTracerSkillSystemComponent::ActivateRecall()
 
 	// 시간역행용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
+	RecallInfo();
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecallInfo,
-	                                       RecallInterval / RecordLength, true);
-
-	//// 튐 방지 위해 IntervalTarget을 현재값으로 채워준다
-	//IntervalTarget.Location = Owner->GetActorLocation();
-	//IntervalTarget.ControlRotation = FVector2D(Owner->GetControlRotation().Pitch, Owner->GetControlRotation().Yaw);
-	//IntervalTarget.Health = Owner->GetHealth();
+		RecallStepDuration, true);
 }
 
 void UTracerSkillSystemComponent::TickRecall(float DeltaTime)
 {
-	//TimeSinceLastRecallInterval = FMath::Clamp(TimeSinceLastRecallInterval + DeltaTime, 0.0f, RecallInterval / RecordLength);
+	// 델타타임 쌓기
+	TimeSinceLastRecallInterval = FMath::Clamp(TimeSinceLastRecallInterval + DeltaTime, 0.0f, RecallStepDuration);
+	float alpha = FMath::Clamp(TimeSinceLastRecallInterval / RecallStepDuration, 0.0f, 1.0f);
 
-	//// 위치 보간 적용
-	//FVector interpLocation = FMath::Lerp(Owner->GetActorLocation(), IntervalTarget.Location, TimeSinceLastRecallInterval);
-	//Owner->SetActorLocation(interpLocation);
+	// 위치 보간 적용
+	FVector interpLocation = FMath::Lerp(IntervalOrigin.Location, IntervalTarget.Location, alpha);
+	Owner->SetActorLocation(interpLocation);
 
-	//// 컨트롤 회전값 보간 적용
-	//FQuat currentQuat = Owner->GetControlRotation().Quaternion();
-	//FRotator targetRot(IntervalTarget.ControlRotation.X, IntervalTarget.ControlRotation.Y, 0.f);
-	//FQuat targetQuat = targetRot.Quaternion();
-	//FQuat interpQuat = FQuat::Slerp(currentQuat, targetQuat, TimeSinceLastRecallInterval);
+	// 컨트롤 회전값 보간 적용
+	FRotator currentRot(IntervalOrigin.ControlRotation.X, IntervalOrigin.ControlRotation.Y, 0.f);
+	FQuat currentQuat = currentRot.Quaternion();
+	FRotator targetRot(IntervalTarget.ControlRotation.X, IntervalTarget.ControlRotation.Y, 0.f);
+	FQuat targetQuat = targetRot.Quaternion();
+	FQuat interpQuat = FQuat::Slerp(currentQuat, targetQuat, alpha);
 
-	//if (AController* ownerController = Owner->GetController())
-	//	ownerController->SetControlRotation(interpQuat.Rotator());
+	if (AController* ownerController = Owner->GetController())
+		ownerController->SetControlRotation(interpQuat.Rotator());
 }
 
-// 큐에서 위치 꺼내서 이동하기
+// 큐에서 위치 꺼내기
 void UTracerSkillSystemComponent::RecallInfo()
 {
 	bool valid;
 
-	//TimeSinceLastRecallInterval = 0.0f;
-	//IntervalTarget = Records.Pop_Back(valid);
+	TimeSinceLastRecallInterval = 0.0f;
 
-	FTracerRecallInfo info = Records.Pop_Back(valid);
+	// 보간을 위해 IntervalOrigin에 현재값 저장
+	IntervalOrigin.Location = Owner->GetActorLocation();
+	IntervalOrigin.ControlRotation = FVector2D(Owner->GetControlRotation().Pitch, Owner->GetControlRotation().Yaw);
+	IntervalOrigin.Health = Owner->GetHealth();
 
-	if (valid)
-	{
-		FRotator fr(info.ControlRotation.X, info.ControlRotation.Y, 0.0f);
-		Owner->SetActorLocation(info.Location);
-		Owner->SetHealth(info.Health);
+	// 보간을 위한 새로운 목표값 저장
+	IntervalTarget = Records.Pop_Back(valid);
 
-		if (AController* ownerController = Owner->GetController())
-			ownerController->SetControlRotation(fr);
-	}
-	else
-	{
-		DeactivateRecall();
-	}
+	if (!valid) DeactivateRecall();
 }
 
 // 시간 역행 비활성화

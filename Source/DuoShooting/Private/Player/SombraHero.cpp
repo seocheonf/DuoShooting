@@ -2,6 +2,7 @@
 
 #include "DuoShooting/Public/Player/SombraHero.h"
 
+#include "Camera/CameraComponent.h"
 #include "Skill/SombraSkillSystemComponent.h"
 
 // Sets default values
@@ -41,6 +42,14 @@ void ASombraHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	
 }
 
+float ASombraHero::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+	class AController* EventInstigator, AActor* DamageCauser)
+{
+	float superReturnValue = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	GetSkillSystemComponent()->TakeDamage();
+	return superReturnValue;
+}
+
 void ASombraHero::SetAppearance()
 {
 	SetCollisionEnable(true);
@@ -56,13 +65,22 @@ void ASombraHero::SetDisAppearance()
 void ASombraHero::EnterStealth()
 {
 	bStealth = true;
+	GetCamera()->PostProcessSettings.bOverride_ColorGain = true;
+	GetCamera()->PostProcessSettings.ColorGain = DefaultStealthStateCameraColorGain;
 	SetStealthState(EStealthState::Hidden);
 }
 
 void ASombraHero::ExitStealth()
 {
 	SetStealthState(EStealthState::None);
+	GetCamera()->PostProcessSettings.ColorGain = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+	GetCamera()->PostProcessSettings.bOverride_ColorGain = false;
 	bStealth = false;
+}
+
+EStealthState ASombraHero::GetStealthState()
+{
+	return StealthState;
 }
 
 void ASombraHero::SetStealthState(EStealthState newState)
@@ -71,7 +89,12 @@ void ASombraHero::SetStealthState(EStealthState newState)
 		return;
 	
 	StealthState = newState;
-	
+
+	//나라면 무시
+	if (nullptr != Cast<APlayerController>(Controller))
+		return;
+
+	//은신으로 인한 머티리얼 변경
 	switch (StealthState)
 	{
 	case EStealthState::None:
@@ -88,6 +111,7 @@ void ASombraHero::SetStealthState(EStealthState newState)
 
 void ASombraHero::SetVisibilityAlpha(float alpha)
 {
+
 	//기존 변화 종료 및 가로채기. 한번에 하나의 alpha 변화만 있어야 자연스러울 것 같았음. 
 	if (VisibilityTimerHandle.IsValid())
 		GetWorldTimerManager().ClearTimer(VisibilityTimerHandle);

@@ -34,6 +34,10 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+public:
+	//오버라이드 함수. HeroBase의 기본 기능을 사용한다.
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	
 	//=====변수=====
 private:
 	// 은신 여부
@@ -54,6 +58,10 @@ private:
 	float CurrentAlphaTime = 0.f;
 	// alpha 변화 진행 정도 마무리
 	float MaxAlphaTime = 0.25f;
+
+	//은신 화면 효과 색상 (ColorGain (Camera->PostProcess->Color Grading->Global->Gain))
+	//purple color
+	const FVector4 DefaultStealthStateCameraColorGain = FVector4(1.0f, 0.5f, 1.0f, 1.0f);
 	
 protected:
 public:
@@ -70,6 +78,8 @@ public:
 	void EnterStealth();
 	//은신 탈출 (은신 세부 상태 None)
 	void ExitStealth();
+	//은신 세부 상태 반환
+	EStealthState GetStealthState();
 	//은신 세부 상태 변환
 	void SetStealthState(EStealthState newState);
 	

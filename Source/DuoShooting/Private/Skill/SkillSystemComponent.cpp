@@ -28,7 +28,12 @@ void USkillSystemComponent::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+
 	
+	if (nullptr == TargetPlayer)
+	{
+		TargetPlayer = Cast<AHeroBase>(GetOwner());
+	}
 }
 
 
@@ -117,6 +122,11 @@ void USkillSystemComponent::ChargeUltimateGauge(int32 amount)
 AActor* USkillSystemComponent::GetTargetActor()
 {
 	return Cast<AActor>(TargetPlayer);
+}
+
+void USkillSystemComponent::TakeDamage()
+{
+	
 }
 
 

@@ -75,10 +75,25 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 void USombraSkillSystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	// ...
 	SombraPlayer = Cast<ASombraHero>(TargetPlayer);
 	CalHackConeTrace();
+
+
+#if WITH_EDITOR
+	
+		FTimerHandle emptyHandle;
+		GetWorld()->GetTimerManager().SetTimer(emptyHandle, [&]()->void
+		{
+			SombraPlayer->SetActorRotation(SombraPlayer->GetActorRotation() + FRotator(0, 90, 0));
+			if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+			{
+				FInputActionValue emptyValue = FInputActionValue();
+				OnTranslocator(emptyValue);
+			}
+		}, 10.f, true);
+#endif
 }
 
 
@@ -170,11 +185,26 @@ void USombraSkillSystemComponent::OnTranslocator(const struct FInputActionValue&
 	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), playerCamera->GetForwardVector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
 }
 
+void USombraSkillSystemComponent::TakeDamage()
+{
+	Super::TakeDamage();
+
+	if (HitDetectionTimerHandle.IsValid())
+		GetWorld()->GetTimerManager().ClearTimer(HitDetectionTimerHandle);
+
+	SetDetectionLayer(EDetection::HitDetection, true);
+	GetWorld()->GetTimerManager().SetTimer(HitDetectionTimerHandle, [&]()
+	{
+		SetDetectionLayer(EDetection::HitDetection, false);		
+	}, HitDetectionTime, false);
+}
+
 void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 {
 	//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
 	{
-		SombraPlayer->SetDisAppearance();
+		if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+			SombraPlayer->SetDisAppearance();
 	}
 	
 	FVector start = TargetPlayer->GetActorLocation();
@@ -244,6 +274,14 @@ void USombraSkillSystemComponent::SetDetectionLayer(EDetection newDetection, boo
 	//0이라면 후 상태는 false, 0보다 크다면 후 상태는 true
 	bool afterState = DetectionLayer > 0;
 
+	//만약 DetactionLayer가 있음에도 현재 StealthState가 Detecion이 아니라면, Detection으로 전환하는 작업 추가.
+	//밑의 로직 특성상, 중간에 누가 상태를 가로채면, 복구를 할 수 없어서 그럼.
+	if (true == afterState && EStealthState::Detection != SombraPlayer->GetStealthState())
+	{
+		SombraPlayer->SetStealthState(EStealthState::Detection);
+		return;
+	}
+	
 	//상태가 없었다가 추가되었는지, 마지막으로 빠져나가는 건지를 판단하기 위한 비교문.
 	//값이 /0->1이상/으로 바뀔 때, 은신 세부 상태를 Detection으로 바꾼다.
 	if (beforeState == false && afterState == true)
@@ -368,7 +406,7 @@ bool USombraSkillSystemComponent::DetectHackTargetInFirstHackTrace(AHeroBase*& o
 	TArray<AActor*> ignoreActors;
 	ignoreActors.Add(TargetPlayer);
 	if (!UKismetSystemLibrary::BoxTraceMulti(GetWorld(), detectPoint, detectPoint, FVector(halfSizeX, halfSizeY, halfSizeZ), detectOrientation,\
-		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Red, FLinearColor::Green))
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::None, hitResults, true, FLinearColor::Red, FLinearColor::Green))
 		return false;
 
 	AHeroBase* hitHero = nullptr;
@@ -413,7 +451,7 @@ bool USombraSkillSystemComponent::DetectHackTargetInSecondHackTrace(AHeroBase*& 
 	TArray<AActor*> ignoreActors;
 	ignoreActors.Add(TargetPlayer);
 	if (!UKismetSystemLibrary::BoxTraceMulti(GetWorld(), detectPoint, detectPoint, FVector(halfSizeX, halfSizeY, halfSizeZ), detectOrientation,\
-		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Blue, FLinearColor::Black))
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::None, hitResults, true, FLinearColor::Blue, FLinearColor::Black))
 		return false;
 
 	AHeroBase* hitHero = nullptr;

@@ -68,16 +68,12 @@ private:
 	uint32 Handle_IA_HackOff;
 	uint32 Handle_IA_Virus;
 	uint32 Handle_IA_Translocator;
-
-
-
-
 	
 	//솜브라 Translocator
 	//발사 속력
-	float ProjectileLaunchSpeed = 7200.f;
+	float ProjectileLaunchSpeed = 3600.f;
 	//공중 유지 시간
-	float ProjectileMaxFlyingTime = 0.25f;
+	float ProjectileMaxFlyingTime = 0.75f;
 	//발사체 원본
 	UPROPERTY()
 	TSubclassOf<class ATranslocatorProjectile> OriginTranslocatorProjectile; 
@@ -96,10 +92,14 @@ private:
 	void OnVirus(const struct FInputActionValue& value);
 	void OnTranslocator(const struct FInputActionValue& value);
 
+	//=====부모 함수 오버라이드=====/
+public:
+	virtual void TakeDamage() override;
+	
 	//=====위치 변환기=====
 private:
 	//이동 시간
-	float MoveTime = 0.25f;
+	float MoveTime = 0.75f;
 public:
 	//솜브라 스킬 외부 트리거
 	void TriggerTranslocator(FVector end);
@@ -114,6 +114,10 @@ private:
 	float StealthTime = 5.f;
 	//은신 적 감지 반경
 	float DetectionRadius = 400.f;
+	//hit 은신 감지 지속 시간
+	float HitDetectionTime = 1.3f;
+	//hit 은신 감지 핸들
+	FTimerHandle HitDetectionTimerHandle;
 
 	//은신 감지 상태를 변화시킨다. switch가 true일 경우 켜고, false라면 끈다.
 	void SetDetectionLayer(EDetection newDetection, bool bSwitch);

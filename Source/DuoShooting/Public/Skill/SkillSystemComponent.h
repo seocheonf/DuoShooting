@@ -89,5 +89,9 @@ public:
 	//============변수 받아오기=============//
 public:
 	AActor* GetTargetActor();
+
+	//============피격 정보 받아오기==========//
+public:
+	virtual void TakeDamage(); 
 	
 };

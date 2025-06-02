@@ -7,6 +7,7 @@
 #include "InputMappingContext.h"
 #include "Attack/HitscanEmitterComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/CameraShakeSourceComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "UI/ShootingMainWidget.h"
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
@@ -61,7 +62,11 @@ AHeroBase::AHeroBase()
 	bUseControllerRotationYaw = true;
 
 	// 히트스캔 발사기 컴포넌트 생성
-	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("TestHitScanComponent"));
+	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("HitScanEmitter"));
+
+	// 카메라 흔들림 컴포넌트 생성
+	CameraShakeSourceComp = CreateDefaultSubobject<UCameraShakeSourceComponent>(TEXT("CameraShakeSource"));
+	CameraShakeSourceComp->SetupAttachment(FirstPersonCameraComp);
 }
 
 void AHeroBase::NotifyControllerChanged()
@@ -96,8 +101,13 @@ void AHeroBase::BeginPlay()
 			{
 				ShootingMainWidget->AddToViewport(); // ZOrder?
 
-				// 히트스캔 컴포넌트에 메인위젯 전달
-				if (HitscanEmitterComp) HitscanEmitterComp->SetShootingMainWidget(ShootingMainWidget);
+				// 히트스캔 컴포넌트에 필요한 포인터 전달
+				if (HitscanEmitterComp) HitscanEmitterComp->Initialize(ShootingMainWidget, CameraShakeSourceComp);
+
+				// 메인위젯에 총탄, 체력 기본값 전달
+				ShootingMainWidget->InitMaxBullet(MaxBullet);
+				ShootingMainWidget->InitMaxHealth(MaxHealth);
+				ShootingMainWidget->SetCurrentHealth(CurrentHealth);
 			}
 		}
 	}

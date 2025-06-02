@@ -56,6 +56,9 @@ private:
 	// 히트스캔 발사기 컴포넌트
 	UPROPERTY(VisibleAnywhere, Blueprintable, Category = Shooting)
 	class UHitscanEmitterComponent* HitscanEmitterComp;
+	// 카메라 흔들림 컴포넌트
+	UPROPERTY()
+	class UCameraShakeSourceComponent* CameraShakeSourceComp;
 	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
 	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;

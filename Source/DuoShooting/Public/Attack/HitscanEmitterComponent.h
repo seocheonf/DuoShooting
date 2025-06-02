@@ -83,9 +83,15 @@ private:
 	float Spread = 2.0f;
 
 	// ----------이펙트----------
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UParticleSystem* FireParticle = nullptr;
 
+	UPROPERTY()
+	class UCameraShakeSourceComponent* CameraShakeSourceComp;
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UCameraShakeBase> FireCameraShake;
+	
 	// ----------UI----------
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;
@@ -94,8 +100,8 @@ public:
 	// 인풋 전달
 	void SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent);
 
-	// 메인위젯 인스턴스 전달
-	void SetShootingMainWidget(UShootingMainWidget* inst);
+	// 액터에서 필요한 인스턴스 전달받음
+	void Initialize(UShootingMainWidget* mainWidgetInst, UCameraShakeSourceComponent* camShakeSourceInst);
 
 	void SetHitScanSettings(float fireInterval, float damagePerBullet, float spread, float maxDist);
 	

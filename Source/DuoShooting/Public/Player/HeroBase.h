@@ -90,6 +90,8 @@ protected:
 	// 공통 UI (체력, 총탄, 조준선 등)
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class UWidgetComponent* HealthBarComp;
 	//영웅 상태 (bitmask)
 	int32 CurrentHeroState;
 public:
@@ -126,6 +128,13 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	// 최대 총알 Get
 	int32 GetMaxBullet() const { return MaxBullet; }
+
+	//=====RPC=====
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_FireHitScan();
+	UFUNCTION(Server, Reliable)
+	void MultiRPC_FireHitScan(const FHitResult& hitResult);
+	//=============
 	
 	//==김형모==
 	

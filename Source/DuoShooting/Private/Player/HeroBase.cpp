@@ -9,9 +9,12 @@
 #include "Camera/CameraComponent.h"
 #include "Camera/CameraShakeSourceComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "UI/ShootingMainWidget.h"
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "UI/HealthBarWidget.h"
 
 
 // Sets default values
@@ -67,6 +70,15 @@ AHeroBase::AHeroBase()
 	// 카메라 흔들림 컴포넌트 생성
 	CameraShakeSourceComp = CreateDefaultSubobject<UCameraShakeSourceComponent>(TEXT("CameraShakeSource"));
 	CameraShakeSourceComp->SetupAttachment(FirstPersonCameraComp);
+
+	// 체력바
+	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBarComp->SetupAttachment(RootComponent);
+	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 104.0f));
+	HealthBarComp->SetRelativeScale3D(FVector(1.0f, 0.13f, 0.02f));
+	ConstructorHelpers::FClassFinder<UUserWidget> TempHealthBar(
+		TEXT("'/Game/DuoShooting/UIs/WBP_HealthBarWidget.WBP_HealthBarWidget_C'"));
+	if (TempHealthBar.Succeeded()) { HealthBarComp->SetWidgetClass(TempHealthBar.Class); }
 }
 
 void AHeroBase::NotifyControllerChanged()
@@ -89,10 +101,14 @@ void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	auto pc = Cast<APlayerController>(Controller);
-
-	if (pc && IsLocallyControlled())
+	// 로컬이면 체력바를 끄고 메인위젯을 생성
+	if (IsLocallyControlled())
 	{
+		if (HealthBarComp)
+		{
+			HealthBarComp->SetVisibility(false);
+		}
+		
 		// 슈팅 위젯 생성
 		if (ShootingMainWidgetFactory)
 		{
@@ -101,13 +117,27 @@ void AHeroBase::BeginPlay()
 			{
 				ShootingMainWidget->AddToViewport(); // ZOrder?
 
-				// 히트스캔 컴포넌트에 필요한 포인터 전달
+				// 히트스캔 컴포넌트에 위젯 전달
 				if (HitscanEmitterComp) HitscanEmitterComp->Initialize(ShootingMainWidget, CameraShakeSourceComp);
 
 				// 메인위젯에 총탄, 체력 기본값 전달
 				ShootingMainWidget->InitMaxBullet(MaxBullet);
 				ShootingMainWidget->InitMaxHealth(MaxHealth);
 				ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+			}
+		}
+	}
+	// 로컬이 아니면 체력바를 초기화
+	else
+	{
+		if (HealthBarComp)
+		{
+			HealthBarComp->InitWidget();
+			UHealthBarWidget* bar = Cast<UHealthBarWidget>(HealthBarComp->GetWidget());
+			if (bar)
+			{
+				bar->InitMaxHealth(MaxHealth);
+				bar->SetCurrentHealth(CurrentHealth);
 			}
 		}
 	}
@@ -118,6 +148,17 @@ void AHeroBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// 체력바 빌보딩
+	if (HealthBarComp && HealthBarComp->GetVisibleFlag())
+	{
+		FVector camLocation = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetCameraLocation();
+		FVector direction = camLocation - HealthBarComp->GetComponentLocation();
+		FRotator lookAtRotation = FRotationMatrix::MakeFromX(direction).Rotator();
+		lookAtRotation.Pitch = 0.f;
+		lookAtRotation.Roll = 0.f;
+		HealthBarComp->SetWorldRotation(lookAtRotation);
+	}
+	
 #if WITH_EDITOR
 	PrintNetLog();
 #endif
@@ -235,6 +276,13 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);
+
+	// 위젯에 값 전달
+	if (UHealthBarWidget* bar = Cast<UHealthBarWidget>(HealthBarComp->GetWidget()))
+	{
+		bar->SetCurrentHealth(CurrentHealth);
+	}
+
 	return actualDamage;
 }
 
@@ -258,6 +306,16 @@ void AHeroBase::AddHealth(float hp)
 	SetHealth(CurrentHealth + hp);
 }
 
+void AHeroBase::ServerRPC_FireHitScan_Implementation()
+{
+	//HitscanEmitterComp->SingleLineTrace();
+}
+
+void AHeroBase::MultiRPC_FireHitScan_Implementation(const FHitResult& hitResult)
+{
+	//HitscanEmitterComp->FireEffect(hitResult);
+}
+
 //==김형모==
 
 void AHeroBase::SetMeshVisibility(bool bVisible)
@@ -267,9 +325,7 @@ void AHeroBase::SetMeshVisibility(bool bVisible)
 
 void AHeroBase::SetCollisionEnable(bool bEnable)
 {
-	GetCapsuleComponent()->SetCollisionEnabled(bEnable
-		                                           ? ECollisionEnabled::QueryAndPhysics
-		                                           : ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 }
 
 void AHeroBase::DoAfterAction(EHeroActionType actionType)

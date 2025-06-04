@@ -35,8 +35,13 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 public:
-	//오버라이드 함수. HeroBase의 기본 기능을 사용한다.
+	//==오버라이드 함수==
+	
+	//HeroBase의 기본 기능을 사용한다.
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	//그 타이밍에 해야할 일.
+	virtual void DoAfterAction(EHeroActionType actionType) override;
 	
 	//=====변수=====
 private:
@@ -62,6 +67,9 @@ private:
 	//은신 화면 효과 색상 (ColorGain (Camera->PostProcess->Color Grading->Global->Gain))
 	//purple color
 	const FVector4 DefaultStealthStateCameraColorGain = FVector4(1.0f, 0.5f, 1.0f, 1.0f);
+
+	//일반 공격 중 여부 확인
+	bool bNormalAttacking = false;
 	
 protected:
 public:

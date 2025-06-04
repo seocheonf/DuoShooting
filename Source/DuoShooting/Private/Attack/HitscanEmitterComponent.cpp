@@ -175,6 +175,8 @@ void UHitscanEmitterComponent::InputFire_Started()
 	// 이미 트리거되어 있다면 리턴
 	if (bTriggered) return;
 	bTriggered = true;
+
+	Owner->DoAfterAction(EHeroActionType::NormalAttackStart);
 }
 
 void UHitscanEmitterComponent::InputFire_Completed()
@@ -183,6 +185,8 @@ void UHitscanEmitterComponent::InputFire_Completed()
 	if (!bTriggered) return;
 	bTriggered = false;
 	FireTimer = 1000.0f; // 충분히 큰 수
+
+	Owner->DoAfterAction(EHeroActionType::NormalAttackEnd);
 }
 
 void UHitscanEmitterComponent::InputReload()

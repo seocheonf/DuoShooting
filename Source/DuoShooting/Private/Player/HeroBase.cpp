@@ -240,4 +240,8 @@ void AHeroBase::SetCollisionEnable(bool bEnable)
 	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 }
 
+void AHeroBase::DoAfterAction(EHeroActionType actionType)
+{
+}
+
 //==김형모==

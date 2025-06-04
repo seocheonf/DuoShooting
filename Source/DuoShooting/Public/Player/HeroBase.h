@@ -18,6 +18,15 @@ enum class EHeroState : uint8
 	LastIndex
 };
 
+UENUM()
+enum class EHeroActionType : uint8
+{
+	NormalAttackStart,
+	NormalAttackEnd,
+	Skill1,
+	Skill2
+};
+
 UCLASS(Abstract)
 class DUOSHOOTING_API AHeroBase : public ACharacter
 {
@@ -118,7 +127,9 @@ public:
 	void SetMeshVisibility(bool bVisible);
 	//캐릭터 충돌체 켜고(hit, overlap 충돌 처리) 끄기
 	void SetCollisionEnable(bool bEnable);
-	
+
+	//캐릭터가 EHeroActionType에 따라 그 타이밍 이후에 곧장 할 일
+	virtual void DoAfterAction(EHeroActionType actionType);
 
 	//==김형모==
 };

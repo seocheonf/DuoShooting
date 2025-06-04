@@ -32,6 +32,12 @@ void ASombraHero::BeginPlay()
 void ASombraHero::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//커스텀 틱. 스텔스 여부와 공격 여부 확인
+	if (bStealth && bNormalAttacking)
+	{
+		ExitStealth();
+	}
 }
 
 // Called to bind functionality to input
@@ -48,6 +54,25 @@ float ASombraHero::TakeDamage(float DamageAmount, struct FDamageEvent const& Dam
 	float superReturnValue = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	GetSkillSystemComponent()->TakeDamage();
 	return superReturnValue;
+}
+
+void ASombraHero::DoAfterAction(EHeroActionType actionType)
+{
+	Super::DoAfterAction(actionType);
+	
+	switch (actionType)
+	{
+		case EHeroActionType::NormalAttackStart:
+			bNormalAttacking = true;
+			break;
+
+		case EHeroActionType::NormalAttackEnd:
+			bNormalAttacking = false;
+			break;
+
+		default:
+			break;
+	}
 }
 
 void ASombraHero::SetAppearance()

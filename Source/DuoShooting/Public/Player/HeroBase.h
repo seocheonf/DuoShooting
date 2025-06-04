@@ -47,7 +47,6 @@ public:
 
 	// Called to bind functionality to input / InitSkillSystemInput 기능을 함께 수행합니다.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
 	//=====변수=====
 private:
 	//히어로 공통 인풋
@@ -65,12 +64,19 @@ private:
 	// 히트스캔 발사기 컴포넌트
 	UPROPERTY(VisibleAnywhere, Blueprintable, Category = Shooting)
 	class UHitscanEmitterComponent* HitscanEmitterComp;
+	// 카메라 흔들림 컴포넌트
+	UPROPERTY()
+	class UCameraShakeSourceComponent* CameraShakeSourceComp;
 	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
 	UPROPERTY(EditDefaultsOnly, Category = UI)
 	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
+#if WITH_EDITOR
+	// 네트워크 상태 로그 출력
+	void PrintNetLog();
+#endif
 protected:
 	//히어로 공통 속성
 	UPROPERTY(EditAnywhere)	// 기본 체력

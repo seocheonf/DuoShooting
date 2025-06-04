@@ -5,6 +5,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/CameraShakeSourceComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/HeroBase.h"
@@ -129,6 +130,12 @@ void UHitscanEmitterComponent::SingleLineTrace()
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, Result.Location);
 		}
 
+		if (CameraShakeSourceComp && FireCameraShake)
+		{
+			CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
+		}
+		
+		// 히어로가 맞았으면 피해 주기
 		if (auto* hero = Cast<AHeroBase>(Result.GetActor()))
 		{
 			// 전달할 FPointDamageEvent 구조체 구성
@@ -165,9 +172,11 @@ void UHitscanEmitterComponent::SetupHitscanInputInfo(UEnhancedInputComponent* en
 	                                   &UHitscanEmitterComponent::InputReload);
 }
 
-void UHitscanEmitterComponent::SetShootingMainWidget(UShootingMainWidget* inst)
+void UHitscanEmitterComponent::Initialize(UShootingMainWidget* mainWidgetInst,
+	UCameraShakeSourceComponent* camShakeSourceInst)
 {
-	ShootingMainWidget = inst;
+	ShootingMainWidget = mainWidgetInst;
+	CameraShakeSourceComp = camShakeSourceInst;
 }
 
 void UHitscanEmitterComponent::InputFire_Started()

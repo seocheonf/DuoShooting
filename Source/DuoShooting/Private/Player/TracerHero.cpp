@@ -27,14 +27,6 @@ void ATracerHero::BeginPlay()
 	Super::BeginPlay();
 
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
-
-	// 메인위젯에 기본값 전달
-	if (ShootingMainWidget)
-	{
-		ShootingMainWidget->InitMaxBullet(MaxBullet);
-		ShootingMainWidget->InitMaxHealth(MaxHealth);
-		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
-	}
 }
 
 void ATracerHero::InputMove(const struct FInputActionValue& value)

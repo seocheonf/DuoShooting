@@ -7,6 +7,7 @@
 #include "InputMappingContext.h"
 #include "Attack/HitscanEmitterComponent.h"
 #include "Camera/CameraComponent.h"
+#include "Camera/CameraShakeSourceComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "UI/ShootingMainWidget.h"
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
@@ -61,7 +62,11 @@ AHeroBase::AHeroBase()
 	bUseControllerRotationYaw = true;
 
 	// 히트스캔 발사기 컴포넌트 생성
-	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("TestHitScanComponent"));
+	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("HitScanEmitter"));
+
+	// 카메라 흔들림 컴포넌트 생성
+	CameraShakeSourceComp = CreateDefaultSubobject<UCameraShakeSourceComponent>(TEXT("CameraShakeSource"));
+	CameraShakeSourceComp->SetupAttachment(FirstPersonCameraComp);
 }
 
 void AHeroBase::NotifyControllerChanged()
@@ -83,7 +88,7 @@ void AHeroBase::NotifyControllerChanged()
 void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	auto pc = Cast<APlayerController>(Controller);
 
 	if (pc && IsLocallyControlled())
@@ -96,8 +101,13 @@ void AHeroBase::BeginPlay()
 			{
 				ShootingMainWidget->AddToViewport(); // ZOrder?
 
-				// 히트스캔 컴포넌트에 메인위젯 전달
-				if (HitscanEmitterComp) HitscanEmitterComp->SetShootingMainWidget(ShootingMainWidget);
+				// 히트스캔 컴포넌트에 필요한 포인터 전달
+				if (HitscanEmitterComp) HitscanEmitterComp->Initialize(ShootingMainWidget, CameraShakeSourceComp);
+
+				// 메인위젯에 총탄, 체력 기본값 전달
+				ShootingMainWidget->InitMaxBullet(MaxBullet);
+				ShootingMainWidget->InitMaxHealth(MaxHealth);
+				ShootingMainWidget->SetCurrentHealth(CurrentHealth);
 			}
 		}
 	}
@@ -107,6 +117,10 @@ void AHeroBase::BeginPlay()
 void AHeroBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+#if WITH_EDITOR
+	PrintNetLog();
+#endif
 }
 
 // Called to bind functionality to input
@@ -152,6 +166,22 @@ void AHeroBase::InputLook(const FInputActionValue& value)
 void AHeroBase::InputJump(const FInputActionValue& value)
 {
 	Jump();
+}
+
+void AHeroBase::PrintNetLog()
+{
+	const FString isConnectedStr = GetNetConnection() ? TEXT("연결됨") : TEXT("연결되지 않음");
+	const FString ownerNameStr = GetOwner() ? GetOwner()->GetName() : TEXT("Owner 존재하지 않음");
+
+	const FString logStr = FString::Printf(
+		TEXT("NetConnection: %s\nOwnerName: %s\nLocalRole: %s\nRemoteRole: %s"),
+		*isConnectedStr,
+		*ownerNameStr,
+		*UEnum::GetValueAsString<ENetRole>(GetLocalRole()),
+		*UEnum::GetValueAsString<ENetRole>(GetRemoteRole())
+	);
+
+	DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
 }
 
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
@@ -200,7 +230,7 @@ TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 
 // 데미지 입기: 언리얼 내장 함수를 씁니다
 float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
-	class AController* EventInstigator, AActor* DamageCauser)
+                            class AController* EventInstigator, AActor* DamageCauser)
 {
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
@@ -237,7 +267,9 @@ void AHeroBase::SetMeshVisibility(bool bVisible)
 
 void AHeroBase::SetCollisionEnable(bool bEnable)
 {
-	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(bEnable
+		                                           ? ECollisionEnabled::QueryAndPhysics
+		                                           : ECollisionEnabled::NoCollision);
 }
 
 void AHeroBase::DoAfterAction(EHeroActionType actionType)

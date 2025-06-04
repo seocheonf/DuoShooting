@@ -115,11 +115,11 @@ private:
 	void TickBlink();
 	void DeactivateBlink();
 	// 시간 역행 관련
-	void RecordInfo();
-	void RecallInfo();
 	void ActivateRecall();
 	void TickRecall(float DeltaTime);
 	void DeactivateRecall();
+	void RecordInfo();
+	void RecallInfo();
 protected:
 public:
 	ETracerSkillState GetCurrentSkillState() const;

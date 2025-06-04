@@ -38,7 +38,6 @@ public:
 
 	// Called to bind functionality to input / InitSkillSystemInput 기능을 함께 수행합니다.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
 	//=====변수=====
 private:
 	//히어로 공통 인풋
@@ -65,6 +64,10 @@ private:
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
+#if WITH_EDITOR
+	// 네트워크 상태 로그 출력
+	void PrintNetLog();
+#endif
 protected:
 	//히어로 공통 속성
 	UPROPERTY(EditAnywhere)	// 기본 체력
@@ -121,7 +124,6 @@ public:
 	void SetMeshVisibility(bool bVisible);
 	//캐릭터 충돌체 켜고(hit, overlap 충돌 처리) 끄기
 	void SetCollisionEnable(bool bEnable);
-	
 
 	//==김형모==
 };

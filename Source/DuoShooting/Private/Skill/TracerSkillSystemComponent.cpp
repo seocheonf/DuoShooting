@@ -252,6 +252,8 @@ void UTracerSkillSystemComponent::ActivateRecall()
 	// 컴포넌트 설정값들 끄기
 	Owner->GetCharacterMovement()->DisableMovement();
 	Owner->GetHitscanEmitter()->Disable();
+	Owner->SetMeshVisibility(false);
+	Owner->SetCollisionEnable(false);
 	// Owner->GetCamera()->bUsePawnControlRotation = false;
 	// Owner->bUseControllerRotationYaw = false;
 
@@ -318,6 +320,8 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 		Owner->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
 
 	Owner->GetHitscanEmitter()->Enable();
+	Owner->SetMeshVisibility(true);
+	Owner->SetCollisionEnable(true);
 
 	// 시간기록용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);

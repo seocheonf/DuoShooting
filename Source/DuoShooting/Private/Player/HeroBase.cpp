@@ -88,7 +88,7 @@ void AHeroBase::NotifyControllerChanged()
 void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	auto pc = Cast<APlayerController>(Controller);
 
 	if (pc && IsLocallyControlled())
@@ -117,6 +117,10 @@ void AHeroBase::BeginPlay()
 void AHeroBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+#if WITH_EDITOR
+	PrintNetLog();
+#endif
 }
 
 // Called to bind functionality to input
@@ -162,6 +166,22 @@ void AHeroBase::InputLook(const FInputActionValue& value)
 void AHeroBase::InputJump(const FInputActionValue& value)
 {
 	Jump();
+}
+
+void AHeroBase::PrintNetLog()
+{
+	const FString isConnectedStr = GetNetConnection() ? TEXT("연결됨") : TEXT("연결되지 않음");
+	const FString ownerNameStr = GetOwner() ? GetOwner()->GetName() : TEXT("Owner 존재하지 않음");
+
+	const FString logStr = FString::Printf(
+		TEXT("NetConnection: %s\nOwnerName: %s\nLocalRole: %s\nRemoteRole: %s"),
+		*isConnectedStr,
+		*ownerNameStr,
+		*UEnum::GetValueAsString<ENetRole>(GetLocalRole()),
+		*UEnum::GetValueAsString<ENetRole>(GetRemoteRole())
+	);
+
+	DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
 }
 
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
@@ -210,7 +230,7 @@ TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 
 // 데미지 입기: 언리얼 내장 함수를 씁니다
 float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
-	class AController* EventInstigator, AActor* DamageCauser)
+                            class AController* EventInstigator, AActor* DamageCauser)
 {
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
@@ -247,7 +267,9 @@ void AHeroBase::SetMeshVisibility(bool bVisible)
 
 void AHeroBase::SetCollisionEnable(bool bEnable)
 {
-	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(bEnable
+		                                           ? ECollisionEnabled::QueryAndPhysics
+		                                           : ECollisionEnabled::NoCollision);
 }
 
 //==김형모==

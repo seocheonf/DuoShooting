@@ -66,6 +66,7 @@ AHeroBase::AHeroBase()
 
 	// 히트스캔 발사기 컴포넌트 생성
 	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("HitScanEmitter"));
+	HitscanEmitterComp->SetIsReplicated(true);
 
 	// 카메라 흔들림 컴포넌트 생성
 	CameraShakeSourceComp = CreateDefaultSubobject<UCameraShakeSourceComponent>(TEXT("CameraShakeSource"));
@@ -306,14 +307,14 @@ void AHeroBase::AddHealth(float hp)
 	SetHealth(CurrentHealth + hp);
 }
 
-void AHeroBase::ServerRPC_FireHitScan_Implementation()
+void AHeroBase::ClientRPC_FireHitScan_Implementation(int bulletCount)
 {
-	//HitscanEmitterComp->SingleLineTrace();
+	HitscanEmitterComp->PlayFX_Shooter();
 }
 
-void AHeroBase::MultiRPC_FireHitScan_Implementation(const FHitResult& hitResult)
+void AHeroBase::MultiRPC_FireEffects_Implementation(FVector hitLocation)
 {
-	//HitscanEmitterComp->FireEffect(hitResult);
+	HitscanEmitterComp->PlayFX_Everyone(hitLocation);
 }
 
 //==김형모==

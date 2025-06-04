@@ -8,6 +8,7 @@
 #include "Camera/CameraShakeSourceComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/HeroBase.h"
 #include "Particles/ParticleSystem.h"
 
@@ -67,25 +68,7 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!bEnabled) return;
-	if (!bTriggered) return;
-	if (CurrentBullet <= 0) return;
-
-	// 트리거되어있다면 연사
-	FireTimer += DeltaTime;
-	if (FireTimer >= FireInterval)
-	{
-		// 총알 쓰기
-		SetCurrentBullet(CurrentBullet - 1);
-
-		// 라인트레이스 쏘기
-		SingleLineTrace();
-
-		// 타이머 초기화
-		FireTimer = 0.0f;
-
-		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
-	}
+	TickHitScan(DeltaTime);
 }
 
 void UHitscanEmitterComponent::SetCurrentBullet(int32 bullets)
@@ -123,17 +106,6 @@ void UHitscanEmitterComponent::SingleLineTrace()
 	{
 		//// 테스트용 시각화
 		//DrawDebugLine(GetWorld(), Start, Result.Location, FColor::Green, false, 5.0f);
-
-		// 이펙트
-		if (FireParticle)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, Result.Location);
-		}
-
-		if (CameraShakeSourceComp && FireCameraShake)
-		{
-			CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
-		}
 		
 		// 히어로가 맞았으면 피해 주기
 		if (auto* hero = Cast<AHeroBase>(Result.GetActor()))
@@ -160,6 +132,40 @@ void UHitscanEmitterComponent::Reload()
 	FireTimer = 1000.0f; // 충분히 큰 수
 
 	UE_LOG(LogTemp, Warning, TEXT("재장전 완료"));
+}
+
+void UHitscanEmitterComponent::TickHitScan(float dt)
+{
+	// 서버에서만 돌아가는 코드
+	if (!Owner->HasAuthority()) return;
+	if (!bEnabled) return;
+	if (!bTriggered) return;
+	if (CurrentBullet <= 0) return;
+
+	// 트리거되어있다면 연사
+	FireTimer += dt;
+	if (FireTimer >= FireInterval)
+	{
+		// 타이머 초기화
+		FireTimer = 0.0f;
+		
+		// 총알 쓰기
+		SetCurrentBullet(CurrentBullet - 1);
+		Owner->ClientRPC_FireHitScan(CurrentBullet);
+		
+		// 라인트레이스 쏘기
+		SingleLineTrace();
+		
+		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
+	}
+}
+
+void UHitscanEmitterComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UHitscanEmitterComponent, bEnabled);
+	DOREPLIFETIME(UHitscanEmitterComponent, bTriggered);
 }
 
 void UHitscanEmitterComponent::SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent)
@@ -217,4 +223,22 @@ void UHitscanEmitterComponent::Disable()
 	if (!bEnabled) return;
 	bEnabled = false;
 	UE_LOG(LogTemp, Warning, TEXT("총 비활성화"));
+}
+
+void UHitscanEmitterComponent::PlayFX_Shooter()
+{
+	// 카메라 쉐이크
+	if (CameraShakeSourceComp && FireCameraShake)
+	{
+		CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
+	}
+}
+
+void UHitscanEmitterComponent::PlayFX_Everyone(FVector hitLocation)
+{
+	// 이펙트
+	if (FireParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, hitLocation);
+	}
 }

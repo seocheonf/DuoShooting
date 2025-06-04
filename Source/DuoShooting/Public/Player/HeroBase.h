@@ -130,10 +130,11 @@ public:
 	int32 GetMaxBullet() const { return MaxBullet; }
 
 	//=====RPC=====
+	// 슈팅
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_FireHitScan();
+	void ClientRPC_FireHitScan(int bulletCount);
 	UFUNCTION(Server, Reliable)
-	void MultiRPC_FireHitScan(const FHitResult& hitResult);
+	void MultiRPC_FireEffects(FVector hitLocation);
 	//=============
 	
 	//==김형모==

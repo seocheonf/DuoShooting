@@ -50,9 +50,11 @@ private:
 	void InputReload();
 	
 	// 사격 가능한지 (인풋 막기용)
+	UPROPERTY(Replicated)
 	bool bEnabled = true;
 	
 	// 사격이 트리거되었는지 (트리거되어있으면 연사)
+	UPROPERTY(Replicated)
 	bool bTriggered = false;
 
 	/// ----------총알----------
@@ -67,6 +69,8 @@ private:
 
 	// 재장전
 	void Reload();
+	
+	void TickHitScan(float dt);
 
 	/// ----------세부설정----------
 	// 연사 간격
@@ -95,6 +99,8 @@ private:
 	// ----------UI----------
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 public:
 	// 인풋 전달
@@ -108,4 +114,8 @@ public:
 	// 사격 활성화/비활성화
 	void Enable();
 	void Disable();
+
+	// 네트워크
+	void PlayFX_Shooter();						// 총을 쏜 사람에게만 보이는 이펙트
+	void PlayFX_Everyone(FVector hitLocation);	// 총을 쏘았을 때 모두에게 보일 이펙트
 };

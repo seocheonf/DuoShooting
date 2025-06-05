@@ -58,8 +58,6 @@ void UHitscanEmitterComponent::BeginPlay()
 	Owner = Cast<AHeroBase>(GetOwner());
 	if (Owner) { OwnerCamera = Owner->GetCamera(); }
 	else UE_LOG(LogTemp, Error, TEXT("UHitscanComponent이 AHeroBase 주인을 찾지 못하고 카메라도 가져오지 못함"));
-
-	SetCurrentBullet(Owner->GetMaxBullet());
 }
 
 // Called every frame
@@ -69,11 +67,13 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	TickHitScan(DeltaTime);
+	DebugInfo();
 }
 
 void UHitscanEmitterComponent::SetCurrentBullet(int32 bullets)
 {
 	CurrentBullet = bullets;
+
 	if (ShootingMainWidget) ShootingMainWidget->SetCurrentBullet(CurrentBullet);
 }
 
@@ -120,7 +120,11 @@ void UHitscanEmitterComponent::SingleLineTrace()
 			UGameplayStatics::ApplyDamage(hero, DamagePerBullet, Owner->GetController(), Owner,
 			                              UDamageType::StaticClass());
 		}
+
+		Owner->MultiRPC_FireEffects(Result.Location);
 	}
+
+
 }
 
 void UHitscanEmitterComponent::Reload()
@@ -183,6 +187,8 @@ void UHitscanEmitterComponent::Initialize(UShootingMainWidget* mainWidgetInst,
 {
 	ShootingMainWidget = mainWidgetInst;
 	CameraShakeSourceComp = camShakeSourceInst;
+	
+	SetCurrentBullet(Owner->GetMaxBullet());
 }
 
 void UHitscanEmitterComponent::InputFire_Started()
@@ -190,7 +196,8 @@ void UHitscanEmitterComponent::InputFire_Started()
 	// 이미 트리거되어 있다면 리턴
 	if (bTriggered) return;
 	bTriggered = true;
-
+	UE_LOG(LogTemp, Warning, TEXT("InputFire_Started"));
+	
 	Owner->DoAfterAction(EHeroActionType::NormalAttackStart);
 }
 
@@ -200,6 +207,7 @@ void UHitscanEmitterComponent::InputFire_Completed()
 	if (!bTriggered) return;
 	bTriggered = false;
 	FireTimer = 1000.0f; // 충분히 큰 수
+	UE_LOG(LogTemp, Warning, TEXT("InputFire_Completed"));
 
 	Owner->DoAfterAction(EHeroActionType::NormalAttackEnd);
 }
@@ -225,8 +233,11 @@ void UHitscanEmitterComponent::Disable()
 	UE_LOG(LogTemp, Warning, TEXT("총 비활성화"));
 }
 
-void UHitscanEmitterComponent::PlayFX_Shooter()
+void UHitscanEmitterComponent::FireNetwork_Shooter(int bulletCount)
 {
+	// 총알 개수 적용
+	CurrentBullet = bulletCount;
+	
 	// 카메라 쉐이크
 	if (CameraShakeSourceComp && FireCameraShake)
 	{
@@ -234,11 +245,25 @@ void UHitscanEmitterComponent::PlayFX_Shooter()
 	}
 }
 
-void UHitscanEmitterComponent::PlayFX_Everyone(FVector hitLocation)
+void UHitscanEmitterComponent::FireNetwork_Everyone(FVector hitLocation)
 {
 	// 이펙트
 	if (FireParticle)
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, hitLocation);
 	}
+}
+
+void UHitscanEmitterComponent::DebugInfo()
+{
+	const FString bEnabledString = bEnabled ? TEXT("true") : TEXT("false");
+	const FString bTriggeredString = bTriggered ? TEXT("true") : TEXT("false");
+
+	const FString logStr = FString::Printf(
+		TEXT("bEnabeld: %s\nbTriggered: %s"),
+		*bEnabledString,
+		*bTriggeredString
+	);
+
+	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);
 }

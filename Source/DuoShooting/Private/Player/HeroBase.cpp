@@ -161,7 +161,7 @@ void AHeroBase::Tick(float DeltaTime)
 	}
 	
 #if WITH_EDITOR
-	PrintNetLog();
+	//PrintNetLog();
 #endif
 }
 
@@ -309,12 +309,12 @@ void AHeroBase::AddHealth(float hp)
 
 void AHeroBase::ClientRPC_FireHitScan_Implementation(int bulletCount)
 {
-	HitscanEmitterComp->PlayFX_Shooter();
+	HitscanEmitterComp->FireNetwork_Shooter(bulletCount);
 }
 
 void AHeroBase::MultiRPC_FireEffects_Implementation(FVector hitLocation)
 {
-	HitscanEmitterComp->PlayFX_Everyone(hitLocation);
+	HitscanEmitterComp->FireNetwork_Everyone(hitLocation);
 }
 
 //==김형모==

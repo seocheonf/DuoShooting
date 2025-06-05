@@ -101,6 +101,8 @@ private:
 	class UShootingMainWidget* ShootingMainWidget;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	void DebugInfo();
 	
 public:
 	// 인풋 전달
@@ -116,6 +118,6 @@ public:
 	void Disable();
 
 	// 네트워크
-	void PlayFX_Shooter();						// 총을 쏜 사람에게만 보이는 이펙트
-	void PlayFX_Everyone(FVector hitLocation);	// 총을 쏘았을 때 모두에게 보일 이펙트
+	void FireNetwork_Shooter(int bulletCount);						// 총을 쏜 사람에게만 보이는 이펙트
+	void FireNetwork_Everyone(FVector hitLocation);	// 총을 쏘았을 때 모두에게 보일 이펙트
 };

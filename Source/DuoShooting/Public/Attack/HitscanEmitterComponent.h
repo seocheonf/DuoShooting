@@ -50,12 +50,14 @@ private:
 	void InputReload();
 	
 	// 사격 가능한지 (인풋 막기용)
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated)
 	bool bEnabled = true;
 	
 	// 사격이 트리거되었는지 (트리거되어있으면 연사)
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated)
 	bool bTriggered = false;
+
+	bool bReloading = false;
 
 	/// ----------총알----------
 	// 현재 총알 개수
@@ -68,7 +70,9 @@ private:
 	void SingleLineTrace();
 
 	// 재장전
-	void Reload();
+	void StartReload();
+
+	void EndReload();
 	
 	void TickHitScan(float dt);
 
@@ -117,7 +121,16 @@ public:
 	void Enable();
 	void Disable();
 
-	// 네트워크
-	void FireNetwork_Shooter(int bulletCount);						// 총을 쏜 사람에게만 보이는 이펙트
-	void FireNetwork_Everyone(FVector hitLocation);	// 총을 쏘았을 때 모두에게 보일 이펙트
+	/// 네트워크
+
+	// 서버용 함수들
+	void Auth_SetTriggered(bool value);
+	void Auth_StartReloading();
+	void Auth_EndReloading();
+
+	// 클라이언트용 함수들
+	void Fire_Requester(int bulletCount);		// 총을 쏜 사람에게만 답신할 내용
+	void Fire_Everyone(FVector hitLocation);	// 총을 쏘았을 때 모두에게 보일 이펙트
+
+	void ReloadEnd_Requester(int bulletCount);				// 리로드를 한 사람에게만 답신할 내용
 };

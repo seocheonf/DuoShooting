@@ -66,20 +66,20 @@ AHeroBase::AHeroBase()
 
 	// 히트스캔 발사기 컴포넌트 생성
 	HitscanEmitterComp = CreateDefaultSubobject<UHitscanEmitterComponent>(TEXT("HitScanEmitter"));
-	HitscanEmitterComp->SetIsReplicated(true);
+	//HitscanEmitterComp->SetIsReplicated(true);
 
 	// 카메라 흔들림 컴포넌트 생성
 	CameraShakeSourceComp = CreateDefaultSubobject<UCameraShakeSourceComponent>(TEXT("CameraShakeSource"));
 	CameraShakeSourceComp->SetupAttachment(FirstPersonCameraComp);
 
 	// 체력바
-	HealthBarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
-	HealthBarComp->SetupAttachment(RootComponent);
-	HealthBarComp->SetRelativeLocation(FVector(0.0f, 0.0f, 104.0f));
-	HealthBarComp->SetRelativeScale3D(FVector(1.0f, 0.13f, 0.02f));
+	HealthBarWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBarWidgetComp->SetupAttachment(RootComponent);
+	HealthBarWidgetComp->SetRelativeLocation(FVector(0.0f, 0.0f, 104.0f));
+	HealthBarWidgetComp->SetRelativeScale3D(FVector(1.0f, 0.13f, 0.02f));
 	ConstructorHelpers::FClassFinder<UUserWidget> TempHealthBar(
 		TEXT("'/Game/DuoShooting/UIs/WBP_HealthBarWidget.WBP_HealthBarWidget_C'"));
-	if (TempHealthBar.Succeeded()) { HealthBarComp->SetWidgetClass(TempHealthBar.Class); }
+	if (TempHealthBar.Succeeded()) { HealthBarWidgetComp->SetWidgetClass(TempHealthBar.Class); }
 }
 
 void AHeroBase::NotifyControllerChanged()
@@ -105,9 +105,9 @@ void AHeroBase::BeginPlay()
 	// 로컬이면 체력바를 끄고 메인위젯을 생성
 	if (IsLocallyControlled())
 	{
-		if (HealthBarComp)
+		if (HealthBarWidgetComp)
 		{
-			HealthBarComp->SetVisibility(false);
+			HealthBarWidgetComp->SetVisibility(false);
 		}
 		
 		// 슈팅 위젯 생성
@@ -117,9 +117,6 @@ void AHeroBase::BeginPlay()
 			if (ShootingMainWidget != nullptr)
 			{
 				ShootingMainWidget->AddToViewport(); // ZOrder?
-
-				// 히트스캔 컴포넌트에 위젯 전달
-				if (HitscanEmitterComp) HitscanEmitterComp->Initialize(ShootingMainWidget, CameraShakeSourceComp);
 
 				// 메인위젯에 총탄, 체력 기본값 전달
 				ShootingMainWidget->InitMaxBullet(MaxBullet);
@@ -131,17 +128,20 @@ void AHeroBase::BeginPlay()
 	// 로컬이 아니면 체력바를 초기화
 	else
 	{
-		if (HealthBarComp)
+		if (HealthBarWidgetComp)
 		{
-			HealthBarComp->InitWidget();
-			UHealthBarWidget* bar = Cast<UHealthBarWidget>(HealthBarComp->GetWidget());
-			if (bar)
+			HealthBarWidgetComp->InitWidget();
+			HealthBarWidget = Cast<UHealthBarWidget>(HealthBarWidgetComp->GetWidget());
+			if (HealthBarWidget)
 			{
-				bar->InitMaxHealth(MaxHealth);
-				bar->SetCurrentHealth(CurrentHealth);
+				HealthBarWidget->InitMaxHealth(MaxHealth);
+				HealthBarWidget->SetCurrentHealth(CurrentHealth);
 			}
 		}
 	}
+
+	// 히트스캔 컴포넌트에 필수정보 전달
+	if (HitscanEmitterComp) HitscanEmitterComp->Initialize(ShootingMainWidget, CameraShakeSourceComp);
 }
 
 // Called every frame
@@ -150,14 +150,14 @@ void AHeroBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// 체력바 빌보딩
-	if (HealthBarComp && HealthBarComp->GetVisibleFlag())
+	if (HealthBarWidgetComp && HealthBarWidgetComp->GetVisibleFlag())
 	{
 		FVector camLocation = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->GetCameraLocation();
-		FVector direction = camLocation - HealthBarComp->GetComponentLocation();
+		FVector direction = camLocation - HealthBarWidgetComp->GetComponentLocation();
 		FRotator lookAtRotation = FRotationMatrix::MakeFromX(direction).Rotator();
 		lookAtRotation.Pitch = 0.f;
 		lookAtRotation.Roll = 0.f;
-		HealthBarComp->SetWorldRotation(lookAtRotation);
+		HealthBarWidgetComp->SetWorldRotation(lookAtRotation);
 	}
 	
 #if WITH_EDITOR
@@ -279,10 +279,12 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 	AddHealth(-actualDamage);
 
 	// 위젯에 값 전달
-	if (UHealthBarWidget* bar = Cast<UHealthBarWidget>(HealthBarComp->GetWidget()))
+	if (UHealthBarWidget* bar = Cast<UHealthBarWidget>(HealthBarWidgetComp->GetWidget()))
 	{
 		bar->SetCurrentHealth(CurrentHealth);
 	}
+
+	MultiRPC_OnTakeDamage(CurrentHealth);
 
 	return actualDamage;
 }
@@ -295,8 +297,11 @@ float AHeroBase::GetHealth()
 void AHeroBase::SetHealth(float hp)
 {
 	CurrentHealth = FMath::Clamp(hp, 0.0f, MaxHealth);
+
 	if (ShootingMainWidget)
 		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+	else if (HealthBarWidget)
+		HealthBarWidget->SetCurrentHealth(CurrentHealth);
 	else
 		UE_LOG(LogTemp, Warning, TEXT("ShootingMaingWidget Null"));
 	UE_LOG(LogTemp, Warning, TEXT("%s의 체력이 %f가 되었습니다"), *GetName(), CurrentHealth);
@@ -307,14 +312,38 @@ void AHeroBase::AddHealth(float hp)
 	SetHealth(CurrentHealth + hp);
 }
 
+void AHeroBase::MultiRPC_OnTakeDamage_Implementation(float hp)
+{
+	SetHealth(hp);
+}
+
+void AHeroBase::ServerRPC_FireHitScan_Implementation(bool bTriggered)
+{
+	UE_LOG(LogTemp, Warning, TEXT("ServerRPC_FireHitScan_Implementation called"));
+
+	HitscanEmitterComp->Auth_SetTriggered(bTriggered);
+}
+
 void AHeroBase::ClientRPC_FireHitScan_Implementation(int bulletCount)
 {
-	HitscanEmitterComp->FireNetwork_Shooter(bulletCount);
+	UE_LOG(LogTemp, Warning, TEXT("ClientRPC_FireHitScan_Implementation called with bulletCount %d"), bulletCount);
+
+	HitscanEmitterComp->Fire_Requester(bulletCount);
 }
 
 void AHeroBase::MultiRPC_FireEffects_Implementation(FVector hitLocation)
 {
-	HitscanEmitterComp->FireNetwork_Everyone(hitLocation);
+	HitscanEmitterComp->Fire_Everyone(hitLocation);
+}
+
+void AHeroBase::ServerRPC_Reload_Implementation()
+{
+	HitscanEmitterComp->Auth_StartReloading();
+}
+
+void AHeroBase::ClientRPC_ReloadEnd_Implementation(int bulletCount)
+{
+	HitscanEmitterComp->ReloadEnd_Requester(bulletCount);
 }
 
 //==김형모==

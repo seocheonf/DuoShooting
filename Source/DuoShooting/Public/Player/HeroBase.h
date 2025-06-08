@@ -91,7 +91,9 @@ protected:
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	class UWidgetComponent* HealthBarComp;
+	class UWidgetComponent* HealthBarWidgetComp;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	class UHealthBarWidget* HealthBarWidget;
 	//영웅 상태 (bitmask)
 	int32 CurrentHeroState;
 public:
@@ -130,11 +132,21 @@ public:
 	int32 GetMaxBullet() const { return MaxBullet; }
 
 	//=====RPC=====
+	// 체력
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_OnTakeDamage(float hp);
 	// 슈팅
 	UFUNCTION(Server, Reliable)
+	void ServerRPC_FireHitScan(bool bTriggered);
+	UFUNCTION(Client, Reliable)
 	void ClientRPC_FireHitScan(int bulletCount);
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_FireEffects(FVector hitLocation);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Reload();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_ReloadEnd(int bulletCount);
 	//=============
 	
 	//==김형모==

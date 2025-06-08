@@ -64,8 +64,9 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 		if (TempClass.Succeeded()) { PulseBombFactory = TempClass.Class; }
 	}
 
-
 	Records.Init(RecordLength);
+
+	SetIsReplicated(true);
 }
 
 // Called when the game starts

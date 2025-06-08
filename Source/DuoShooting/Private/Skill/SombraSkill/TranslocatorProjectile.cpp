@@ -74,6 +74,8 @@ void ATranslocatorProjectile::ConstructorInit()
 	SphereComp->SetSphereRadius(50.f);
 	StaticMeshComp->SetCollisionProfileName(TEXT("NoCollision"));
 	StaticMeshComp->SetStaticMesh(OriginStaticMesh);
+
+	//bReplicates = true;
 }
 
 void ATranslocatorProjectile::CustomBeginPlay()

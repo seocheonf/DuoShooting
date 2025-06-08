@@ -74,6 +74,10 @@ private:
 protected:
 public:
 	//=====함수=====
+private:
+	//은신에 의한 material alpha값 변환 명령
+	UFUNCTION(NetMulticast, Reliable)
+	void SetStealthStateVisibility(EStealthState newState);
 protected:
 	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)
 	void SetVisibilityAlpha(float alpha);

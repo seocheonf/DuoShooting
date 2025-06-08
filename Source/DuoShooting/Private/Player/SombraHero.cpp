@@ -115,10 +115,18 @@ void ASombraHero::SetStealthState(EStealthState newState)
 	
 	StealthState = newState;
 
-	//나라면 무시
-	if (nullptr != Cast<APlayerController>(Controller))
-		return;
+	SetStealthStateVisibility(newState);
+}
 
+void ASombraHero::SetStealthStateVisibility_Implementation(EStealthState newState)
+{
+	/* 나라면 무시
+	if (nullptr != Cast<APlayerController>(Controller))
+	 	return;
+	*/
+	if (IsLocallyControlled())
+		return;
+	
 	//은신으로 인한 머티리얼 변경
 	switch (StealthState)
 	{

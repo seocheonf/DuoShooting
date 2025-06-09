@@ -27,17 +27,6 @@ void ATracerHero::BeginPlay()
 
 	Super::BeginPlay();
 
-	// 로컬이면 체력바를 끄고 메인위젯을 생성
-	if (IsLocallyControlled())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ATracerHero BeginPlay LOCALLYLCONTROLLED"));
-	}
-	// 로컬이 아니면 체력바를 초기화
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ATracerHero BeginPlay NOT LOCALLYLCONTROLLED"));
-	}
-
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
 }
 

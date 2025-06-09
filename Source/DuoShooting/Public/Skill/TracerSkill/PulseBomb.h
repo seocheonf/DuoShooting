@@ -75,6 +75,9 @@ private:
 	float Radius_FullDamage = 200.0f;
 
 	UPROPERTY(EditDefaultsOnly)
+	class UParticleSystem* FireParticle = nullptr;
+
+	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<UDamageType> DamageTypeClass;
 
 	UPROPERTY()

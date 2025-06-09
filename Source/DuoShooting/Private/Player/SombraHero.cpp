@@ -37,6 +37,7 @@ void ASombraHero::Tick(float DeltaTime)
 	if (bStealth && bNormalAttacking)
 	{
 		ExitStealth();
+		ServerRPC_OffStealthByAttack();
 	}
 }
 
@@ -75,52 +76,18 @@ void ASombraHero::DoAfterAction(EHeroActionType actionType)
 	}
 }
 
-void ASombraHero::SetAppearance()
-{
-	SetCollisionEnable(true);
-	SetMeshVisibility(true);
-}
 
-void ASombraHero::SetDisAppearance()
+void ASombraHero::MultiRPC_SetStealthStateVisibility_Implementation(EStealthState newState)
 {
-	SetCollisionEnable(false);
-	SetMeshVisibility(false);
-}
-
-void ASombraHero::EnterStealth()
-{
-	bStealth = true;
-	GetCamera()->PostProcessSettings.bOverride_ColorGain = true;
-	GetCamera()->PostProcessSettings.ColorGain = DefaultStealthStateCameraColorGain;
-	SetStealthState(EStealthState::Hidden);
-}
-
-void ASombraHero::ExitStealth()
-{
-	SetStealthState(EStealthState::None);
-	GetCamera()->PostProcessSettings.ColorGain = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
-	GetCamera()->PostProcessSettings.bOverride_ColorGain = false;
-	bStealth = false;
-}
-
-EStealthState ASombraHero::GetStealthState()
-{
-	return StealthState;
-}
-
-void ASombraHero::SetStealthState(EStealthState newState)
-{
-	if (!bStealth)
+	/* 나라면 무시
+	if (nullptr != Cast<APlayerController>(Controller))
+		 return;
+	*/
+	if (IsLocallyControlled())
 		return;
 	
-	StealthState = newState;
-
-	//나라면 무시
-	if (nullptr != Cast<APlayerController>(Controller))
-		return;
-
 	//은신으로 인한 머티리얼 변경
-	switch (StealthState)
+	switch (newState)
 	{
 	case EStealthState::None:
 		SetVisibilityAlpha(1.f);
@@ -134,9 +101,27 @@ void ASombraHero::SetStealthState(EStealthState newState)
 	}
 }
 
+void ASombraHero::ClientRPC_SetStealthCamera_Implementation(bool bStealthCamera)
+{
+	if (bStealthCamera)
+	{
+		GetCamera()->PostProcessSettings.bOverride_ColorGain = true;
+		GetCamera()->PostProcessSettings.ColorGain = DefaultStealthStateCameraColorGain;
+	}
+	else
+	{
+		GetCamera()->PostProcessSettings.ColorGain = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		GetCamera()->PostProcessSettings.bOverride_ColorGain = false;
+	}
+}
+
+void ASombraHero::ServerRPC_OffStealthByAttack_Implementation()
+{
+	ExitStealth();
+}
+
 void ASombraHero::SetVisibilityAlpha(float alpha)
 {
-
 	//기존 변화 종료 및 가로채기. 한번에 하나의 alpha 변화만 있어야 자연스러울 것 같았음. 
 	if (VisibilityTimerHandle.IsValid())
 		GetWorldTimerManager().ClearTimer(VisibilityTimerHandle);
@@ -168,5 +153,66 @@ void ASombraHero::SetVisibilityAlpha(float alpha)
 			GetWorldTimerManager().ClearTimer(VisibilityTimerHandle);
 		}
 	}, 0.0003f, FTimerManagerTimerParameters(true, true));
+}
+
+void ASombraHero::SetAppearance()
+{
+	SetCollisionEnable(true);
+	SetMeshVisibility(true);
+}
+
+void ASombraHero::SetDisAppearance()
+{
+	SetCollisionEnable(false);
+	SetMeshVisibility(false);
+}
+
+void ASombraHero::MultiRPC_SetAppearanceTP_Implementation(bool bAppearance)
+{
+	/*나라면 무시
+	if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+		return;
+	 */
+	if (IsLocallyControlled())
+		return;
+	
+	if (bAppearance)
+	{
+		SetAppearance();
+	}
+	else
+	{
+		SetDisAppearance();
+	}
+}
+
+void ASombraHero::EnterStealth()
+{
+	bStealth = true;
+	ClientRPC_SetStealthCamera(true);
+	SetStealthState(EStealthState::Hidden);
+}
+
+void ASombraHero::ExitStealth()
+{
+	DrawDebugString(GetWorld(), GetActorLocation(), FString::Printf(TEXT("LocalRole : %d"), GetLocalRole()), this, FColor::Blue, 10.f, true, 5);
+	SetStealthState(EStealthState::None);
+	ClientRPC_SetStealthCamera(false);
+	bStealth = false;
+}
+
+EStealthState ASombraHero::GetStealthState()
+{
+	return StealthState;
+}
+
+void ASombraHero::SetStealthState(EStealthState newState)
+{
+	if (!bStealth)
+		return;	
+	
+	StealthState = newState;
+
+	MultiRPC_SetStealthStateVisibility(StealthState);
 }
 

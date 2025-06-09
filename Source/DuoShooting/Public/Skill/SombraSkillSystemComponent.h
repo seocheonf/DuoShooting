@@ -92,6 +92,10 @@ private:
 	void OnVirus(const struct FInputActionValue& value);
 	void OnTranslocator(const struct FInputActionValue& value);
 
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_OnTranslocator(const struct FInputActionValue& value);
+	
+
 	//=====부모 함수 오버라이드=====/
 public:
 	virtual void TakeDamage() override;

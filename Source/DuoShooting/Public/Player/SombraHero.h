@@ -74,14 +74,25 @@ private:
 protected:
 public:
 	//=====함수=====
+private:
+	//은신에 의한 material alpha값 변환 명령
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_SetStealthStateVisibility(EStealthState newState);
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetStealthCamera(bool bStealthCamera);
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_OffStealthByAttack();
 protected:
 	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)
 	void SetVisibilityAlpha(float alpha);
-public:
 	//모습과 충돌 드러냄 (모습은 현재 은신 여부에 영향을 받음)
 	void SetAppearance();
 	//모습과 충돌 숨김
 	void SetDisAppearance();
+public:
+	//위치 변환기에 의한 모습과 충돌을 드러내고 숨기는 함수
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_SetAppearanceTP(bool bAppearance);
 	//은신 진입 (은신 세부 상태 Hidden)
 	void EnterStealth();
 	//은신 탈출 (은신 세부 상태 None)

@@ -23,6 +23,7 @@ enum class EHeroActionType : uint8
 {
 	NormalAttackStart,
 	NormalAttackEnd,
+	//NormalAttackSuccess,
 	Skill1,
 	Skill2
 };
@@ -138,12 +139,20 @@ public:
 	//=============
 	
 	//==김형모==
-	
+
+public:
 	//캐릭터 메시 시각처리 켜고 끄기
 	void SetMeshVisibility(bool bVisible);
 	//캐릭터 충돌체 켜고(hit, overlap 충돌 처리) 끄기
 	void SetCollisionEnable(bool bEnable);
 
+	//서버에서 DoAfterAction을 처리할 수 있도록 DoAfterAction을 감싼 함수
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_DoAfterAction(EHeroActionType actionType);
+
+	UHealthBarWidget* GetHealthBarUI();
+	
+protected:
 	//캐릭터가 EHeroActionType에 따라 그 타이밍 이후에 곧장 할 일
 	virtual void DoAfterAction(EHeroActionType actionType);
 

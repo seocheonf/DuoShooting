@@ -4,6 +4,7 @@
 
 #include "Camera/CameraComponent.h"
 #include "Skill/SombraSkillSystemComponent.h"
+#include "UI/HealthBarWidget.h"
 
 // Sets default values
 ASombraHero::ASombraHero()
@@ -32,21 +33,19 @@ void ASombraHero::BeginPlay()
 void ASombraHero::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	
 	//커스텀 틱. 스텔스 여부와 공격 여부 확인
 	if (bStealth && bNormalAttacking)
 	{
 		ExitStealth();
-		ServerRPC_OffStealthByAttack();
 	}
+	
 }
 
 // Called to bind functionality to input
 void ASombraHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	
 }
 
 float ASombraHero::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
@@ -60,19 +59,23 @@ float ASombraHero::TakeDamage(float DamageAmount, struct FDamageEvent const& Dam
 void ASombraHero::DoAfterAction(EHeroActionType actionType)
 {
 	Super::DoAfterAction(actionType);
-	
+
 	switch (actionType)
 	{
-		case EHeroActionType::NormalAttackStart:
-			bNormalAttacking = true;
-			break;
-
-		case EHeroActionType::NormalAttackEnd:
-			bNormalAttacking = false;
-			break;
-
-		default:
-			break;
+	case EHeroActionType::NormalAttackStart:
+		bNormalAttacking = true;
+		break;
+		
+	case EHeroActionType::NormalAttackEnd:
+		bNormalAttacking = false;
+		break;
+		
+	// case EHeroActionType::NormalAttackSuccess:
+	// 	ExitStealth();
+	// 	break;
+	
+	default:
+		break;
 	}
 }
 
@@ -115,11 +118,6 @@ void ASombraHero::ClientRPC_SetStealthCamera_Implementation(bool bStealthCamera)
 	}
 }
 
-void ASombraHero::ServerRPC_OffStealthByAttack_Implementation()
-{
-	ExitStealth();
-}
-
 void ASombraHero::SetVisibilityAlpha(float alpha)
 {
 	//기존 변화 종료 및 가로채기. 한번에 하나의 alpha 변화만 있어야 자연스러울 것 같았음. 
@@ -148,6 +146,12 @@ void ASombraHero::SetVisibilityAlpha(float alpha)
 			//목표 값을 정확히 적용
 			SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
 			SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
+			
+			UHealthBarWidget* healthBarWidget = GetHealthBarUI();
+			FLinearColor targetColor = healthBarWidget->GetColorAndOpacity();
+			targetColor.A = captrueGoalAlpha;
+			healthBarWidget->SetColorAndOpacity(targetColor);
+			
 			SombraMaterialAlpha = captrueGoalAlpha;
 			//타이머 종료
 			GetWorldTimerManager().ClearTimer(VisibilityTimerHandle);
@@ -195,7 +199,6 @@ void ASombraHero::EnterStealth()
 
 void ASombraHero::ExitStealth()
 {
-	DrawDebugString(GetWorld(), GetActorLocation(), FString::Printf(TEXT("LocalRole : %d"), GetLocalRole()), this, FColor::Blue, 10.f, true, 5);
 	SetStealthState(EStealthState::None);
 	ClientRPC_SetStealthCamera(false);
 	bStealth = false;

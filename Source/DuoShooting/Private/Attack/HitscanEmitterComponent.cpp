@@ -173,6 +173,7 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 
 		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
 	}
+	
 }
 
 void UHitscanEmitterComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -211,7 +212,7 @@ void UHitscanEmitterComponent::InputFire_Started()
 	
 	ServerRPC_FireHitScan(true);
 
-	Owner->DoAfterAction(EHeroActionType::NormalAttackStart);
+	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackStart);
 }
 
 void UHitscanEmitterComponent::InputFire_Completed()
@@ -224,7 +225,7 @@ void UHitscanEmitterComponent::InputFire_Completed()
 
 	ServerRPC_FireHitScan(false);
 
-	Owner->DoAfterAction(EHeroActionType::NormalAttackEnd);
+	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackEnd);
 }
 
 void UHitscanEmitterComponent::InputReload()

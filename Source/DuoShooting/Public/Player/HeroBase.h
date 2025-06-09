@@ -135,19 +135,6 @@ public:
 	// 체력
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_OnTakeDamage(float hp);
-	
-	// 슈팅
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_FireHitScan(bool bTriggered);
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_FireHitScan(int bulletCount);
-	UFUNCTION(NetMulticast, Reliable)
-	void MultiRPC_FireEffects(FVector hitLocation);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Reload();
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_ReloadEnd(int bulletCount);
 	//=============
 	
 	//==김형모==

@@ -320,35 +320,6 @@ void AHeroBase::MultiRPC_OnTakeDamage_Implementation(float hp)
 	SetHealth(hp);
 }
 
-void AHeroBase::ServerRPC_FireHitScan_Implementation(bool bTriggered)
-{
-	UE_LOG(LogTemp, Warning, TEXT("ServerRPC_FireHitScan_Implementation called"));
-
-	HitscanEmitterComp->Auth_SetTriggered(bTriggered);
-}
-
-void AHeroBase::ClientRPC_FireHitScan_Implementation(int bulletCount)
-{
-	UE_LOG(LogTemp, Warning, TEXT("ClientRPC_FireHitScan_Implementation called with bulletCount %d"), bulletCount);
-
-	HitscanEmitterComp->Fire_Requester(bulletCount);
-}
-
-void AHeroBase::MultiRPC_FireEffects_Implementation(FVector hitLocation)
-{
-	HitscanEmitterComp->Fire_Everyone(hitLocation);
-}
-
-void AHeroBase::ServerRPC_Reload_Implementation()
-{
-	HitscanEmitterComp->Auth_StartReloading();
-}
-
-void AHeroBase::ClientRPC_ReloadEnd_Implementation(int bulletCount)
-{
-	HitscanEmitterComp->ReloadEnd_Requester(bulletCount);
-}
-
 //==김형모==
 
 void AHeroBase::SetMeshVisibility(bool bVisible)

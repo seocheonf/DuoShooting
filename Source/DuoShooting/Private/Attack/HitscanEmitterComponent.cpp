@@ -39,6 +39,8 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 			TEXT("'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
 		if (ParticleAsset.Succeeded()) { FireParticle = ParticleAsset.Object; }
 	}
+
+	SetIsReplicated(true);
 }
 
 void UHitscanEmitterComponent::SetHitScanSettings(float fireInterval, float damagePerBullet, float spread,
@@ -121,7 +123,7 @@ void UHitscanEmitterComponent::SingleLineTrace()
 				UDamageType::StaticClass());
 		}
 
-		Owner->MultiRPC_FireEffects(Result.Location);
+		MultiRPC_FireEffects(Result.Location);
 	}
 }
 
@@ -132,7 +134,7 @@ void UHitscanEmitterComponent::StartReload()
 
 	bReloading = true;
 
-	Owner->ServerRPC_Reload();
+	ServerRPC_Reload();
 }
 
 void UHitscanEmitterComponent::EndReload()
@@ -164,7 +166,7 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 
 		// 총알 쓰기
 		SetCurrentBullet(CurrentBullet - 1);
-		Owner->ClientRPC_FireHitScan(CurrentBullet);
+		ClientRPC_FireHitScan(CurrentBullet);
 
 		// 라인트레이스 쏘기
 		SingleLineTrace();
@@ -207,7 +209,7 @@ void UHitscanEmitterComponent::InputFire_Started()
 	bTriggered = true;
 	UE_LOG(LogTemp, Warning, TEXT("InputFire_Started"));
 	
-	Owner->ServerRPC_FireHitScan(true);
+	ServerRPC_FireHitScan(true);
 
 	Owner->DoAfterAction(EHeroActionType::NormalAttackStart);
 }
@@ -220,7 +222,7 @@ void UHitscanEmitterComponent::InputFire_Completed()
 	FireTimer = 1000.0f; // 충분히 큰 수
 	UE_LOG(LogTemp, Warning, TEXT("InputFire_Completed"));
 
-	Owner->ServerRPC_FireHitScan(false);
+	ServerRPC_FireHitScan(false);
 
 	Owner->DoAfterAction(EHeroActionType::NormalAttackEnd);
 }
@@ -230,7 +232,7 @@ void UHitscanEmitterComponent::InputReload()
 	if (CurrentBullet >= Owner->GetMaxBullet()) return;
 
 	bReloading = true;
-	Owner->ServerRPC_Reload();
+	ServerRPC_Reload();
 }
 
 void UHitscanEmitterComponent::Enable()
@@ -247,37 +249,16 @@ void UHitscanEmitterComponent::Disable()
 	UE_LOG(LogTemp, Warning, TEXT("총 비활성화"));
 }
 
-// 서버용 함수
-void UHitscanEmitterComponent::Auth_SetTriggered(bool value)
+void UHitscanEmitterComponent::MultiRPC_FireEffects_Implementation(FVector hitLocation)
 {
-	if (!Owner->HasAuthority()) return;
-
-	bTriggered = value;
-	UE_LOG(LogTemp, Warning, TEXT("bTriggered set to %s by SetTriggered"), bTriggered ? TEXT("true") : TEXT("false"));
+	// 이펙트
+	if (FireParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, hitLocation);
+	}
 }
 
-void UHitscanEmitterComponent::Auth_StartReloading()
-{
-	if (!Owner->HasAuthority()) return;
-
-	bReloading = true;
-
-	// 임시로 3초후에 리로딩 완료해주는것
-	FTimerHandle TempReloadHandle;
-	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Auth_EndReloading, 3.0f, false);
-}
-
-void UHitscanEmitterComponent::Auth_EndReloading()
-{
-	bReloading = false;
-
-	// 총알 채우기
-	SetCurrentBullet(Owner->GetMaxBullet());
-
-	Owner->ClientRPC_ReloadEnd(CurrentBullet);
-}
-
-void UHitscanEmitterComponent::Fire_Requester(int bulletCount)
+void UHitscanEmitterComponent::ClientRPC_FireHitScan_Implementation(int bulletCount)
 {
 	// 총알 개수 적용
 	SetCurrentBullet(bulletCount);
@@ -293,21 +274,37 @@ void UHitscanEmitterComponent::Fire_Requester(int bulletCount)
 	}
 }
 
-void UHitscanEmitterComponent::Fire_Everyone(FVector hitLocation)
+void UHitscanEmitterComponent::ServerRPC_FireHitScan_Implementation(bool triggered)
 {
-	// 이펙트
-	if (FireParticle)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, hitLocation);
-	}
+	bTriggered = triggered;
+	UE_LOG(LogTemp, Warning, TEXT("bTriggered set to %s by SetTriggered"), bTriggered ? TEXT("true") : TEXT("false"));
 }
 
-void UHitscanEmitterComponent::ReloadEnd_Requester(int bulletCount)
+void UHitscanEmitterComponent::ServerRPC_Reload_Implementation()
+{
+	bReloading = true;
+
+	// 임시로 1초후에 리로딩 완료해주는것
+	FTimerHandle TempReloadHandle;
+	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Server_EndReloading, 1.0f, false);
+}
+
+void UHitscanEmitterComponent::ClientRPC_ReloadEnd_Implementation(int bulletCount)
 {
 	// 총알 개수 적용
 	SetCurrentBullet(bulletCount);
 
 	bReloading = false;
+}
+
+void UHitscanEmitterComponent::Server_EndReloading()
+{
+	bReloading = false;
+
+	// 총알 채우기
+	SetCurrentBullet(Owner->GetMaxBullet());
+
+	ClientRPC_ReloadEnd(CurrentBullet);
 }
 
 void UHitscanEmitterComponent::DebugInfo()

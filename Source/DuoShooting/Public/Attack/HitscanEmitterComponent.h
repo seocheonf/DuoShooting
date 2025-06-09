@@ -122,15 +122,20 @@ public:
 	void Disable();
 
 	/// 네트워크
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_FireHitScan(bool triggered);
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_FireHitScan(int bulletCount);
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_FireEffects(FVector hitLocation);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Reload();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_ReloadEnd(int bulletCount);
 
 	// 서버용 함수들
-	void Auth_SetTriggered(bool value);
-	void Auth_StartReloading();
-	void Auth_EndReloading();
-
-	// 클라이언트용 함수들
-	void Fire_Requester(int bulletCount);		// 총을 쏜 사람에게만 답신할 내용
-	void Fire_Everyone(FVector hitLocation);	// 총을 쏘았을 때 모두에게 보일 이펙트
-
-	void ReloadEnd_Requester(int bulletCount);				// 리로드를 한 사람에게만 답신할 내용
+	void Server_EndReloading();
+	
+	//void ReloadEnd_Requester(int bulletCount);				// 리로드를 한 사람에게만 답신할 내용
 };

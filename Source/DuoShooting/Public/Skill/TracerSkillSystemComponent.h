@@ -74,11 +74,12 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float BlinkDuration = 0.1f;		// 걸리는 시간
 	UPROPERTY(EditDefaultsOnly)
-	int32 BlinkSpeed = 650;		// 점멸 속도
+	int32 BlinkSpeed = 6500;		// 점멸 속도
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
+	FVector BlinkStartPos;			// 점멸 시작시의 시작방향 저장 (보다 정확한 동기화를 위해)
 	FVector BlinkDirection;			// 점멸 방향
-	FVector TestStartLocation;
+	//FVector TestStartLocation;
 	// 시간 역행 관련
 	// 리콜할 레코드(기록) 정보
 	UPROPERTY(EditDefaultsOnly)
@@ -96,6 +97,7 @@ private:
 	FTracerRecallInfo IntervalTarget;
 	float RecallStepDuration;
 
+	
 protected:
 public:
 	//=====함수=====
@@ -111,16 +113,31 @@ private:
 	// 펄스 폭탄 던지기
 	void ThrowPulseBomb();
 	// 점멸 관련
-	void ActivateBlink();
 	void TickBlink();
 	void DeactivateBlink();
 	// 시간 역행 관련
-	void ActivateRecall();
 	void TickRecall(float DeltaTime);
 	void DeactivateRecall();
 	void RecordInfo();
 	void RecallInfo();
+	void RecallOwnerSettings(bool isRecall);
+
+	void DebugInfo();
 protected:
 public:
 	ETracerSkillState GetCurrentSkillState() const;
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_BlinkStart(FVector StartPos, FVector Direction);
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_BlinkEnd();
+
+	
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_RecallStart();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_RecallEnd();
+	// UFUNCTION(Client, Reliable)
+	// void ClientRPC_FireHitScan(int bulletCount);
+	// UFUNCTION(NetMulticast, Reliable)
+	// void MultiRPC_FireEffects(FVector hitLocation);
 };

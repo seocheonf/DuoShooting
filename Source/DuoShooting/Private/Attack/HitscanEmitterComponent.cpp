@@ -67,7 +67,7 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	TickHitScan(DeltaTime);
-	DebugInfo();
+	//DebugInfo();
 }
 
 void UHitscanEmitterComponent::SetCurrentBullet(int32 bullets)
@@ -206,7 +206,7 @@ void UHitscanEmitterComponent::InputFire_Started()
 	if (bTriggered) return;
 	bTriggered = true;
 	UE_LOG(LogTemp, Warning, TEXT("InputFire_Started"));
-
+	
 	Owner->ServerRPC_FireHitScan(true);
 
 	Owner->DoAfterAction(EHeroActionType::NormalAttackStart);
@@ -287,6 +287,8 @@ void UHitscanEmitterComponent::Fire_Requester(int bulletCount)
 	// 카메라 쉐이크
 	if (CameraShakeSourceComp && FireCameraShake)
 	{
+		// auto pc = GetWorld()->GetFirstPlayerController();
+		// pc->ClientStartCameraShake(FireCameraShake, 1.0f);
 		CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
 	}
 }

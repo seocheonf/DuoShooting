@@ -3,7 +3,6 @@
 
 #include "DuoShooting/Public/Skill/TracerSkillSystemComponent.h"
 
-#include "InputActionValue.h"
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
 #include "Attack/HitscanEmitterComponent.h"
@@ -64,8 +63,6 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 		if (TempClass.Succeeded()) { PulseBombFactory = TempClass.Class; }
 	}
 
-	Records.Init(RecordLength);
-
 	SetIsReplicated(true);
 }
 
@@ -73,15 +70,20 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 void UTracerSkillSystemComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	Owner = Cast<ATracerHero>(GetOwner());
 	if (!Owner) { UE_LOG(LogTemp, Warning, TEXT("UTracerSkillSystemComponent에서 ATracerHero 타입의 Owner를 찾지 못함")); }
+	
+	// 서버인 경우에만 시간역행용 기록을 한다
+	if (Owner->HasAuthority())
+	{
+		Records.Init(RecordLength);
 
-	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordInfo,
-	                                       RecordInterval, true);
+		GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordInfo,
+									   RecordInterval, true);
 
-	RecallStepDuration = RecallInterval / RecordLength;
-	UE_LOG(LogTemp, Warning, TEXT("RecallStepDuration : %f"), RecallStepDuration);
+		RecallStepDuration = RecallInterval / RecordLength;
+	}
 }
 
 // 혹시모를 타이머 
@@ -109,6 +111,8 @@ void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	default:
 		break;
 	}
+
+	DebugInfo();
 }
 
 void UTracerSkillSystemComponent::SetupHeroInputInfo(UEnhancedInputComponent* enhancedInputComponent)
@@ -125,12 +129,55 @@ void UTracerSkillSystemComponent::SetupHeroInputInfo(UEnhancedInputComponent* en
 
 void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 {
-	ActivateBlink();
+	// 이미 스킬이 실행중이면 리턴
+	if (CurrentSkillState != ETracerSkillState::NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 활성화 불가 - CurrentSkillState가 %s"),
+			   *UEnum::GetValueAsString(CurrentSkillState));
+		return;
+	}
+
+	CurrentSkillState = ETracerSkillState::BLINK;
+	UE_LOG(LogTemp, Warning, TEXT("점멸 활성화"));
+
+	/// 진행방향을 설정하여 서버에게 전달
+	// 일단, Z방향을 없앤 점멸방향 계산
+	// 캐릭터가 이동하고 있다면 해당 방향으로
+	FVector CurrentVelocity = Owner->GetCharacterMovement()->Velocity;
+	CurrentVelocity.Z = 0.0f;
+	if (!CurrentVelocity.IsNearlyZero())
+	{
+		BlinkDirection = CurrentVelocity.GetSafeNormal();
+	}
+	// 캐릭터 이동이 없으면 그냥 앞방향으로
+	else
+	{
+		BlinkDirection = Owner->GetActorForwardVector();
+		BlinkDirection.Z = 0.0f;
+		BlinkDirection.Normalize();
+	}
+
+	BlinkStartPos = Owner->GetActorLocation();
+
+	ServerRPC_BlinkStart(BlinkStartPos, BlinkDirection);
 }
 
 void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 {
-	ActivateRecall();
+	// 이미 스킬이 실행중이면 리턴
+	if (CurrentSkillState != ETracerSkillState::NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("트레이서 시간 역행 활성화 불가 - CurrentSkillState가 %s"),
+			   *UEnum::GetValueAsString(CurrentSkillState));
+		return;
+	}
+
+	CurrentSkillState = ETracerSkillState::RECALL;
+	UE_LOG(LogTemp, Warning, TEXT("시간역행 활성화"));
+
+	RecallOwnerSettings(true);
+	
+	ServerRPC_RecallStart();
 }
 
 void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue& value)
@@ -155,47 +202,12 @@ void UTracerSkillSystemComponent::ThrowPulseBomb()
 		bomb->Launch(TempDir, 500.0f, Owner->Controller);
 }
 
-// 점멸 활성화
-void UTracerSkillSystemComponent::ActivateBlink()
-{
-	// 이미 스킬이 실행중이면 리턴
-	if (CurrentSkillState != ETracerSkillState::NONE)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 활성화 불가 - CurrentSkillState가 %s"),
-		       *UEnum::GetValueAsString(CurrentSkillState));
-		return;
-	}
-
-	CurrentSkillState = ETracerSkillState::BLINK;
-	UE_LOG(LogTemp, Warning, TEXT("점멸 활성화"));
-
-	// 일단, Z방향을 없앤 점멸방향 계산
-	// 캐릭터가 이동하고 있다면 해당 방향으로
-	FVector CurrentVelocity = Owner->GetCharacterMovement()->Velocity;
-	CurrentVelocity.Z = 0.0f;
-	if (!CurrentVelocity.IsNearlyZero())
-	{
-		BlinkDirection = CurrentVelocity.GetSafeNormal();
-	}
-	// 캐릭터 이동이 없으면 그냥 앞방향으로
-	else
-	{
-		BlinkDirection = Owner->GetActorForwardVector();
-		BlinkDirection.Z = 0.0f;
-		BlinkDirection.Normalize();
-	}
-
-	// 일정 시간 뒤 비활성화 예약
-	GetWorld()->GetTimerManager().SetTimer(BlinkTimerHandle, this, &UTracerSkillSystemComponent::DeactivateBlink,
-	                                       BlinkDuration,
-	                                       false);
-
-	TestStartLocation = Owner->GetActorLocation();
-}
-
 // 프레임별 점멸 로직
 void UTracerSkillSystemComponent::TickBlink()
 {
+	// 서버에서만 실행
+	if (!Owner->HasAuthority()) return;
+	
 	FVector SlopedBlinkDirection = BlinkDirection;
 
 	// 캐릭터가 땅에 닿아 있다면 경사로까지 고려해서 Z축방향을 추가
@@ -223,9 +235,11 @@ void UTracerSkillSystemComponent::TickBlink()
 void UTracerSkillSystemComponent::DeactivateBlink()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
-	UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 통계: %f의 거리 이동"),
-	       FVector::Dist(TestStartLocation, Owner->GetActorLocation()));
+	// UE_LOG(LogTemp, Warning, TEXT("트레이서 점멸 통계: %f의 거리 이동"),
+	//        FVector::Dist(TestStartLocation, Owner->GetActorLocation()));
 	UE_LOG(LogTemp, Warning, TEXT("점멸 비활성화"));
+
+	ClientRPC_BlinkEnd();
 }
 
 // 큐에 위치 기록
@@ -236,37 +250,11 @@ void UTracerSkillSystemComponent::RecordInfo()
 	Records.Push_Back(snapshot);
 }
 
-// 시간 역행 활성화
-void UTracerSkillSystemComponent::ActivateRecall()
-{
-	// 이미 스킬이 실행중이면 리턴
-	if (CurrentSkillState != ETracerSkillState::NONE)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("트레이서 시간 역행 활성화 불가 - CurrentSkillState가 %s"),
-		       *UEnum::GetValueAsString(CurrentSkillState));
-		return;
-	}
-
-	CurrentSkillState = ETracerSkillState::RECALL;
-	UE_LOG(LogTemp, Warning, TEXT("시간역행 활성화"));
-
-	// 컴포넌트 설정값들 끄기
-	Owner->GetCharacterMovement()->DisableMovement();
-	Owner->GetHitscanEmitter()->Disable();
-	Owner->SetMeshVisibility(false);
-	Owner->SetCollisionEnable(false);
-	// Owner->GetCamera()->bUsePawnControlRotation = false;
-	// Owner->bUseControllerRotationYaw = false;
-
-	// 시간역행용 타이머로 전환
-	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
-	RecallInfo();
-	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecallInfo,
-		RecallStepDuration, true);
-}
-
 void UTracerSkillSystemComponent::TickRecall(float DeltaTime)
 {
+	// 서버에서만 작동
+	if (!Owner->HasAuthority()) return;
+	
 	// 델타타임 쌓기
 	TimeSinceLastRecallInterval = FMath::Clamp(TimeSinceLastRecallInterval + DeltaTime, 0.0f, RecallStepDuration);
 	float alpha = FMath::Clamp(TimeSinceLastRecallInterval / RecallStepDuration, 0.0f, 1.0f);
@@ -304,25 +292,45 @@ void UTracerSkillSystemComponent::RecallInfo()
 	if (!valid) DeactivateRecall();
 }
 
+void UTracerSkillSystemComponent::RecallOwnerSettings(bool isRecall)
+{
+	// 시간역행을 위한 컴포넌트 값 설정하기
+	if (isRecall)
+	{
+		Owner->GetCharacterMovement()->DisableMovement();
+		Owner->GetHitscanEmitter()->Disable();
+		Owner->SetMeshVisibility(false);
+		Owner->SetCollisionEnable(false);
+		// Owner->GetCamera()->bUsePawnControlRotation = false;
+		// Owner->bUseControllerRotationYaw = false;
+	}
+	// 시간역행에서 나왔을때 컴포넌트 설정 원래대로 되롤려놓기
+	else
+	{
+		if (Owner->GetCharacterMovement()->IsMovingOnGround())
+			Owner->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+		else
+			Owner->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
+
+		Owner->GetHitscanEmitter()->Enable();
+		Owner->SetMeshVisibility(true);
+		Owner->SetCollisionEnable(true);
+	}
+}
+
 // 시간 역행 비활성화
 void UTracerSkillSystemComponent::DeactivateRecall()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
+
+	ClientRPC_RecallEnd();
 
 	UE_LOG(LogTemp, Warning, TEXT("시간역행 비활성화"));
 
 	// 혹시나 뱉어내지 않은 기록이 남아있다면 제거
 	Records.Clear();
 
-	// 컴포넌트 설정값들 켜기
-	if (Owner->GetCharacterMovement()->IsMovingOnGround())
-		Owner->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
-	else
-		Owner->GetCharacterMovement()->SetMovementMode(MOVE_Falling);
-
-	Owner->GetHitscanEmitter()->Enable();
-	Owner->SetMeshVisibility(true);
-	Owner->SetCollisionEnable(true);
+	RecallOwnerSettings(false);
 
 	// 시간기록용 타이머로 전환
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
@@ -331,3 +339,53 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 }
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }
+
+void UTracerSkillSystemComponent::ClientRPC_RecallEnd_Implementation()
+{
+	CurrentSkillState = ETracerSkillState::NONE;
+
+	RecallOwnerSettings(false);
+}
+
+void UTracerSkillSystemComponent::ServerRPC_RecallStart_Implementation()
+{
+	CurrentSkillState = ETracerSkillState::RECALL;
+
+	// 시간역행용 타이머로 전환
+	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
+	RecallInfo();
+	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecallInfo,
+		RecallStepDuration, true);
+
+	RecallOwnerSettings(true);
+}
+
+
+void UTracerSkillSystemComponent::ServerRPC_BlinkStart_Implementation(FVector StartPos, FVector Direction)
+{
+	CurrentSkillState = ETracerSkillState::BLINK;
+
+	Owner->SetActorLocation(StartPos);
+
+	BlinkDirection = Direction;
+	
+	// 일정 시간 뒤 비활성화 예약
+	GetWorld()->GetTimerManager().SetTimer(BlinkTimerHandle, this, &UTracerSkillSystemComponent::DeactivateBlink,
+										   BlinkDuration,
+										   false);
+}
+
+void UTracerSkillSystemComponent::ClientRPC_BlinkEnd_Implementation()
+{
+	CurrentSkillState = ETracerSkillState::NONE;
+}
+
+void UTracerSkillSystemComponent::DebugInfo()
+{
+	const FString logStr = FString::Printf(
+		TEXT("Current Skill State: %s"),
+		*UEnum::GetValueAsString(CurrentSkillState)
+	);
+
+	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);
+}

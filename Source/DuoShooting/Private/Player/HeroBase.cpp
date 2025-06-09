@@ -52,6 +52,9 @@ AHeroBase::AHeroBase()
 		if (TempWidget.Succeeded()) { ShootingMainWidgetFactory = TempWidget.Class; }
 	}
 
+	// 리플리케이트
+	bReplicates = true;
+	
 	// 스피드 적용
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 

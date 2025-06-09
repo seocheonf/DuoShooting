@@ -135,6 +135,7 @@ public:
 	// 체력
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_OnTakeDamage(float hp);
+	
 	// 슈팅
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_FireHitScan(bool bTriggered);

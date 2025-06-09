@@ -102,6 +102,7 @@ void ATranslocatorProjectile::OnOperate()
 		return;
 	
 	MovementComp->Velocity = FVector(0, 0, 0);
+	MovementComp->ProjectileGravityScale = 0.f;
 	MovementComp->bSimulationEnabled = false;
 
 	Launcher->TriggerTranslocator(GetActorLocation());

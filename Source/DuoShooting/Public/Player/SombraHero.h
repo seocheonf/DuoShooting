@@ -78,6 +78,10 @@ private:
 	//은신에 의한 material alpha값 변환 명령
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_SetStealthStateVisibility(EStealthState newState);
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetStealthCamera(bool bStealthCamera);
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_OffStealthByAttack();
 protected:
 	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)
 	void SetVisibilityAlpha(float alpha);

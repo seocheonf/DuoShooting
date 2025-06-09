@@ -188,7 +188,7 @@ void USombraSkillSystemComponent::ServerRPC_OnTranslocator_Implementation(const 
 {
 	UCameraComponent* playerCamera = TargetPlayer->GetCamera();
 	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile);
-	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), playerCamera->GetForwardVector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
+	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), TargetPlayer->GetControlRotation().Vector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
 }
 
 void USombraSkillSystemComponent::TakeDamage()

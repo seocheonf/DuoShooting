@@ -332,8 +332,19 @@ void AHeroBase::SetCollisionEnable(bool bEnable)
 	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
 }
 
+void AHeroBase::ServerRPC_DoAfterAction_Implementation(EHeroActionType actionType)
+{
+	DoAfterAction(actionType);
+}
+
+UHealthBarWidget* AHeroBase::GetHealthBarUI()
+{
+	return HealthBarWidget;
+}
+
 void AHeroBase::DoAfterAction(EHeroActionType actionType)
 {
 }
+
 
 //==김형모==

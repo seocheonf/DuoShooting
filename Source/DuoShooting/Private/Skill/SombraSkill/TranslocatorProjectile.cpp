@@ -75,7 +75,7 @@ void ATranslocatorProjectile::ConstructorInit()
 	StaticMeshComp->SetCollisionProfileName(TEXT("NoCollision"));
 	StaticMeshComp->SetStaticMesh(OriginStaticMesh);
 
-	//bReplicates = true;
+	bReplicates = true;
 }
 
 void ATranslocatorProjectile::CustomBeginPlay()
@@ -83,6 +83,8 @@ void ATranslocatorProjectile::CustomBeginPlay()
 	SphereComp->OnComponentHit.AddDynamic(this, &ATranslocatorProjectile::OnComponentHit);
 	SphereComp->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
 	StaticMeshComp->SetMaterial(0, OriginMaterial);
+
+	SetReplicateMovement(true);
 }
 
 void ATranslocatorProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
@@ -93,10 +95,14 @@ void ATranslocatorProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, 
 
 void ATranslocatorProjectile::OnOperate()
 {
+	if (nullptr == Launcher)
+		return;
+	
 	if (bOperation)
 		return;
 	
 	MovementComp->Velocity = FVector(0, 0, 0);
+	MovementComp->bSimulationEnabled = false;
 
 	Launcher->TriggerTranslocator(GetActorLocation());
 	

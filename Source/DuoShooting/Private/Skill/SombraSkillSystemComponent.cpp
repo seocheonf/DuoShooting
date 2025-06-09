@@ -86,9 +86,10 @@ void USombraSkillSystemComponent::BeginPlay()
 		FTimerHandle emptyHandle;
 		GetWorld()->GetTimerManager().SetTimer(emptyHandle, [&]()->void
 		{
-			SombraPlayer->SetActorRotation(SombraPlayer->GetActorRotation() + FRotator(0, 90, 0));
-			if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+			//if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+			if (ROLE_Authority != SombraPlayer->GetRemoteRole() && ROLE_Authority != SombraPlayer->GetLocalRole()) 
 			{
+				SombraPlayer->SetActorRotation(SombraPlayer->GetActorRotation() + FRotator(0, 90, 0));
 				FInputActionValue emptyValue = FInputActionValue();
 				OnTranslocator(emptyValue);
 			}
@@ -180,6 +181,11 @@ void USombraSkillSystemComponent::OnVirus(const struct FInputActionValue& value)
 
 void USombraSkillSystemComponent::OnTranslocator(const struct FInputActionValue& value)
 {
+	ServerRPC_OnTranslocator(value);
+}
+
+void USombraSkillSystemComponent::ServerRPC_OnTranslocator_Implementation(const struct FInputActionValue& value)
+{
 	UCameraComponent* playerCamera = TargetPlayer->GetCamera();
 	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile);
 	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), playerCamera->GetForwardVector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
@@ -201,11 +207,7 @@ void USombraSkillSystemComponent::TakeDamage()
 
 void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 {
-	//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
-	{
-		if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
-			SombraPlayer->SetDisAppearance();
-	}
+	SombraPlayer->MultiRPC_SetAppearanceTP(false);
 	
 	FVector start = TargetPlayer->GetActorLocation();
 	//이동 시 무적으로 할 거라 임시변수로 괜찮음. 중간에 끊을 일이 없을 것으로 판단
@@ -223,10 +225,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	
 	auto EndTranslocator = [&, end](float deltaTime)->void
 	{
-		//이하 scope내 기능은 서버와 클라이언트에서, 본인인지 여부에 따라 처리가 달라질 수 있다.
-		{
-			SombraPlayer->SetAppearance();
-		}
+		SombraPlayer->MultiRPC_SetAppearanceTP(true);
 		
 		UE_LOG(LogTemp, Error, TEXT("End"));
 		TargetPlayer->SetActorLocation(end);

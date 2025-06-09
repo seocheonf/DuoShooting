@@ -87,6 +87,25 @@ void ASombraHero::SetDisAppearance()
 	SetMeshVisibility(false);
 }
 
+void ASombraHero::MultiRPC_SetAppearanceTP_Implementation(bool bAppearance)
+{
+	/*나라면 무시
+	if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+		return;
+	 */
+	if (IsLocallyControlled())
+		return;
+	
+	if (bAppearance)
+	{
+		SetAppearance();
+	}
+	else
+	{
+		SetDisAppearance();
+	}
+}
+
 void ASombraHero::EnterStealth()
 {
 	bStealth = true;
@@ -115,20 +134,20 @@ void ASombraHero::SetStealthState(EStealthState newState)
 	
 	StealthState = newState;
 
-	SetStealthStateVisibility(newState);
+	MultiRPC_SetStealthStateVisibility(StealthState);
 }
 
-void ASombraHero::SetStealthStateVisibility_Implementation(EStealthState newState)
+void ASombraHero::MultiRPC_SetStealthStateVisibility_Implementation(EStealthState newState)
 {
 	/* 나라면 무시
 	if (nullptr != Cast<APlayerController>(Controller))
-	 	return;
+		 return;
 	*/
 	if (IsLocallyControlled())
 		return;
 	
 	//은신으로 인한 머티리얼 변경
-	switch (StealthState)
+	switch (newState)
 	{
 	case EStealthState::None:
 		SetVisibilityAlpha(1.f);
@@ -144,6 +163,7 @@ void ASombraHero::SetStealthStateVisibility_Implementation(EStealthState newStat
 
 void ASombraHero::SetVisibilityAlpha(float alpha)
 {
+	DrawDebugString(GetWorld(), GetActorLocation(), FString::Printf(TEXT("IsLocal : %d, SM : %f , alpha : %f"), IsLocallyControlled(), SombraMaterialAlpha, alpha), this, FColor::Blue, 10.f, true, 1);
 
 	//기존 변화 종료 및 가로채기. 한번에 하나의 alpha 변화만 있어야 자연스러울 것 같았음. 
 	if (VisibilityTimerHandle.IsValid())

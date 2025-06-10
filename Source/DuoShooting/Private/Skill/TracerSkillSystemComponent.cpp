@@ -381,9 +381,12 @@ void UTracerSkillSystemComponent::ClientRPC_BlinkEnd_Implementation()
 
 void UTracerSkillSystemComponent::DebugInfo()
 {
+	const FString bIsFallingString = Owner->GetCharacterMovement()->IsFalling() ? TEXT("true") : TEXT("false");
+
 	const FString logStr = FString::Printf(
-		TEXT("Current Skill State: %s"),
-		*UEnum::GetValueAsString(CurrentSkillState)
+		TEXT("Current Skill State: %s\nCharacterMovement IsFalling: %s"),
+		*UEnum::GetValueAsString(CurrentSkillState),
+		*bIsFallingString
 	);
 
 	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);

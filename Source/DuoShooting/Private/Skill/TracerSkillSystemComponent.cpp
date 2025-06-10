@@ -12,7 +12,7 @@
 
 
 FTracerRecallInfo::FTracerRecallInfo()
-	: Location(FVector::ZeroVector), ControlRotation(FVector2D::ZeroVector), Health(0.0f)
+	: Location(FVector::ZeroVector), Health(0.0f), ControlRotation(FVector2D::ZeroVector)
 {
 }
 

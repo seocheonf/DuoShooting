@@ -16,17 +16,23 @@ class DUOSHOOTING_API UTracerAnimInstance : public UAnimInstance
 
 private:
 	float LegsBlendSpaceInterpSpeed = 16.0f;
-	float LandingDistanceFromGround = 100.0f;
+	float LandingDistanceFromGround = 200.0f;
 	
 protected:
+	
 	virtual void NativeInitializeAnimation() override;
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 	
 	UPROPERTY()
-	class ATracerHero* tracer;
+	class ATracerHero* Tracer;
+
+	UPROPERTY()
+	class UAnimMontage* FireMontage;
 	
 public:
+	UTracerAnimInstance();
+	
 	UPROPERTY(BlueprintReadOnly)
 	float Direction;
 
@@ -44,4 +50,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool ShouldLand;
+
+	void PlayFireMontage();
 };

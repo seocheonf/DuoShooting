@@ -6,6 +6,8 @@
 #include "HeroBase.h"
 #include "TracerHero.generated.h"
 
+class UTracerAnimInstance;
+
 UCLASS()
 class DUOSHOOTING_API ATracerHero : public AHeroBase
 {

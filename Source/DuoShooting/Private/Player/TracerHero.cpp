@@ -4,6 +4,7 @@
 #include "DuoShooting/Public/Player/TracerHero.h"
 #include "Skill/TracerSkillSystemComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Animations/TracerAnimInstance.h"
 #include "UI/ShootingMainWidget.h"
 
 // Sets default values
@@ -34,7 +35,7 @@ void ATracerHero::InputMove(const struct FInputActionValue& value)
 {
 	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::BLINK) return;
 	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::RECALL) return;
-	
+
 	Super::InputMove(value);
 }
 

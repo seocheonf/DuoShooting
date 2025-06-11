@@ -212,13 +212,6 @@ void UHitscanEmitterComponent::InputFire_Started()
 	UE_LOG(LogTemp, Warning, TEXT("InputFire_Started"));
 	
 	ServerRPC_FireHitScan(true);
-
-	// Owner에게만 보일 시각 효과들
-	// 카메라 쉐이크
-	if (CameraShakeSourceComp && FireCameraShake)
-	{
-		CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
-	}
 	
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackStart);
 }
@@ -271,6 +264,13 @@ void UHitscanEmitterComponent::ClientRPC_FireHitScan_Implementation(int bulletCo
 {
 	// 총알 개수 적용
 	SetCurrentBullet(bulletCount);
+
+	// Owner에게만 보일 시각 효과들
+	// 카메라 쉐이크
+	if (CameraShakeSourceComp && FireCameraShake)
+	{
+		CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("Fire_Requester called - CurrentBullet %d"), CurrentBullet);
 }

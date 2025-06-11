@@ -37,10 +37,13 @@ public:
 private:
 	UPROPERTY()
 	class UTracerSkillSystemComponent* TracerSkillSystemComp;
+	UPROPERTY()
+	class UTracerAnimInstance* TracerAnimInstance;
 protected:
 public:
 	//=====함수=====
 protected:
+	virtual void DoAfterAction(EHeroActionType actionType) override;
 public:
 	//==고유 함수 영역==
 private:

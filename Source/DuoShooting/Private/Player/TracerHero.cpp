@@ -29,6 +29,7 @@ void ATracerHero::BeginPlay()
 	Super::BeginPlay();
 
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
+	TracerAnimInstance = Cast<UTracerAnimInstance>(GetMesh()->GetAnimInstance());
 }
 
 void ATracerHero::InputMove(const struct FInputActionValue& value)
@@ -65,4 +66,20 @@ void ATracerHero::Tick(float DeltaTime)
 void ATracerHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void ATracerHero::DoAfterAction(EHeroActionType actionType)
+{
+	switch (actionType)
+	{
+	case EHeroActionType::NormalAttackStart:
+		break;
+	case EHeroActionType::NormalAttackEnd:
+		break;
+	case EHeroActionType::NormalAttackSuccess:
+		if (TracerAnimInstance) TracerAnimInstance->PlayFireMontage();
+		break;
+	default:
+		break;
+	}
 }

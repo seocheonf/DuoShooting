@@ -2,10 +2,10 @@
 
 
 #include "Skill/TracerSkill/PulseBomb.h"
-
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
 
 
 // Sets default values
@@ -16,16 +16,26 @@ APulseBomb::APulseBomb()
 
 	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	SetRootComponent(SphereComp);
+	SphereComp->SetIsReplicated(true);
 
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComp"));
 	StaticMeshComp->SetupAttachment(SphereComp);
 
 	ProjectileMovementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComp"));
 	ProjectileMovementComp->bShouldBounce = false;
+	ProjectileMovementComp->SetUpdatedComponent(SphereComp);
+	ProjectileMovementComp->SetIsReplicated(true);
 	// ProjectileMovement->bRotationFollowsVelocity = true;
 	// ProjectileMovement->ProjectileGravityScale = 1.0f; // Bomb drops over time
 	// ProjectileMovement->InitialSpeed = 1000.f;
 	// ProjectileMovement->MaxSpeed = 1000.f;
+
+	bReplicates = true;
+	SetReplicatingMovement(true);
+	
+	ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(
+		TEXT("'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
+	if (ParticleAsset.Succeeded()) { FireParticle = ParticleAsset.Object; }
 }
 
 // Called when the game starts or when spawned
@@ -33,7 +43,12 @@ void APulseBomb::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SphereComp->OnComponentHit.AddDynamic(this, &APulseBomb::OnHit);
+	if (GetLocalRole() != ROLE_Authority)
+	{
+		ProjectileMovementComp->Deactivate();
+		return;
+	}
+	SphereComp->OnComponentHit.AddDynamic(this, &APulseBomb::OnHit); // how do you unsubsribe, or unbind
 }
 
 // Called every frame
@@ -59,26 +74,32 @@ void APulseBomb::Launch(FVector direction, float speed, AController* instigator)
 }
 
 void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UPrimitiveComponent* otherComp,
-					   FVector normalImpulse, const FHitResult& hit)
+                       FVector normalImpulse, const FHitResult& hit)
 {
-	if (ProjectileMovementComp)
+	if (GetLocalRole() != ROLE_Authority)
 	{
-		ProjectileMovementComp->StopMovementImmediately();
-		ProjectileMovementComp->StopSimulating(hit);
+		return;
 	}
+	// SphereComp->OnComponentHit.RemoveDynamic(this, &APulseBomb::OnHit);
+	//
+	// if (ProjectileMovementComp)
+	// {
+	// 	ProjectileMovementComp->StopMovementImmediately();
+	// 	ProjectileMovementComp->StopSimulating(hit);
+	// }
+	//
+	// CurrentState = EPulseBombState::ATTACHING;
 
-	CurrentState = EPulseBombState::ATTACHING;
+	//AttachToComponent(otherComp, FAttachmentTransformRules::KeepWorldTransform);
 
-	//AttachToComponent(hitComponent, FAttachmentTransformRules::KeepWorldTransform);
-
-	StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
-
-	FVector SurfaceNormal = hit.ImpactNormal;
-	FRotator AttachRot = SurfaceNormal.ToOrientationRotator();
-	StaticMeshComp->SetWorldRotation(AttachRot);
+	// StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
+	//
+	// FVector SurfaceNormal = hit.ImpactNormal;
+	// FRotator AttachRot = SurfaceNormal.ToOrientationRotator();
+	// StaticMeshComp->SetWorldRotation(AttachRot);
 
 	// 1초 후 터진다
-	GetWorldTimerManager().SetTimer(ExplosionTimerHandle, this, &APulseBomb::Explode, 1.0f, false);
+	GetWorldTimerManager().SetTimer(ExplosionTimerHandle, this, &APulseBomb::Explode, 15.0f, false);
 }
 
 void APulseBomb::Explode()
@@ -86,6 +107,11 @@ void APulseBomb::Explode()
 	CurrentState = EPulseBombState::EXPLODING;
 	UE_LOG(LogTemp, Warning, TEXT("펄스 폭탄 터짐!"));
 
+	if (FireParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, StaticMeshComp->GetComponentLocation());
+	}
+	
 	// 터지기
 	// 반경 내의 Authority를 가진 액터들에게만 범위형 공격을 가합니다
 	UGameplayStatics::ApplyRadialDamageWithFalloff(

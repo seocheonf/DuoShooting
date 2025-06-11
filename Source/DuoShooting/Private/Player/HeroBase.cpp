@@ -54,9 +54,6 @@ AHeroBase::AHeroBase()
 
 	// 리플리케이트
 	bReplicates = true;
-	
-	// 스피드 적용
-	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 
 	// 카메라 생성
 	FirstPersonCameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
@@ -105,6 +102,10 @@ void AHeroBase::NotifyControllerChanged()
 void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// 스피드 적용
+	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
+	GetCharacterMovement()->AirControl = 0.9f;
 
 	// 로컬이면 체력바를 끄고 메인위젯을 생성
 	if (IsLocallyControlled())

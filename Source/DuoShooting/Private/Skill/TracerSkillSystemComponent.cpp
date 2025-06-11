@@ -12,7 +12,7 @@
 
 
 FTracerRecallInfo::FTracerRecallInfo()
-	: Location(FVector::ZeroVector), ControlRotation(FVector2D::ZeroVector), Health(0.0f)
+	: Location(FVector::ZeroVector), Health(0.0f), ControlRotation(FVector2D::ZeroVector)
 {
 }
 
@@ -182,24 +182,10 @@ void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 
 void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue& value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Input Pulse Bomb"));
-	ThrowPulseBomb();
-}
-
-void UTracerSkillSystemComponent::ThrowPulseBomb()
-{
 	// 시간역행중에는 불가
 	if (CurrentSkillState == ETracerSkillState::RECALL) return;
-
-	FVector TempStart;
-	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
-	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
-
-	// 일단 앞의 적당한 방향에 던져보는 걸로
-	FVector TempDir = Owner->GetActorForwardVector();
-	TempDir.Z = TempDir.Z + 1.0f;
-	if (bomb)
-		bomb->Launch(TempDir, 500.0f, Owner->Controller);
+	
+	ServerRPC_ThrowPulseBomb();
 }
 
 // 프레임별 점멸 로직
@@ -340,6 +326,19 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }
 
+void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
+{
+	FVector TempStart;
+	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
+	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
+
+	// 일단 앞의 적당한 방향에 던져보는 걸로
+	FVector TempDir = Owner->GetActorForwardVector();
+	TempDir.Z = TempDir.Z + 1.0f;
+	if (bomb)
+		bomb->Launch(TempDir, 500.0f, Owner->Controller);
+}
+
 void UTracerSkillSystemComponent::ClientRPC_RecallEnd_Implementation()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
@@ -382,9 +381,12 @@ void UTracerSkillSystemComponent::ClientRPC_BlinkEnd_Implementation()
 
 void UTracerSkillSystemComponent::DebugInfo()
 {
+	const FString bIsFallingString = Owner->GetCharacterMovement()->IsFalling() ? TEXT("true") : TEXT("false");
+
 	const FString logStr = FString::Printf(
-		TEXT("Current Skill State: %s"),
-		*UEnum::GetValueAsString(CurrentSkillState)
+		TEXT("Current Skill State: %s\nCharacterMovement IsFalling: %s"),
+		*UEnum::GetValueAsString(CurrentSkillState),
+		*bIsFallingString
 	);
 
 	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);

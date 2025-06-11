@@ -110,8 +110,6 @@ private:
 	void InputBlink(const struct FInputActionValue& value);
 	void InputRecall(const struct FInputActionValue& value);
 	void InputPulseBomb(const struct FInputActionValue& value);
-	// 펄스 폭탄 던지기
-	void ThrowPulseBomb();
 	// 점멸 관련
 	void TickBlink();
 	void DeactivateBlink();
@@ -130,12 +128,12 @@ public:
 	void ServerRPC_BlinkStart(FVector StartPos, FVector Direction);
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_BlinkEnd();
-
-	
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_RecallStart();
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_RecallEnd();
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_ThrowPulseBomb();
 	// UFUNCTION(Client, Reliable)
 	// void ClientRPC_FireHitScan(int bulletCount);
 	// UFUNCTION(NetMulticast, Reliable)

@@ -4,6 +4,7 @@
 #include "DuoShooting/Public/Player/TracerHero.h"
 #include "Skill/TracerSkillSystemComponent.h"
 #include "EnhancedInputComponent.h"
+#include "Animations/TracerAnimInstance.h"
 #include "UI/ShootingMainWidget.h"
 
 // Sets default values
@@ -27,17 +28,6 @@ void ATracerHero::BeginPlay()
 
 	Super::BeginPlay();
 
-	// 로컬이면 체력바를 끄고 메인위젯을 생성
-	if (IsLocallyControlled())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ATracerHero BeginPlay LOCALLYLCONTROLLED"));
-	}
-	// 로컬이 아니면 체력바를 초기화
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ATracerHero BeginPlay NOT LOCALLYLCONTROLLED"));
-	}
-
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
 }
 
@@ -45,7 +35,7 @@ void ATracerHero::InputMove(const struct FInputActionValue& value)
 {
 	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::BLINK) return;
 	if (TracerSkillSystemComp->GetCurrentSkillState() == ETracerSkillState::RECALL) return;
-	
+
 	Super::InputMove(value);
 }
 

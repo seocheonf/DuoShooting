@@ -23,7 +23,7 @@ enum class EHeroActionType : uint8
 {
 	NormalAttackStart,
 	NormalAttackEnd,
-	//NormalAttackSuccess,
+	NormalAttackSuccess,
 	Skill1,
 	Skill2
 };

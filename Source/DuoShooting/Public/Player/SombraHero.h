@@ -51,12 +51,20 @@ private:
 	EStealthState StealthState;
 	// 보여짐 전환 보간용 타이머
 	FTimerHandle VisibilityTimerHandle;
-
+	
+	UPROPERTY(EditAnywhere, Meta = (AllowPrivateAccess = true))
+	class USkeletalMeshComponent* FirstViewSkeletalMeshComp;
 	// base material
-	UMaterial* OriginSombraMaterial;
+	//UMaterial* OriginSombraMaterial;
 	// 보여짐 전환 시 material 값 변경용
-	UMaterialInstanceDynamic* SombraMaterialInstance;
-	UMaterialInstanceDynamic* SombraMaterialInstance2;
+	TArray<class UMaterialInstanceDynamic*> SombraMaterialInstances;
+	//UMaterialInstanceDynamic* SombraMaterialInstance;
+	//UMaterialInstanceDynamic* SombraMaterialInstance2;
+
+	// mesh별 애니메이션 instance
+	class USombraAnimInstance* FirstViewSkeletalAnimInstance;
+	class USombraAnimInstance* ThirdViewSkeletalAnimInstance;
+	
 	// 현재 material alpha 값
 	float SombraMaterialAlpha = 1.0f;
 	// 현재 alpha 변화 진행 정도
@@ -80,6 +88,13 @@ private:
 	void MultiRPC_SetStealthStateVisibility(EStealthState newState);
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_SetStealthCamera(bool bStealthCamera);
+
+	//공격 성공 시점에 할 일
+	void DoAttackSuccess();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_PlayAttackMontage();
+	
 protected:
 	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)
 	void SetVisibilityAlpha(float alpha);

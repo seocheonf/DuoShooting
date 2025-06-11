@@ -3,6 +3,9 @@
 #include "DuoShooting/Public/Player/SombraHero.h"
 
 #include "Camera/CameraComponent.h"
+#include "Components/ArrowComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Player/SombraAnimInstance.h"
 #include "Skill/SombraSkillSystemComponent.h"
 #include "UI/HealthBarWidget.h"
 
@@ -14,19 +17,63 @@ ASombraHero::ASombraHero()
 
 	SetSkillSystemComponent(CreateDefaultSubobject<USombraSkillSystemComponent>("SkillSystemComp"));
 
-	ConstructorHelpers::FObjectFinder<UMaterial> mat(TEXT("/Script/Engine.Material'/Game/DuoShooting/Maps/KHM/M_MannequinTest.M_MannequinTest'"));
-	if (mat.Succeeded())
+	ConstructorHelpers::FObjectFinder<USkeletalMesh> sm(TEXT("'/Game/LargeFile/ParagonRevenant/Characters/Heroes/Revenant/Meshes/Revenant.Revenant'"));
+	if (sm.Succeeded())
 	{
-		OriginSombraMaterial = mat.Object;
+		USkeletalMeshComponent* smc = GetMesh();
+		smc->SetSkeletalMeshAsset(sm.Object);
 	}
+
+	/* Legacy Dynamic Mat Preparing
+	// ConstructorHelpers::FObjectFinder<UMaterial> mat(TEXT("'/Game/LargeFile/ParagonRevenant/Characters/Heroes/Revenant/Materials/M_Revenant_Body.M_Revenant_Body'"));
+	// if (mat.Succeeded())
+	// {
+	// 	OriginSombraMaterial = mat.Object;
+	// }
+	*/
+
+	ConstructorHelpers::FClassFinder<UAnimInstance> animInstance(TEXT("'/Game/DuoShooting/Maps/KHM/ABP_Revenant.ABP_Revenant_C'"));
+	if (animInstance.Succeeded())
+	{
+		USkeletalMeshComponent* smc = GetMesh();
+		smc->SetAnimInstanceClass(animInstance.Class);
+	}
+
+	FirstViewSkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstViewSkeletalMeshComp"));
+	FirstViewSkeletalMeshComp->SetupAttachment(GetCapsuleComponent());
+	FirstViewSkeletalMeshComp->SetRelativeLocation(FVector(-65, 0, -90));
+	FirstViewSkeletalMeshComp->SetRelativeRotation(FRotator(0, -90, 0));
+	FirstViewSkeletalMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (sm.Succeeded())
+	{
+		FirstViewSkeletalMeshComp->SetSkeletalMeshAsset(sm.Object);
+	}
+	if (animInstance.Succeeded())
+	{
+		FirstViewSkeletalMeshComp->SetAnimInstanceClass(animInstance.Class);
+	}
+	
+	
+	GetMesh()->bOwnerNoSee = true;
+	FirstViewSkeletalMeshComp->bOnlyOwnerSee = true;
 }
 
 // Called when the game starts or when spawned
 void ASombraHero::BeginPlay()
 {
 	Super::BeginPlay();
-	SombraMaterialInstance = GetMesh()->CreateDynamicMaterialInstance(0, OriginSombraMaterial);
-	SombraMaterialInstance2 = GetMesh()->CreateDynamicMaterialInstance(1, OriginSombraMaterial);
+
+	for (int i = 0; i<GetMesh()->GetMaterials().Num(); i++)
+	{
+		UMaterialInstanceDynamic* materialInstanceDynmaic = GetMesh()->CreateDynamicMaterialInstance(i);
+		SombraMaterialInstances.Add(materialInstanceDynmaic);
+		UE_LOG(LogTemp, Warning, TEXT("ASombraHero::BeginPlay"));
+	}
+	// SombraMaterialInstance = GetMesh()->CreateDynamicMaterialInstance(0, OriginSombraMaterial);
+	// SombraMaterialInstance2 = GetMesh()->CreateDynamicMaterialInstance(1, OriginSombraMaterial)
+
+	FirstViewSkeletalAnimInstance = Cast<USombraAnimInstance>(FirstViewSkeletalMeshComp->GetAnimInstance());
+	ThirdViewSkeletalAnimInstance = Cast<USombraAnimInstance>(GetMesh()->GetAnimInstance());
 }
 
 // Called every frame
@@ -70,9 +117,9 @@ void ASombraHero::DoAfterAction(EHeroActionType actionType)
 		bNormalAttacking = false;
 		break;
 		
-	// case EHeroActionType::NormalAttackSuccess:
-	// 	ExitStealth();
-	// 	break;
+	case EHeroActionType::NormalAttackSuccess:
+		DoAttackSuccess();
+		break;
 	
 	default:
 		break;
@@ -118,6 +165,21 @@ void ASombraHero::ClientRPC_SetStealthCamera_Implementation(bool bStealthCamera)
 	}
 }
 
+//서버측에서 실행될 함수임이 다른 사용처에서 보장됨.
+void ASombraHero::DoAttackSuccess()
+{
+	UE_LOG(LogTemp, Warning, TEXT("%d"), GetLocalRole());
+
+	//애니메이션을 리슨서버 호스트와 플레이어에 뿌리기
+	MultiRPC_PlayAttackMontage();
+}
+
+void ASombraHero::MultiRPC_PlayAttackMontage_Implementation()
+{
+	FirstViewSkeletalAnimInstance->PlayAttackMontage();
+	ThirdViewSkeletalAnimInstance->PlayAttackMontage();
+}
+
 void ASombraHero::SetVisibilityAlpha(float alpha)
 {
 	//기존 변화 종료 및 가로채기. 한번에 하나의 alpha 변화만 있어야 자연스러울 것 같았음. 
@@ -137,15 +199,23 @@ void ASombraHero::SetVisibilityAlpha(float alpha)
 		//시간 경과 비율로 시작-목표 alpha 값 보간
 		SombraMaterialAlpha = FMath::Lerp(captureStartAlpha, captrueGoalAlpha, CurrentAlphaTime/MaxAlphaTime);
 		//alpha 값 적용
-		SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
-		SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
+		for (auto each : SombraMaterialInstances)
+		{
+			each->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
+		}
+		//SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
+		//SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), SombraMaterialAlpha);
 
 		//시간 완료시
 		if (CurrentAlphaTime >= MaxAlphaTime)
 		{
 			//목표 값을 정확히 적용
-			SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
-			SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
+			for (auto each : SombraMaterialInstances)
+			{
+				each->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
+			}
+			//SombraMaterialInstance->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
+			//SombraMaterialInstance2->SetScalarParameterValue(TEXT("Alpha"), captrueGoalAlpha);
 			
 			UHealthBarWidget* healthBarWidget = GetHealthBarUI();
 			FLinearColor targetColor = healthBarWidget->GetColorAndOpacity();

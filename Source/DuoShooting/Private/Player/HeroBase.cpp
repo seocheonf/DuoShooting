@@ -80,6 +80,7 @@ AHeroBase::AHeroBase()
 	HealthBarWidgetComp->SetupAttachment(RootComponent);
 	HealthBarWidgetComp->SetRelativeLocation(FVector(0.0f, 0.0f, 104.0f));
 	HealthBarWidgetComp->SetRelativeScale3D(FVector(1.0f, 0.13f, 0.02f));
+	HealthBarWidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ConstructorHelpers::FClassFinder<UUserWidget> TempHealthBar(
 		TEXT("'/Game/DuoShooting/UIs/WBP_HealthBarWidget.WBP_HealthBarWidget_C'"));
 	if (TempHealthBar.Succeeded()) { HealthBarWidgetComp->SetWidgetClass(TempHealthBar.Class); }

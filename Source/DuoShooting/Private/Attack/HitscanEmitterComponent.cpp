@@ -172,6 +172,7 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 		SingleLineTrace();
 
 		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
+		Owner->ServerRPC_DoAfterAction_Implementation(EHeroActionType::NormalAttackSuccess);
 	}
 	
 }

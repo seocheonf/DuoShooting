@@ -114,11 +114,13 @@ private:
 	void TickBlink();
 	void DeactivateBlink();
 	// 시간 역행 관련
+	void ActivateRecall();
 	void TickRecall(float DeltaTime);
+	void ServerEndRecall();
 	void DeactivateRecall();
 	void RecordInfo();
 	void RecallInfo();
-	void RecallOwnerSettings(bool isRecall);
+	void ToggleRecallOwnerSettings(bool isRecall);
 
 	void DebugInfo();
 protected:

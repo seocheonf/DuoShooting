@@ -48,6 +48,8 @@ public:
 
 	// Called to bind functionality to input / InitSkillSystemInput 기능을 함께 수행합니다.
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	//=====변수=====
 private:
 	//히어로 공통 인풋
@@ -82,7 +84,7 @@ protected:
 	//히어로 공통 속성
 	UPROPERTY(EditAnywhere)	// 기본 체력
 	float MaxHealth = 100.0f;
-	UPROPERTY(EditAnywhere)	// 현재 체력 - 꼭 SetHealth를 통해 바꿀것
+	UPROPERTY(ReplicatedUsing=OnRep_CurrentHealth)	// 현재 체력 - 꼭 SetHealth를 통해 바꿀것
 	float CurrentHealth = 100.0f;
 	UPROPERTY(EditAnywhere)	// 최대 총알 개수
 	int32 MaxBullet = 100;
@@ -106,7 +108,11 @@ private:
 	void AddCurrentHeroState(EHeroState newState);
 	//영웅 상태 bitmask 계산 제거
 	void RemoveCurrentHeroState(EHeroState oldState);
+	UFUNCTION()
+	void OnRep_CurrentHealth();
+	void UpdateCurrentHealthUI();
 protected:
+	virtual void Die();
 	// 기본 인풋(이동, 회전, 점프)
 	virtual void InputMove(const struct FInputActionValue& value);
 	virtual void InputLook(const struct FInputActionValue& value);
@@ -131,12 +137,6 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	// 최대 총알 Get
 	int32 GetMaxBullet() const { return MaxBullet; }
-
-	//=====RPC=====
-	// 체력
-	UFUNCTION(NetMulticast, Reliable)
-	void MultiRPC_OnTakeDamage(float hp);
-	//=============
 	
 	//==김형모==
 

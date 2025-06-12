@@ -14,6 +14,7 @@
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "UI/HealthBarWidget.h"
 
 
@@ -188,6 +189,13 @@ void AHeroBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	InitSkillSystemInput(PlayerInputComponent);
 }
 
+void AHeroBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AHeroBase, CurrentHealth);
+}
+
 void AHeroBase::InputMove(const FInputActionValue& value)
 {
 	FVector2D MovementVector = value.Get<FVector2D>();
@@ -254,6 +262,40 @@ void AHeroBase::RemoveCurrentHeroState(EHeroState oldState)
 	CurrentHeroState &= (~oldStateBitmask);
 }
 
+void AHeroBase::OnRep_CurrentHealth()
+{
+	// 체력이 바뀔 때 해야 할 것들
+
+	// UI에 체력 업데이트
+	UpdateCurrentHealthUI();
+}
+
+void AHeroBase::UpdateCurrentHealthUI()
+{
+	if (ShootingMainWidget) // 주인공인 경우 메인 UI를 업데이트
+		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+	else if (HealthBarWidget) // 주인공이 아닌경우 머리위 체력바를 업데이트
+		HealthBarWidget->SetCurrentHealth(CurrentHealth);
+	else
+		UE_LOG(LogTemp, Warning, TEXT("ShootingMaingWidget Null"));
+}
+
+void AHeroBase::Die()
+{
+	AddCurrentHeroState(EHeroState::Die);
+
+	// 랙돌
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->SetSimulatePhysics(true);
+
+	// 인풋 막기
+	if (APlayerController* playerController = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(playerController);
+	}
+}
+
+
 void AHeroBase::SetSkillSystemComponent(USkillSystemComponent* targetSystem)
 {
 	SkillSystemComp = targetSystem;
@@ -279,17 +321,14 @@ TArray<EHeroState> AHeroBase::GetCurrentHeroState()
 float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
                             class AController* EventInstigator, AActor* DamageCauser)
 {
+	// 서버에서만 데미지 적용
+	if (!HasAuthority()) return 0.0f;
+	
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);
 
-	// 위젯에 값 전달
-	if (UHealthBarWidget* bar = Cast<UHealthBarWidget>(HealthBarWidgetComp->GetWidget()))
-	{
-		bar->SetCurrentHealth(CurrentHealth);
-	}
-
-	MultiRPC_OnTakeDamage(CurrentHealth);
+	UpdateCurrentHealthUI();
 
 	return actualDamage;
 }
@@ -302,24 +341,12 @@ float AHeroBase::GetHealth()
 void AHeroBase::SetHealth(float hp)
 {
 	CurrentHealth = FMath::Clamp(hp, 0.0f, MaxHealth);
-
-	if (ShootingMainWidget)
-		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
-	else if (HealthBarWidget)
-		HealthBarWidget->SetCurrentHealth(CurrentHealth);
-	else
-		UE_LOG(LogTemp, Warning, TEXT("ShootingMaingWidget Null"));
 	UE_LOG(LogTemp, Warning, TEXT("%s의 체력이 %f가 되었습니다"), *GetName(), CurrentHealth);
 }
 
 void AHeroBase::AddHealth(float hp)
 {
 	SetHealth(CurrentHealth + hp);
-}
-
-void AHeroBase::MultiRPC_OnTakeDamage_Implementation(float hp)
-{
-	SetHealth(hp);
 }
 
 //==김형모==

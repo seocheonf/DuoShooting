@@ -13,13 +13,10 @@ UTracerAnimInstance::UTracerAnimInstance()
 	if (tempFireMontage.Succeeded()) FireMontage = tempFireMontage.Object;
 }
 
-// this function gets consecutively in a very short amount of time, like in 0.025 seconds. but FireMontage is way longer than that. is it still ok?
 void UTracerAnimInstance::PlayFireMontage()
 {
-	if (FireMontage)
-	{
-		Montage_Play(FireMontage);
-	}
+	if (FireMontage) Montage_Play(FireMontage);
+	else UE_LOG(LogTemp, Error, TEXT("PlayFireMontage failed"));
 }
 
 void UTracerAnimInstance::NativeInitializeAnimation()

@@ -5,6 +5,7 @@
 #include "Skill/TracerSkillSystemComponent.h"
 #include "EnhancedInputComponent.h"
 #include "Animations/TracerAnimInstance.h"
+#include "Components/CapsuleComponent.h"
 #include "UI/ShootingMainWidget.h"
 
 // Sets default values
@@ -14,6 +15,28 @@ ATracerHero::ATracerHero()
 	PrimaryActorTick.bCanEverTick = true;
 
 	SetSkillSystemComponent(CreateDefaultSubobject<UTracerSkillSystemComponent>("SkillSystemComp"));
+
+	// 3인칭 메쉬 설정
+	ConstructorHelpers::FObjectFinder<USkeletalMesh> sm(
+		TEXT("'/Game/LargeFile/ParagonDrongo/Characters/Heroes/Drongo/Meshes/Drongo_GDC.Drongo_GDC'"));
+	if (sm.Succeeded()) GetMesh()->SetSkeletalMeshAsset(sm.Object);
+	ConstructorHelpers::FClassFinder<UAnimInstance> animInstance(
+		TEXT("'/Game/DuoShooting/Blueprints/Characters/Animation/Tracer/ABP_Tracer.ABP_Tracer_C'"));
+	if (animInstance.Succeeded()) GetMesh()->SetAnimInstanceClass(animInstance.Class);
+	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
+	GetMesh()->SetRelativeRotation(FRotator(0, 0, -90));
+	GetMesh()->bOwnerNoSee = true;
+
+	/// 1인칭 메쉬 설정
+	FirstViewSkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FirstViewSkeletalMeshComp"));
+	FirstViewSkeletalMeshComp->SetupAttachment(GetCapsuleComponent());
+	FirstViewSkeletalMeshComp->SetRelativeLocation(FVector(0, 0, -90));
+	FirstViewSkeletalMeshComp->SetRelativeRotation(FRotator(0, 0, -90));
+	FirstViewSkeletalMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	if (sm.Succeeded()) FirstViewSkeletalMeshComp->SetSkeletalMeshAsset(sm.Object);
+	if (animInstance.Succeeded()) FirstViewSkeletalMeshComp->SetAnimInstanceClass(animInstance.Class);
+	FirstViewSkeletalMeshComp->bOnlyOwnerSee = true;
+	FirstViewSkeletalMeshComp->SetCastShadow(false); // 그림자 끄기
 }
 
 // Called when the game starts or when spawned

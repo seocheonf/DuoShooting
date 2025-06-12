@@ -35,6 +35,8 @@ public:
 
 	//=====변수=====
 private:
+	UPROPERTY(EditAnywhere, Meta = (AllowPrivateAccess = true))
+	class USkeletalMeshComponent* FirstViewSkeletalMeshComp;
 	UPROPERTY()
 	class UTracerSkillSystemComponent* TracerSkillSystemComp;
 	UPROPERTY()

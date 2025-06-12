@@ -1,0 +1,38 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "EnumContainer.h"
+#include "GameFramework/GameMode.h"
+#include "TeamFightGameMode.generated.h"
+
+/**
+ * 
+ */
+UCLASS()
+class DUOSHOOTING_API ATeamFightGameMode : public AGameMode
+{
+	GENERATED_BODY()
+
+public:
+	ATeamFightGameMode();
+	
+	//==변수==//
+private:
+	//플레이어와 대응되는 영웅 정보
+	TMap<EHeroInfo, TSubclassOf<class AHeroBase>> HeroSourceMap;
+	TMap<APlayerController*, EHeroInfo> PlayerSpawnHeroMaps;
+	
+	
+	//==함수==//
+public:
+	//대상이 되는 플레이어의 영웅 정보를 갱신하는 함수
+	void SetPlayerHero(APlayerController* playerController, EHeroInfo playerHero);
+
+	//대상이 되는 플레이어의 영웅 정보에 따라 리스폰 해주는 함수
+	void RespawnPlayer(APlayerController* playerController);
+
+
+	
+};

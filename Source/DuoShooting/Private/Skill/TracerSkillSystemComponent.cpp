@@ -74,24 +74,20 @@ void UTracerSkillSystemComponent::BeginPlay()
 	Owner = Cast<ATracerHero>(GetOwner());
 	if (!Owner) { UE_LOG(LogTemp, Warning, TEXT("UTracerSkillSystemComponent에서 ATracerHero 타입의 Owner를 찾지 못함")); }
 
-	//// 서버인 경우에만 시간역행용 기록을 한다
-	//if (Owner->HasAuthority())
-	//{
+	// 시간역행용 기록 시작
 	Records.Init(RecordLength);
-
 	GetWorld()->GetTimerManager().SetTimer(RecallTimerHandle, this, &UTracerSkillSystemComponent::RecordInfo,
 		RecordInterval, true);
-
 	RecallStepDuration = RecallInterval / RecordLength;
-	//}
 }
 
-// 혹시모를 타이머 
 void UTracerSkillSystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	Super::EndPlay(EndPlayReason);
+	// 혹시모를 타이머 해제
 	GetWorld()->GetTimerManager().ClearTimer(BlinkTimerHandle);
 	GetWorld()->GetTimerManager().ClearTimer(RecallTimerHandle);
+	
+	Super::EndPlay(EndPlayReason);
 }
 
 // Called every frame
@@ -99,7 +95,7 @@ void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	
 	switch (CurrentSkillState)
 	{
 	case ETracerSkillState::BLINK:
@@ -129,6 +125,8 @@ void UTracerSkillSystemComponent::SetupHeroInputInfo(UEnhancedInputComponent* en
 
 void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Tracer Input Blink"));
+	
 	// 이미 스킬이 실행중이면 리턴
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{
@@ -164,6 +162,8 @@ void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 
 void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue& value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Tracer Input PulseBomb"));
+	
 	// 시간역행중에는 불가
 	if (CurrentSkillState == ETracerSkillState::RECALL) return;
 
@@ -213,6 +213,8 @@ void UTracerSkillSystemComponent::DeactivateBlink()
 // 클라이언트 사이드 시간역행 활성화
 void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 {
+	UE_LOG(LogTemp, Warning, TEXT("Tracer Input Recall"));
+	
 	// 이미 스킬이 실행중이면 리턴
 	if (CurrentSkillState != ETracerSkillState::NONE)
 	{

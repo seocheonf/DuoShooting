@@ -83,17 +83,17 @@ void USombraSkillSystemComponent::BeginPlay()
 
 #if WITH_EDITOR
 	
-		FTimerHandle emptyHandle;
-		GetWorld()->GetTimerManager().SetTimer(emptyHandle, [&]()->void
-		{
-			//if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
-			if (ROLE_Authority != SombraPlayer->GetRemoteRole() && ROLE_Authority != SombraPlayer->GetLocalRole()) 
-			{
-				SombraPlayer->SetActorRotation(SombraPlayer->GetActorRotation() + FRotator(0, 90, 0));
-				FInputActionValue emptyValue = FInputActionValue();
-				OnTranslocator(emptyValue);
-			}
-		}, 10.f, true);
+		// FTimerHandle emptyHandle;
+		// GetWorld()->GetTimerManager().SetTimer(emptyHandle, [&]()->void
+		// {
+		// 	//if (nullptr == Cast<APlayerController>(SombraPlayer->Controller))
+		// 	if (ROLE_Authority != SombraPlayer->GetRemoteRole() && ROLE_Authority != SombraPlayer->GetLocalRole()) 
+		// 	{
+		// 		SombraPlayer->SetActorRotation(SombraPlayer->GetActorRotation() + FRotator(0, 90, 0));
+		// 		FInputActionValue emptyValue = FInputActionValue();
+		// 		OnTranslocator(emptyValue);
+		// 	}
+		// }, 10.f, true);
 #endif
 }
 

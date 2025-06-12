@@ -42,6 +42,7 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void NotifyControllerChanged() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -76,6 +77,8 @@ private:
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
+	// 죽고나서 리스폰될때까지 타이머
+	FTimerHandle RespawnTimerHandle;
 #if WITH_EDITOR
 	// 네트워크 상태 로그 출력
 	void PrintNetLog();
@@ -112,7 +115,7 @@ private:
 	void OnRep_CurrentHealth();
 	void UpdateCurrentHealthUI();
 protected:
-	virtual void Die();
+	virtual void Server_ReSpawn();
 	// 기본 인풋(이동, 회전, 점프)
 	virtual void InputMove(const struct FInputActionValue& value);
 	virtual void InputLook(const struct FInputActionValue& value);
@@ -149,6 +152,10 @@ public:
 	//서버에서 DoAfterAction을 처리할 수 있도록 DoAfterAction을 감싼 함수
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_DoAfterAction(EHeroActionType actionType);
+
+	// 이 캐릭터가 죽으면 모든 클라이언트 사이드에게 알림
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_Die();
 
 	UHealthBarWidget* GetHealthBarUI();
 	

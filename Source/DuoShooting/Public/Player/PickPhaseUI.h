@@ -13,4 +13,8 @@ UCLASS()
 class DUOSHOOTING_API UPickPhaseUI : public UUserWidget
 {
 	GENERATED_BODY()
+
+	//==변수==
+private:
+	
 };

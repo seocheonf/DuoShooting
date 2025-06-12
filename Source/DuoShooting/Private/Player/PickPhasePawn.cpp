@@ -2,6 +2,7 @@
 
 
 #include "Player/PickPhasePawn.h"
+#include "Player/PickPhaseUI.h"
 
 #include "Management/TeamFightGameMode.h"
 #include "Management/TeamFightGameState.h"
@@ -13,7 +14,7 @@ APickPhasePawn::APickPhasePawn()
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	ConstructorHelpers::FClassFinder<UPickPhaseUI> ui(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_PickPhaseUI.WBP_PickPhaseUI'"));
+	ConstructorHelpers::FClassFinder<UPickPhaseUI> ui(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_PickPhaseUI.WBP_PickPhaseUI_C'"));
 	if (ui.Succeeded())
 	{
 		OriginPickPhaseUI = ui.Class;
@@ -25,13 +26,27 @@ void APickPhasePawn::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (IsLocallyControlled())
+	{
+		PickPhaseUI = CreateWidget<UPickPhaseUI>(GetWorld(), OriginPickPhaseUI);
+		PickPhaseUI->AddToViewport();
+		APlayerController* playerController = Cast<APlayerController>(Controller);
+		playerController->SetInputMode(FInputModeUIOnly());
+		playerController->bShowMouseCursor = true;
+	}
+
+
+	/*
 	FTimerHandle TimerHandle;
 	GetWorldTimerManager().SetTimer(TimerHandle, [&]()
 	{
 		if (Cast<APlayerController>(Controller) != nullptr && IsLocallyControlled())
 		{
-			ServerRPC_SetPlayerHero(EHeroInfo::Sombra);
-			
+			int a = FMath::RandRange(0, 1);
+			if (a == 0)
+				ServerRPC_SetPlayerHero(EHeroInfo::Sombra);
+			else if (a == 1)
+				ServerRPC_SetPlayerHero(EHeroInfo::Tracer);
 		}
 	}, 1, false);
 	FTimerHandle timerHandle;
@@ -40,6 +55,20 @@ void APickPhasePawn::BeginPlay()
 		if (Cast<APlayerController>(Controller) != nullptr && IsLocallyControlled())
 			ServerRPC_RespawnPlayer();
 	}, 2, false);
+	*/
+}
+
+void APickPhasePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	//if (EndPlayReason == EEndPlayReason::Type::)
+	Super::EndPlay(EndPlayReason);
+
+	
+	PickPhaseUI->RemoveFromParent();
+	
+	APlayerController* playerController = Cast<APlayerController>(Controller);
+	playerController->SetInputMode(FInputModeGameOnly());
+	playerController->bShowMouseCursor = false;
 	
 }
 

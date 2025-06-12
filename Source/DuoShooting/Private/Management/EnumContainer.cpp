@@ -1,0 +1,13 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "Management/EnumContainer.h"
+
+
+EnumContainer::EnumContainer()
+{
+}
+
+EnumContainer::~EnumContainer()
+{
+}

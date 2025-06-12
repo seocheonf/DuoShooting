@@ -32,7 +32,7 @@ ASombraHero::ASombraHero()
 	// }
 	*/
 
-	ConstructorHelpers::FClassFinder<UAnimInstance> animInstance(TEXT("'/Game/DuoShooting/Maps/KHM/ABP_Revenant.ABP_Revenant_C'"));
+	ConstructorHelpers::FClassFinder<UAnimInstance> animInstance(TEXT("'/Game/DuoShooting/Blueprints/Characters/Sombra/ABP_Revenant.ABP_Revenant_C'"));
 	if (animInstance.Succeeded())
 	{
 		USkeletalMeshComponent* smc = GetMesh();

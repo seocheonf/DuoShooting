@@ -17,7 +17,6 @@ class DUOSHOOTING_API ATeamFightGameState : public AGameState
 
 	//==변수==//
 private:
-
 	//==함수==//
 public:
 

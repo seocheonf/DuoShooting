@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Management/TeamFightGameMode.h"
+#include "Management/TeamFightPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/HealthBarWidget.h"
 
@@ -180,7 +181,7 @@ void AHeroBase::Tick(float DeltaTime)
 	}
 
 #if WITH_EDITOR
-	//PrintNetLog();
+	PrintNetLog();
 #endif
 }
 
@@ -293,6 +294,36 @@ void AHeroBase::UpdateCurrentHealthUI()
 		UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Null"));
 }
 
+// 팀의 상태를 UI에 적용
+void AHeroBase::ApplyTeamOnUI()
+{
+	// 로컬 플레이어가 아닌 경우
+	if (!IsLocallyControlled() && HealthBarWidget)
+	{
+		// 로컬 플레이어 게임스테이트 가져오기
+		ATeamFightPlayerState* localPlayerState = nullptr;
+		if (APlayerController* localController = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+		{
+			localPlayerState = Cast<ATeamFightPlayerState>(localController->PlayerState);
+		}
+
+		// 현재 캐릭터의 게임스테이트 가져오기
+		ATeamFightPlayerState* thisPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
+
+		if (localPlayerState && thisPlayerState)
+		{
+			if (localPlayerState->GetPlayerTeam() == thisPlayerState->GetPlayerTeam())
+			{
+				//
+			}
+			else
+			{
+				//
+			}
+		}
+	}
+}
+
 // 서버쪽에서 실행할 부활 함수
 void AHeroBase::Server_ReSpawn()
 {
@@ -399,7 +430,7 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 	}
 
 	// OnRep은 서버쪽에서 안불리므로 서버쪽은 여기서 불러주자
-	UpdateCurrentHealthUI();
+	OnRep_CurrentHealth();
 
 	return actualDamage;
 }

@@ -5,6 +5,7 @@
 
 #include "Management/EnumContainer.h"
 #include "Management/TeamFightGameState.h"
+#include "Management/TeamFightPlayerState.h"
 #include "Player/HeroBase.h"
 #include "Player/PickPhasePawn.h"
 #include "Player/SombraHero.h"
@@ -69,4 +70,16 @@ void ATeamFightGameMode::RespawnPlayer(APlayerController* playerController)
 	playerController->Possess(newHero);
 	//지연 스폰을 마무리 한다.
 	newHero->FinishSpawning(FTransform());
+}
+
+void ATeamFightGameMode::SetPlayerTeam(APlayerController* playerController, ETeamInfo playerTeam)
+{
+	// 플에이어가 무슨 팀으로 태어날지 정모를 기록해 둔다
+	PlayerSpawnTeamMaps.Add(playerController, playerTeam);
+
+	// 플레이어 스테이트
+	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(playerController->PlayerState))
+	{
+		teamFightPlayerState->SetPlayerTeam(playerTeam);
+	}
 }

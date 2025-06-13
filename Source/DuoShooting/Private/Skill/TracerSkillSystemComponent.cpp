@@ -108,7 +108,7 @@ void UTracerSkillSystemComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		break;
 	}
 
-	DebugInfo();
+	//DebugInfo();
 }
 
 void UTracerSkillSystemComponent::SetupHeroInputInfo(UEnhancedInputComponent* enhancedInputComponent)

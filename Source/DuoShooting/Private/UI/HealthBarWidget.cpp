@@ -15,3 +15,13 @@ void UHealthBarWidget::SetCurrentHealth(float hp)
 	// 체력바도 업데이트
 	HealthBar->SetPercent(FMath::Clamp(hp / MaxHealth, 0.0f, 1.0f));
 }
+
+void UHealthBarWidget::ApplyMyTeamMode()
+{
+	HealthBar->SetFillColorAndOpacity(FColor(0.0f, 0.5f, 1.0f, 1.0f));
+}
+
+void UHealthBarWidget::ApplyEnemyTeamMode()
+{
+	HealthBar->SetFillColorAndOpacity(FColor(1.0f, 0.0f, 0.0f, 1.0f));
+}

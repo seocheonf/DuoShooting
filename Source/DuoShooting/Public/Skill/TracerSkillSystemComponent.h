@@ -116,7 +116,6 @@ private:
 	// 시간 역행 관련
 	void ActivateRecall();
 	void TickRecall(float DeltaTime);
-	void ServerEndRecall();
 	void DeactivateRecall();
 	void RecordInfo();
 	void RecallInfo();
@@ -128,12 +127,16 @@ public:
 	ETracerSkillState GetCurrentSkillState() const;
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_BlinkStart(FVector StartPos, FVector Direction);
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_BlinkEnd();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_BlinkStart(FVector StartPos, FVector Direction);
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_BlinkEnd();
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_RecallStart();
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_RecallEnd();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_RecallStart();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_RecallEnd();
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_ThrowPulseBomb();
 	// UFUNCTION(Client, Reliable)

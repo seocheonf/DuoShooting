@@ -11,6 +11,13 @@ enum class EHeroInfo : uint8
 	Sombra
 };
 
+UENUM(BlueprintType)
+enum class ETeamInfo : uint8
+{
+	A,
+	B
+};
+
 /**
  * 
  */

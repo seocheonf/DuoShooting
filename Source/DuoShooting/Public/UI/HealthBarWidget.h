@@ -31,4 +31,10 @@ public:
 
 	// 지속적으로 해줄 것
 	void SetCurrentHealth(float hp);
+
+	// 같은팀용 UI 모드로 설정
+	void ApplyMyTeamMode();
+
+	// 적팀용 UI 모드로 설정
+	void ApplyEnemyTeamMode();
 };

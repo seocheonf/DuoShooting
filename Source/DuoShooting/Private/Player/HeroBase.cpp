@@ -14,6 +14,9 @@
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Management/TeamFightGameMode.h"
+#include "Management/TeamFightPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/HealthBarWidget.h"
 
@@ -60,6 +63,7 @@ AHeroBase::AHeroBase()
 	FirstPersonCameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComp->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComp->SetRelativeLocation(FVector(0.0f, 0.0f, 80.f));
+	FirstPersonCameraComp->PostProcessSettings.bOverride_ColorSaturation = true;
 
 	// 로테이션 컨트롤 설정
 	FirstPersonCameraComp->bUsePawnControlRotation = true;
@@ -102,11 +106,18 @@ void AHeroBase::NotifyControllerChanged()
 	}
 }
 
+void AHeroBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	GetWorld()->GetTimerManager().ClearTimer(RespawnTimerHandle);
+}
+
 // Called when the game starts or when spawned
 void AHeroBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	// 스피드 적용
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 	GetCharacterMovement()->AirControl = 0.9f;
@@ -118,7 +129,7 @@ void AHeroBase::BeginPlay()
 		{
 			HealthBarWidgetComp->SetVisibility(false);
 		}
-		
+
 		// 슈팅 위젯 생성
 		if (ShootingMainWidgetFactory)
 		{
@@ -168,9 +179,9 @@ void AHeroBase::Tick(float DeltaTime)
 		lookAtRotation.Roll = 0.f;
 		HealthBarWidgetComp->SetWorldRotation(lookAtRotation);
 	}
-	
+
 #if WITH_EDITOR
-	//PrintNetLog();
+	PrintNetLog();
 #endif
 }
 
@@ -280,24 +291,100 @@ void AHeroBase::UpdateCurrentHealthUI()
 	else if (HealthBarWidget) // 주인공이 아닌경우 머리위 체력바를 업데이트
 		HealthBarWidget->SetCurrentHealth(CurrentHealth);
 	else
-		UE_LOG(LogTemp, Warning, TEXT("ShootingMaingWidget Null"));
+		UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Null"));
 }
 
-void AHeroBase::Die()
+// 팀의 상태를 UI에 적용
+void AHeroBase::ApplyTeamOnUI()
 {
-	AddCurrentHeroState(EHeroState::Die);
+	// 로컬 플레이어가 아닌 경우
+	if (!IsLocallyControlled() && HealthBarWidget)
+	{
+		// 로컬 플레이어 게임스테이트 가져오기
+		ATeamFightPlayerState* localPlayerState = nullptr;
+		if (APlayerController* localController = UGameplayStatics::GetPlayerController(GetWorld(), 0))
+		{
+			localPlayerState = Cast<ATeamFightPlayerState>(localController->PlayerState);
+		}
 
+		// 현재 캐릭터의 게임스테이트 가져오기
+		ATeamFightPlayerState* thisPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
+
+		if (localPlayerState && thisPlayerState)
+		{
+			if (localPlayerState->GetPlayerTeam() == thisPlayerState->GetPlayerTeam())
+			{
+				//
+			}
+			else
+			{
+				//
+			}
+		}
+	}
+}
+
+// 서버쪽에서 실행할 부활 함수
+void AHeroBase::Server_ReSpawn()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Server_ReSpawn Called"));
+	
+	if (ATeamFightGameMode* teamFightGameMode = Cast<ATeamFightGameMode>(
+	GetWorld()->GetAuthGameMode()))
+	{
+		if (APlayerController* playerController = Cast<APlayerController>(
+			GetController()))
+		{
+			// 임시로 트레이서로 스폰되게 하자
+			teamFightGameMode->SetPlayerHero(playerController, EHeroInfo::Tracer);
+			
+			teamFightGameMode->RespawnPlayer(playerController);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Teamfight GameMode Null"));
+	}
+}
+
+// 죽으면 재생할 효과들
+void AHeroBase::DieAfterAction()
+{
 	// 랙돌
 	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->bPauseAnims = false;
 	GetMesh()->SetSimulatePhysics(true);
 
+	// 콜리전 끄기
+	SetCollisionEnable(false);
+
+	// 체력바 UI 끄기
+	if (ShootingMainWidget)
+	{
+		ShootingMainWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (HealthBarWidget)
+	{
+		HealthBarWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+
 	// 인풋 막기
+	bUseControllerRotationYaw = false;
 	if (APlayerController* playerController = Cast<APlayerController>(GetController()))
 	{
 		DisableInput(playerController);
 	}
-}
 
+	// 죽음용 카메라 처리
+	FirstPersonCameraComp->bUsePawnControlRotation = false;
+	FirstPersonCameraComp->PostProcessSettings.ColorSaturation = FVector4(0.0f, 0.0f, 0.0f, 1.0f); // 흑백
+	FirstPersonCameraComp->SetRelativeLocation(FVector(-260.0f, 0.0f, 230.0f)); // 카메라 위로 올리기
+	FirstPersonCameraComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);	// 플레이어 콜라이더에서 떼기
+	
+	// 카메라가 위에서 플레이어 내려다보기
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(FirstPersonCameraComp->GetComponentLocation(), GetActorLocation());
+	FirstPersonCameraComp->SetWorldRotation(LookAtRotation);
+}
 
 void AHeroBase::SetSkillSystemComponent(USkillSystemComponent* targetSystem)
 {
@@ -326,12 +413,24 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 {
 	// 서버에서만 데미지 적용
 	if (!HasAuthority()) return 0.0f;
-	
+
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);
 
-	UpdateCurrentHealthUI();
+	// 체력이 닳으면 죽게 하기
+	if (CurrentHealth < 0.001f)
+	{
+		// 모두에게 죽음을 알리기
+		MultiRPC_Die();
+
+		// 3초 후 리스폰 예약
+		GetWorld()->GetTimerManager().SetTimer(RespawnTimerHandle, this, &AHeroBase::Server_ReSpawn,
+			3.0f, false);
+	}
+
+	// OnRep은 서버쪽에서 안불리므로 서버쪽은 여기서 불러주자
+	OnRep_CurrentHealth();
 
 	return actualDamage;
 }
@@ -361,12 +460,21 @@ void AHeroBase::SetMeshVisibility(bool bVisible)
 
 void AHeroBase::SetCollisionEnable(bool bEnable)
 {
-	GetCapsuleComponent()->SetCollisionEnabled(bEnable ? ECollisionEnabled::QueryAndPhysics : ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(bEnable
+		                                           ? ECollisionEnabled::QueryAndPhysics
+		                                           : ECollisionEnabled::NoCollision);
 }
 
 void AHeroBase::ServerRPC_DoAfterAction_Implementation(EHeroActionType actionType)
 {
 	DoAfterAction(actionType);
+}
+
+void AHeroBase::MultiRPC_Die_Implementation()
+{
+	AddCurrentHeroState(EHeroState::Die);
+
+	DieAfterAction();
 }
 
 UHealthBarWidget* AHeroBase::GetHealthBarUI()

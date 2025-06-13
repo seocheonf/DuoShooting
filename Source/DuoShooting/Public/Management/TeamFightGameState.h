@@ -21,7 +21,6 @@ protected:
 
 	//==변수==//
 private:
-
 	//==함수==//
 public:
 

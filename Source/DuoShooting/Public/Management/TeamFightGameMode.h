@@ -23,7 +23,8 @@ private:
 	//플레이어와 대응되는 영웅 정보
 	TMap<EHeroInfo, TSubclassOf<class AHeroBase>> HeroSourceMap;
 	TMap<APlayerController*, EHeroInfo> PlayerSpawnHeroMaps;
-	
+	UPROPERTY()
+	TMap<APlayerController*, ETeamInfo> PlayerSpawnTeamMaps;
 	
 	//==함수==//
 public:
@@ -33,6 +34,6 @@ public:
 	//대상이 되는 플레이어의 영웅 정보에 따라 리스폰 해주는 함수
 	void RespawnPlayer(APlayerController* playerController);
 
-
-	
+	// PJW: 대상이 되는 플레이어의 팀 정보를 갱신하는 함수
+	void SetPlayerTeam(APlayerController* playerController, ETeamInfo playerTeam);
 };

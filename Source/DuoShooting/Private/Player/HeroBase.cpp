@@ -89,11 +89,14 @@ void AHeroBase::NotifyControllerChanged()
 	Super::NotifyControllerChanged();
 
 	// 공통 IMC 등록
+	// 본인이 곧 새로운 플레이어 컨트롤러의 빙의 대상이 되었을 때
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
 			UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
+			// 이전의 모든 입력 맵핑 정보를 초기화 시키고, 새롭게 시작한다.
+			Subsystem->ClearAllMappings();
 			Subsystem->AddMappingContext(IMC_HeroDefault, 0);
 		}
 	}

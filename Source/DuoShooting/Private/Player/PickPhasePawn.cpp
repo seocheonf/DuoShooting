@@ -62,13 +62,15 @@ void APickPhasePawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	//if (EndPlayReason == EEndPlayReason::Type::)
 	Super::EndPlay(EndPlayReason);
-
 	
-	PickPhaseUI->RemoveFromParent();
-	
-	APlayerController* playerController = Cast<APlayerController>(Controller);
-	playerController->SetInputMode(FInputModeGameOnly());
-	playerController->bShowMouseCursor = false;
+	if (nullptr != PickPhaseUI)
+	{
+		PickPhaseUI->RemoveFromParent();
+		//이미 파괴된 이후 마지막이니, 일반 플레이어 컨트롤러로서 정보를 가져와야 함.
+		APlayerController* playerController = GetWorld()->GetFirstPlayerController();
+		playerController->SetInputMode(FInputModeGameOnly());
+		playerController->bShowMouseCursor = false;
+	}
 	
 }
 

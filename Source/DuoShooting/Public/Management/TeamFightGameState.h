@@ -15,6 +15,10 @@ class DUOSHOOTING_API ATeamFightGameState : public AGameState
 {
 	GENERATED_BODY()
 
+	//==기본 상속==//
+protected:
+	virtual void BeginPlay() override;
+
 	//==변수==//
 private:
 

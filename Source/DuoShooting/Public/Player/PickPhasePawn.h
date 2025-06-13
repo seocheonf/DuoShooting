@@ -32,7 +32,7 @@ private:
 	TSubclassOf<class UPickPhaseUI> OriginPickPhaseUI;
 	class UPickPhaseUI* PickPhaseUI;
 	//==함수==//
-private:
+public:
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_SetPlayerHero(EHeroInfo playerHero);
 	UFUNCTION(Server, Reliable)

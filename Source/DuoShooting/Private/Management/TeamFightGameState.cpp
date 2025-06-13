@@ -2,3 +2,10 @@
 
 
 #include "Management/TeamFightGameState.h"
+
+void ATeamFightGameState::BeginPlay()
+{
+	Super::BeginPlay();
+
+	
+}

@@ -115,7 +115,10 @@ private:
 	void OnRep_CurrentHealth();
 	void UpdateCurrentHealthUI();
 protected:
+	// 서버쪽에서 실행할 부활 함수
 	virtual void Server_ReSpawn();
+	// 죽으면 재생할 효과들
+	virtual void DieAfterAction();
 	// 기본 인풋(이동, 회전, 점프)
 	virtual void InputMove(const struct FInputActionValue& value);
 	virtual void InputLook(const struct FInputActionValue& value);

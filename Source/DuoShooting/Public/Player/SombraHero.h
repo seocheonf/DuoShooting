@@ -102,6 +102,8 @@ protected:
 	void SetAppearance();
 	//모습과 충돌 숨김
 	void SetDisAppearance();
+	//죽으면 실행할 효과들
+	void DieAfterAction() override;
 public:
 	//위치 변환기에 의한 모습과 충돌을 드러내고 숨기는 함수
 	UFUNCTION(NetMulticast, Reliable)

@@ -241,6 +241,19 @@ void ASombraHero::SetDisAppearance()
 	SetMeshVisibility(false);
 }
 
+void ASombraHero::DieAfterAction()
+{
+	Super::DieAfterAction();
+
+	// 1인칭 메쉬 끄기
+	FirstViewSkeletalMeshComp->SetVisibility(false, true);
+	FirstViewSkeletalMeshComp->SetHiddenInGame(true);
+	//FirstViewSkeletalMeshComp->SetComponentTickEnabled(false);
+
+	// 3인칭 메쉬가 나에게도 보이게 하기
+	GetMesh()->SetOwnerNoSee(false);
+}
+
 void ASombraHero::MultiRPC_SetAppearanceTP_Implementation(bool bAppearance)
 {
 	/*나라면 무시

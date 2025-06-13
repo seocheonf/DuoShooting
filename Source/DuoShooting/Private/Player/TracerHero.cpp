@@ -106,3 +106,16 @@ void ATracerHero::DoAfterAction(EHeroActionType actionType)
 		break;
 	}
 }
+
+void ATracerHero::DieAfterAction()
+{
+	Super::DieAfterAction();
+
+	// 1인칭 메쉬 끄기
+	FirstViewSkeletalMeshComp->SetVisibility(false, true);
+	FirstViewSkeletalMeshComp->SetHiddenInGame(true);
+	//FirstViewSkeletalMeshComp->SetComponentTickEnabled(false);
+
+	// 3인칭 메쉬가 나에게도 보이게 하기
+	GetMesh()->SetOwnerNoSee(false);
+}

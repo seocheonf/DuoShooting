@@ -14,6 +14,7 @@
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Management/TeamFightGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/HealthBarWidget.h"
@@ -61,6 +62,7 @@ AHeroBase::AHeroBase()
 	FirstPersonCameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
 	FirstPersonCameraComp->SetupAttachment(GetCapsuleComponent());
 	FirstPersonCameraComp->SetRelativeLocation(FVector(0.0f, 0.0f, 80.f));
+	FirstPersonCameraComp->PostProcessSettings.bOverride_ColorSaturation = true;
 
 	// 로테이션 컨트롤 설정
 	FirstPersonCameraComp->bUsePawnControlRotation = true;
@@ -90,11 +92,14 @@ void AHeroBase::NotifyControllerChanged()
 	Super::NotifyControllerChanged();
 
 	// 공통 IMC 등록
+	// 본인이 곧 새롭게 플레이어 컨트롤러가 되었다면
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
 			UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
+			// 기존의 모든 입력 처리를 지우고 새롭게 시작.
+			Subsystem->ClearAllMappings();
 			Subsystem->AddMappingContext(IMC_HeroDefault, 0);
 		}
 	}
@@ -288,6 +293,7 @@ void AHeroBase::UpdateCurrentHealthUI()
 		UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Null"));
 }
 
+// 서버쪽에서 실행할 부활 함수
 void AHeroBase::Server_ReSpawn()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Server_ReSpawn Called"));
@@ -308,6 +314,45 @@ void AHeroBase::Server_ReSpawn()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Teamfight GameMode Null"));
 	}
+}
+
+// 죽으면 재생할 효과들
+void AHeroBase::DieAfterAction()
+{
+	// 랙돌
+	GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
+	GetMesh()->bPauseAnims = false;
+	GetMesh()->SetSimulatePhysics(true);
+
+	// 콜리전 끄기
+	SetCollisionEnable(false);
+
+	// 체력바 UI 끄기
+	if (ShootingMainWidget)
+	{
+		ShootingMainWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+	if (HealthBarWidget)
+	{
+		HealthBarWidget->SetVisibility(ESlateVisibility::Hidden);
+	}
+
+	// 인풋 막기
+	bUseControllerRotationYaw = false;
+	if (APlayerController* playerController = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(playerController);
+	}
+
+	// 죽음용 카메라 처리
+	FirstPersonCameraComp->bUsePawnControlRotation = false;
+	FirstPersonCameraComp->PostProcessSettings.ColorSaturation = FVector4(0.0f, 0.0f, 0.0f, 1.0f); // 흑백
+	FirstPersonCameraComp->SetRelativeLocation(FVector(-260.0f, 0.0f, 230.0f)); // 카메라 위로 올리기
+	FirstPersonCameraComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);	// 플레이어 콜라이더에서 떼기
+	
+	// 카메라가 위에서 플레이어 내려다보기
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(FirstPersonCameraComp->GetComponentLocation(), GetActorLocation());
+	FirstPersonCameraComp->SetWorldRotation(LookAtRotation);
 }
 
 void AHeroBase::SetSkillSystemComponent(USkillSystemComponent* targetSystem)
@@ -398,29 +443,7 @@ void AHeroBase::MultiRPC_Die_Implementation()
 {
 	AddCurrentHeroState(EHeroState::Die);
 
-	// 랙돌
-	// GetMesh()->SetCollisionProfileName(TEXT("Ragdoll"));
-	// GetMesh()->bPauseAnims = false;
-	// GetMesh()->SetSimulatePhysics(true);
-
-	// // 콜리전 끄기
-	// SetCollisionEnable(false);
-
-	// 체력바 UI 끄기
-	if (ShootingMainWidget)
-	{
-		ShootingMainWidget->SetVisibility(ESlateVisibility::Hidden);
-	}
-	if (HealthBarWidget)
-	{
-		HealthBarWidget->SetVisibility(ESlateVisibility::Hidden);
-	}
-
-	// 인풋 막기
-	if (APlayerController* playerController = Cast<APlayerController>(GetController()))
-	{
-		DisableInput(playerController);
-	}
+	DieAfterAction();
 }
 
 UHealthBarWidget* AHeroBase::GetHealthBarUI()

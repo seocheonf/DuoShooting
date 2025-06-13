@@ -46,6 +46,7 @@ public:
 	//=====함수=====
 protected:
 	virtual void DoAfterAction(EHeroActionType actionType) override;
+	virtual void DieAfterAction() override;
 public:
 	//==고유 함수 영역==
 private:

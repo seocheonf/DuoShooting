@@ -76,10 +76,8 @@ void APulseBomb::Launch(FVector direction, float speed, AController* instigator)
 void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UPrimitiveComponent* otherComp,
                        FVector normalImpulse, const FHitResult& hit)
 {
-	if (GetLocalRole() != ROLE_Authority)
-	{
-		return;
-	}
+	if (GetLocalRole() != ROLE_Authority) return;
+	
 	// SphereComp->OnComponentHit.RemoveDynamic(this, &APulseBomb::OnHit);
 	//
 	// if (ProjectileMovementComp)
@@ -99,7 +97,7 @@ void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UP
 	// StaticMeshComp->SetWorldRotation(AttachRot);
 
 	// 1초 후 터진다
-	GetWorldTimerManager().SetTimer(ExplosionTimerHandle, this, &APulseBomb::Explode, 15.0f, false);
+	GetWorldTimerManager().SetTimer(ExplosionTimerHandle, this, &APulseBomb::Explode, 1.0f, false);
 }
 
 void APulseBomb::Explode()

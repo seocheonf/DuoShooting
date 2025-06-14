@@ -162,6 +162,9 @@ void AHeroBase::BeginPlay()
 
 	// 히트스캔 컴포넌트에 필수정보 전달
 	if (HitscanEmitterComp) HitscanEmitterComp->Initialize(ShootingMainWidget, CameraShakeSourceComp);
+
+	// 서버쪽에서는 OnRep가 자동으로 안불리므로 인위적으로 불러준다
+	if (HasAuthority()) OnRep_PlayerState();
 }
 
 // Called every frame
@@ -181,7 +184,8 @@ void AHeroBase::Tick(float DeltaTime)
 	}
 
 #if WITH_EDITOR
-	PrintNetLog();
+	//PrintNetLog();
+	//PrintTeamLog();
 #endif
 }
 
@@ -253,6 +257,22 @@ void AHeroBase::PrintNetLog()
 	DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
 }
 
+void AHeroBase::PrintTeamLog()
+{
+	if (!TeamFightPlayerState)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TeamFightPlayerState IS NULL"));
+		return;
+	}
+	
+	const FString logStr = FString::Printf(
+		TEXT("Team: %s"),
+		*UEnum::GetValueAsString(TeamFightPlayerState->GetPlayerTeam())
+	);
+
+	DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
+}
+
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
 {
 	if (auto* input = Cast<UEnhancedInputComponent>(playerInputComponent))
@@ -292,36 +312,6 @@ void AHeroBase::UpdateCurrentHealthUI()
 		HealthBarWidget->SetCurrentHealth(CurrentHealth);
 	else
 		UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Null"));
-}
-
-// 팀의 상태를 UI에 적용
-void AHeroBase::ApplyTeamOnUI()
-{
-	// 로컬 플레이어가 아닌 경우
-	if (!IsLocallyControlled() && HealthBarWidget)
-	{
-		// 로컬 플레이어 게임스테이트 가져오기
-		ATeamFightPlayerState* localPlayerState = nullptr;
-		if (APlayerController* localController = UGameplayStatics::GetPlayerController(GetWorld(), 0))
-		{
-			localPlayerState = Cast<ATeamFightPlayerState>(localController->PlayerState);
-		}
-
-		// 현재 캐릭터의 게임스테이트 가져오기
-		ATeamFightPlayerState* thisPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
-
-		if (localPlayerState && thisPlayerState)
-		{
-			if (localPlayerState->GetPlayerTeam() == thisPlayerState->GetPlayerTeam())
-			{
-				//
-			}
-			else
-			{
-				//
-			}
-		}
-	}
 }
 
 // 서버쪽에서 실행할 부활 함수
@@ -480,6 +470,50 @@ void AHeroBase::MultiRPC_Die_Implementation()
 UHealthBarWidget* AHeroBase::GetHealthBarUI()
 {
 	return HealthBarWidget;
+}
+
+void AHeroBase::OnRep_PlayerState()
+{
+	Super::OnRep_PlayerState();
+
+	TeamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
+
+	if (GetPlayerState() == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OnRep_PlayerState: GetPlayerState() did not return anything"));
+	}
+	else if (TeamFightPlayerState == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OnRep_PlayerState: GetPlayerState() cannot be cast to TeamFightPlayerState"));
+	}
+}
+
+void AHeroBase::ApplyTeamVisuals(class ATeamFightPlayerState* localPlayerState)
+{
+	// 이 함수는 로컬플레이어 내에서 부르는게 아니라 로컬플레이어가 다른 플레이어들한테 불러줄 함수다
+	if (IsLocallyControlled()) return;
+	if (localPlayerState == nullptr) return;
+	if (TeamFightPlayerState == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: TeamFightPlayerState Null"));
+		return;
+	}
+	if (HealthBarWidget == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: HealthBarWidget Null"));
+		return;
+	}
+
+	// 로컬 플레이어와 같은 팀이면 같은편 비주얼로 설정
+	if (localPlayerState->GetPlayerTeam() == TeamFightPlayerState->GetPlayerTeam())
+	{
+		HealthBarWidget->ApplyMyTeamMode();
+	}
+	// 로컬 플레이어와 다른팀이면 다른편 비주얼로 설정
+	else
+	{
+		HealthBarWidget->ApplyMyTeamMode();
+	}
 }
 
 void AHeroBase::DoAfterAction(EHeroActionType actionType)

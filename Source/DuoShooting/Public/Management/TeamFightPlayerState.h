@@ -16,12 +16,15 @@ class DUOSHOOTING_API ATeamFightPlayerState : public APlayerState
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(ReplicatedUsing=OnRep_PlayerTeam)
 	ETeamInfo PlayerTeam;
 
 public:
 	void SetPlayerTeam(ETeamInfo newTeam);
 	ETeamInfo GetPlayerTeam() const { return PlayerTeam; }
-
+	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION()
+	void OnRep_PlayerTeam();
 };

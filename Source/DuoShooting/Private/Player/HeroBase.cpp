@@ -336,7 +336,7 @@ void AHeroBase::Server_ReSpawn()
 			GetController()))
 		{
 			// 임시로 트레이서로 스폰되게 하자
-			teamFightGameMode->SetPlayerHero(playerController, EHeroInfo::Tracer);
+			//teamFightGameMode->SetPlayerHero(playerController, EHeroInfo::Tracer);
 			
 			teamFightGameMode->RespawnPlayer(playerController);
 		}

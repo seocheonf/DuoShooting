@@ -405,7 +405,7 @@ bool USombraSkillSystemComponent::DetectHackTargetInFirstHackTrace(AHeroBase*& o
 	TArray<AActor*> ignoreActors;
 	ignoreActors.Add(TargetPlayer);
 	if (!UKismetSystemLibrary::BoxTraceMulti(GetWorld(), detectPoint, detectPoint, FVector(halfSizeX, halfSizeY, halfSizeZ), detectOrientation,\
-		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Red, FLinearColor::Green))
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Red, FLinearColor::Green), -1.f)
 		return false;
 
 	AHeroBase* hitHero = nullptr;
@@ -450,7 +450,7 @@ bool USombraSkillSystemComponent::DetectHackTargetInSecondHackTrace(AHeroBase*& 
 	TArray<AActor*> ignoreActors;
 	ignoreActors.Add(TargetPlayer);
 	if (!UKismetSystemLibrary::BoxTraceMulti(GetWorld(), detectPoint, detectPoint, FVector(halfSizeX, halfSizeY, halfSizeZ), detectOrientation,\
-		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Blue, FLinearColor::Black))
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_GameTraceChannel2), false, ignoreActors, EDrawDebugTrace::ForOneFrame, hitResults, true, FLinearColor::Blue, FLinearColor::Black), -1.f)
 		return false;
 
 	AHeroBase* hitHero = nullptr;
@@ -480,10 +480,12 @@ void USombraSkillSystemComponent::HackTick(float deltaTime)
 {
 	if (TargetPlayer == nullptr)
 		return;
-	
+
+	/*
 	if (DetectHackTarget(HackTarget))
 	{
 	}
+	*/
 }
 
 // //Test======================

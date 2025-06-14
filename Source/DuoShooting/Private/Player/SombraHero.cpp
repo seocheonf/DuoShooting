@@ -231,12 +231,24 @@ void ASombraHero::SetVisibilityAlpha(float alpha)
 
 void ASombraHero::SetAppearance()
 {
+	//체력 UI도 드러나게 한다
+	UHealthBarWidget* healthBarWidget = GetHealthBarUI();
+	FLinearColor targetColor = healthBarWidget->GetColorAndOpacity();
+	targetColor.A = 1;
+	healthBarWidget->SetColorAndOpacity(targetColor);
+
 	SetCollisionEnable(true);
 	SetMeshVisibility(true);
 }
 
 void ASombraHero::SetDisAppearance()
 {
+	//체력 UI를 숨기도록 한다
+	UHealthBarWidget* healthBarWidget = GetHealthBarUI();
+	FLinearColor targetColor = healthBarWidget->GetColorAndOpacity();
+	targetColor.A = 0;
+	healthBarWidget->SetColorAndOpacity(targetColor);
+	
 	SetCollisionEnable(false);
 	SetMeshVisibility(false);
 }

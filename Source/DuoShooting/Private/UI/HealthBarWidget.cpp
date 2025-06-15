@@ -18,10 +18,10 @@ void UHealthBarWidget::SetCurrentHealth(float hp)
 
 void UHealthBarWidget::ApplyMyTeamMode()
 {
-	HealthBar->SetFillColorAndOpacity(FColor(0.0f, 0.5f, 1.0f, 1.0f));
+	HealthBar->SetFillColorAndOpacity(FLinearColor(0.0f, 0.5f, 1.0f, 1.0f));
 }
 
 void UHealthBarWidget::ApplyEnemyTeamMode()
 {
-	HealthBar->SetFillColorAndOpacity(FColor(1.0f, 0.0f, 0.0f, 1.0f));
+	HealthBar->SetFillColorAndOpacity(FLinearColor(1.0f, 0.0f, 0.0f, 1.0f));
 }

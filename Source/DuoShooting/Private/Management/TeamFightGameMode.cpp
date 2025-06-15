@@ -72,14 +72,57 @@ void ATeamFightGameMode::RespawnPlayer(APlayerController* playerController)
 	newHero->FinishSpawning(FTransform());
 }
 
+void ATeamFightGameMode::PostLogin(APlayerController* NewPlayer)
+{
+	Super::PostLogin(NewPlayer);
+
+	// 새로 참여한 플레이어의 팀 설정해주기
+	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(NewPlayer->PlayerState))
+	{
+		// A팀 수가 더 적다면 B팀으로 설정
+		if (Players_TeamA.Num() < Players_TeamB.Num())
+			SetPlayerTeam(NewPlayer, ETeamInfo::A);
+		// A팀 수가 더 적다면 A팀으로 설정
+		else if (Players_TeamB.Num() < Players_TeamA.Num())
+			SetPlayerTeam(NewPlayer, ETeamInfo::B);
+		// 인원수가 같다면 랜덤부여(임시)
+		else
+			SetPlayerTeam(NewPlayer, FMath::RandBool() ? ETeamInfo::A : ETeamInfo::B);
+	}
+
+	//// n:n매치가 결성되었다면?
+	//if (Players_TeamA.Num() >= MinimumPlayerPerTeam && Players_TeamB.Num() >= MinimumPlayerPerTeam) {}
+}
+
 void ATeamFightGameMode::SetPlayerTeam(APlayerController* playerController, ETeamInfo playerTeam)
 {
-	// 플에이어가 무슨 팀으로 태어날지 정모를 기록해 둔다
-	PlayerSpawnTeamMaps.Add(playerController, playerTeam);
-
-	// 플레이어 스테이트
+	// 플레이어 스테이트의 팀값 설정해주기
 	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(playerController->PlayerState))
 	{
 		teamFightPlayerState->SetPlayerTeam(playerTeam);
 	}
+
+	// 팀 리스트에 플레이어 추가
+	if (playerTeam == ETeamInfo::A)
+	{
+		Players_TeamB.Remove(playerController);
+		Players_TeamA.Add(playerController);
+	}
+	else if (playerTeam == ETeamInfo::B)
+	{
+		Players_TeamA.Remove(playerController);
+		Players_TeamB.Add(playerController);
+	}
+}
+
+void ATeamFightGameMode::Logout(AController* Exiting)
+{
+	Super::Logout(Exiting);
+
+	APlayerController* ExitingPlayer = Cast<APlayerController>(Exiting);
+	if (!ExitingPlayer) return;
+
+	// 팀에서 제거
+	Players_TeamA.Remove(ExitingPlayer);
+	Players_TeamB.Remove(ExitingPlayer);
 }

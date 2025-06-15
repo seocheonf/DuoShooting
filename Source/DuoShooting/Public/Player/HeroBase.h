@@ -167,11 +167,14 @@ public:
 	// 체력바(타인용) UI 가져오기
 	UHealthBarWidget* GetHealthBarUI();
 
-	// 플레이어 스테이트가 들어왔을 때 할 것들
+	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (서버)
+	virtual void PossessedBy(AController* NewController) override;
+	
+	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (클라이언트)
 	virtual void OnRep_PlayerState() override;
-
+	
 	// 로컬 플레이어가 다른 플레이어들의 적 여부를 적용하기 위해 부를 함수 
-	void ApplyTeamVisuals(class ATeamFightPlayerState* localPlayerState);
+	void ApplyTeamVisuals();
 	
 protected:
 	//캐릭터가 EHeroActionType에 따라 그 타이밍 이후에 곧장 할 일

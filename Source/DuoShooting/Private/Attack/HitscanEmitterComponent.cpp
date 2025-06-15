@@ -8,6 +8,7 @@
 #include "Camera/CameraShakeSourceComponent.h"
 #include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
+#include "Management/TeamFightPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/HeroBase.h"
 #include "Particles/ParticleSystem.h"
@@ -44,7 +45,7 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 }
 
 void UHitscanEmitterComponent::SetHitScanSettings(float fireInterval, float damagePerBullet, float spread,
-	float maxDist)
+                                                  float maxDist)
 {
 	FireInterval = fireInterval;
 	DamagePerBullet = damagePerBullet;
@@ -64,7 +65,7 @@ void UHitscanEmitterComponent::BeginPlay()
 
 // Called every frame
 void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-	FActorComponentTickFunction* ThisTickFunction)
+                                             FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -112,18 +113,26 @@ void UHitscanEmitterComponent::SingleLineTrace()
 		// 히어로가 맞았으면 피해 주기
 		if (auto* hero = Cast<AHeroBase>(Result.GetActor()))
 		{
-			//// 전달할 FPointDamageEvent 구조체 구성
-			//FPointDamageEvent damageEvent;
-			//damageEvent.Damage = DamagePerBullet; // 얘는 빌트인 TakeDamage 내부에서 안쓰이긴 하는데 일단은 넣어두자
-			//damageEvent.HitInfo = Result;
-
-			// 피해 주기
-			//hero->TakeDamage(DamageAmount, damageEvent, Owner->GetController(), Owner);
 			UGameplayStatics::ApplyDamage(hero, DamagePerBullet, Owner->GetController(), Owner,
-				UDamageType::StaticClass());
-		}
+			                              UDamageType::StaticClass());
 
-		MultiRPC_FireEffects(Result.Location);
+			// 다른 팀을 맞췄을 때만 이펙트 재생
+			if (auto* instigatorPlayerState = Cast<ATeamFightPlayerState>(Owner->GetController()->PlayerState))
+			{
+				if (auto* hitPlayerState = Cast<ATeamFightPlayerState>(hero->GetController()->PlayerState))
+				{
+					if (instigatorPlayerState->GetPlayerTeam() != hitPlayerState->GetPlayerTeam())
+					{
+						MultiRPC_FireEffects(Result.Location);
+					}
+				}
+			}
+		}
+		// 히어로가 아닌 일반 사물이 맞았을 경우
+		else
+		{
+			MultiRPC_FireEffects(Result.Location);
+		}
 	}
 }
 
@@ -174,7 +183,6 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
 		Owner->ServerRPC_DoAfterAction_Implementation(EHeroActionType::NormalAttackSuccess);
 	}
-	
 }
 
 void UHitscanEmitterComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -188,15 +196,15 @@ void UHitscanEmitterComponent::GetLifetimeReplicatedProps(TArray<class FLifetime
 void UHitscanEmitterComponent::SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent)
 {
 	enhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Started, this,
-		&UHitscanEmitterComponent::InputFire_Started);
+	                                   &UHitscanEmitterComponent::InputFire_Started);
 	enhancedInputComponent->BindAction(IA_Fire, ETriggerEvent::Completed, this,
-		&UHitscanEmitterComponent::InputFire_Completed);
+	                                   &UHitscanEmitterComponent::InputFire_Completed);
 	enhancedInputComponent->BindAction(IA_Reload, ETriggerEvent::Triggered, this,
-		&UHitscanEmitterComponent::InputReload);
+	                                   &UHitscanEmitterComponent::InputReload);
 }
 
 void UHitscanEmitterComponent::Initialize(UShootingMainWidget* mainWidgetInst,
-	UCameraShakeSourceComponent* camShakeSourceInst)
+                                          UCameraShakeSourceComponent* camShakeSourceInst)
 {
 	ShootingMainWidget = mainWidgetInst;
 	CameraShakeSourceComp = camShakeSourceInst;
@@ -210,9 +218,9 @@ void UHitscanEmitterComponent::InputFire_Started()
 	if (bTriggered) return;
 	bTriggered = true;
 	UE_LOG(LogTemp, Warning, TEXT("InputFire_Started"));
-	
+
 	ServerRPC_FireHitScan(true);
-	
+
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackStart);
 }
 
@@ -287,7 +295,8 @@ void UHitscanEmitterComponent::ServerRPC_Reload_Implementation()
 
 	// 임시로 1초후에 리로딩 완료해주는것
 	FTimerHandle TempReloadHandle;
-	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Server_EndReloading, 1.0f, false);
+	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Server_EndReloading, 1.0f,
+	                                       false);
 }
 
 void UHitscanEmitterComponent::ClientRPC_ReloadEnd_Implementation(int bulletCount)

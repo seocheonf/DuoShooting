@@ -3,10 +3,14 @@
 
 #include "Management/TeamFightPlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/HeroBase.h"
 
 void ATeamFightPlayerState::SetPlayerTeam(ETeamInfo newTeam)
 {
+	if (!HasAuthority()) return;
+	
 	PlayerTeam = newTeam;
+	OnRep_PlayerTeam();
 }
 
 void ATeamFightPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -14,4 +18,9 @@ void ATeamFightPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ATeamFightPlayerState, PlayerTeam);
+}
+
+void ATeamFightPlayerState::OnRep_PlayerTeam()
+{
+	
 }

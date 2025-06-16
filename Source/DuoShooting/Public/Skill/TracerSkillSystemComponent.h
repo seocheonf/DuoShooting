@@ -23,13 +23,13 @@ struct FTracerRecallInfo
 
 	UPROPERTY()
 	FVector Location;
-	
+
 	UPROPERTY()
 	float Health;
-	
+
 	UPROPERTY()
 	FVector2D ControlRotation;
-		
+
 	FTracerRecallInfo();
 	FTracerRecallInfo(const FVector& location, float controlRot_Pitch, float controlRot_Yaw, float health);
 };
@@ -72,23 +72,23 @@ private:
 	ETracerSkillState CurrentSkillState;
 	// 점멸 관련
 	UPROPERTY(EditDefaultsOnly)
-	float BlinkDuration = 0.1f;		// 걸리는 시간
+	float BlinkDuration = 0.1f; // 걸리는 시간
 	UPROPERTY(EditDefaultsOnly)
-	int32 BlinkSpeed = 6500;		// 점멸 속도
+	int32 BlinkSpeed = 6500; // 점멸 속도
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle BlinkTimerHandle;
-	FVector BlinkStartPos;			// 점멸 시작시의 시작방향 저장 (보다 정확한 동기화를 위해)
-	FVector BlinkDirection;			// 점멸 방향
+	FVector BlinkStartPos; // 점멸 시작시의 시작방향 저장 (보다 정확한 동기화를 위해)
+	FVector BlinkDirection; // 점멸 방향
 	//FVector TestStartLocation;
 	// 시간 역행 관련
 	// 리콜할 레코드(기록) 정보
 	UPROPERTY(EditDefaultsOnly)
-	float RecordInterval = 0.1f;	// 몇초마다 기록할것인지
+	float RecordInterval = 0.1f; // 몇초마다 기록할것인지
 	UPROPERTY(EditDefaultsOnly)
-	int32 RecordLength = 30;		// 몇개까지 기록할 것인지
+	int32 RecordLength = 30; // 몇개까지 기록할 것인지
 	FixedDeque<FTracerRecallInfo> Records; // 기록 컨테이너
 	UPROPERTY(EditDefaultsOnly)
-	float RecallInterval = 0.91f;	// 몇초만에 역행할것인지?
+	float RecallInterval = 0.91f; // 몇초만에 역행할것인지?
 	UPROPERTY(VisibleAnywhere)
 	FTimerHandle RecallTimerHandle;
 	// 시간역행 보간용 변수들
@@ -97,12 +97,12 @@ private:
 	FTracerRecallInfo IntervalTarget;
 	float RecallStepDuration;
 
-	
 protected:
 public:
 	//=====함수=====
 protected:
 	virtual void SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent) override;
+
 public:
 	//==고유 함수 영역==
 private:
@@ -122,6 +122,7 @@ private:
 	void ToggleRecallOwnerSettings(bool isRecall);
 
 	void DebugInfo();
+
 protected:
 public:
 	ETracerSkillState GetCurrentSkillState() const;

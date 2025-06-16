@@ -136,6 +136,4 @@ public:
 
 	// 서버용 함수들
 	void Server_EndReloading();
-	
-	//void ReloadEnd_Requester(int bulletCount);				// 리로드를 한 사람에게만 답신할 내용
 };

@@ -77,13 +77,13 @@ private:
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
 	class USkillSystemComponent* SkillSystemComp;
-	UPROPERTY()
-	class ATeamFightPlayerState* TeamFightPlayerState;
 	// 죽고나서 리스폰될때까지 타이머
 	FTimerHandle RespawnTimerHandle;
 #if WITH_EDITOR
 	// 네트워크 상태 로그 출력
 	void PrintNetLog();
+	// 팀플 관련 로그 출력
+	void PrintTeamLog();
 #endif
 protected:
 	//히어로 공통 속성
@@ -102,6 +102,8 @@ protected:
 	class UWidgetComponent* HealthBarWidgetComp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class UHealthBarWidget* HealthBarWidget;
+	UPROPERTY()
+	class ATeamFightPlayerState* TeamFightPlayerState;
 	//영웅 상태 (bitmask)
 	int32 CurrentHeroState;
 public:
@@ -116,7 +118,6 @@ private:
 	UFUNCTION()
 	void OnRep_CurrentHealth();
 	void UpdateCurrentHealthUI();
-	void ApplyTeamOnUI();
 protected:
 	// 서버쪽에서 실행할 부활 함수
 	virtual void Server_ReSpawn();
@@ -163,7 +164,17 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_Die();
 
+	// 체력바(타인용) UI 가져오기
 	UHealthBarWidget* GetHealthBarUI();
+
+	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (서버)
+	virtual void PossessedBy(AController* NewController) override;
+	
+	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (클라이언트)
+	virtual void OnRep_PlayerState() override;
+	
+	// 로컬 플레이어가 다른 플레이어들의 적 여부를 적용하기 위해 부를 함수 
+	void ApplyTeamVisuals();
 	
 protected:
 	//캐릭터가 EHeroActionType에 따라 그 타이밍 이후에 곧장 할 일

@@ -143,6 +143,10 @@ public:
 	float GetHealth();
 	void SetHealth(float hp);
 	void AddHealth(float hp);
+	// 개인 스코어 UI 업데이트하기
+	void UpdateMyScoreUI();
+	// 개인 스코어 UI 업데이트하기
+	void UpdateTeamScoreUI();
 	//데미지 입기
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	// 최대 총알 Get
@@ -173,7 +177,7 @@ public:
 	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (클라이언트)
 	virtual void OnRep_PlayerState() override;
 	
-	// 로컬 플레이어가 다른 플레이어들의 적 여부를 적용하기 위해 부를 함수 
+	// 로컬 플레이어 기준에서 이 캐릭터의 적 여부를 UI에 적용하기 위해 부를 함수 
 	void ApplyTeamVisuals();
 	
 protected:

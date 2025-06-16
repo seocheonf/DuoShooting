@@ -33,3 +33,18 @@ void UShootingMainWidget::SetCurrentBullet(int32 bullets)
 {
 	CurrentBullet = bullets;
 }
+
+void UShootingMainWidget::SetMyScore(int32 myScore)
+{
+	MyScore = myScore;
+}
+
+void UShootingMainWidget::SetMyTeamScore(int32 myTeamScore)
+{
+	MyTeamScore = myTeamScore;
+}
+
+void UShootingMainWidget::SetEnemyTeamScore(int32 enemyTeamScore)
+{
+	EnemyTeamScore = enemyTeamScore;
+}

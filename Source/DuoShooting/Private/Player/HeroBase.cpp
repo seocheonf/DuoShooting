@@ -16,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Management/TeamFightGameMode.h"
+#include "Management/TeamFightGameState.h"
 #include "Management/TeamFightPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "UI/HealthBarWidget.h"
@@ -142,6 +143,9 @@ void AHeroBase::BeginPlay()
 				ShootingMainWidget->InitMaxBullet(MaxBullet);
 				ShootingMainWidget->InitMaxHealth(MaxHealth);
 				ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+
+				UpdateMyScoreUI();
+				UpdateTeamScoreUI();
 			}
 		}
 	}
@@ -262,7 +266,7 @@ void AHeroBase::PrintTeamLog()
 		UE_LOG(LogTemp, Warning, TEXT("TeamFightPlayerState IS NULL"));
 		return;
 	}
-	
+
 	const FString logStr = FString::Printf(
 		TEXT("Team: %s"),
 		*UEnum::GetValueAsString(TeamFightPlayerState->GetPlayerTeam())
@@ -312,20 +316,47 @@ void AHeroBase::UpdateCurrentHealthUI()
 		UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Null"));
 }
 
+void AHeroBase::UpdateMyScoreUI()
+{
+	// 플레이어 스테이트의 점수를 가져와서 UI에 업데이트한다
+	if (ShootingMainWidget)
+	{
+		if (auto* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
+		{
+			ShootingMainWidget->SetMyScore(teamFightPlayerState->GetMyScore());
+			UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Score Set To %d"), teamFightPlayerState->GetMyScore());
+		}
+	}
+}
+
+void AHeroBase::UpdateTeamScoreUI()
+{
+	UE_LOG(LogTemp, Warning, TEXT("AHeroBase::UpdateTeamScoreUI called"));
+	
+	// 게임 스테이트의 팀 스코어를 가져와서 UI에 업데이트한다
+	if (ShootingMainWidget && TeamFightPlayerState)
+	{
+		ShootingMainWidget->SetMyTeamScore(TeamFightPlayerState->GetMyTeamScore());
+		ShootingMainWidget->SetEnemyTeamScore(TeamFightPlayerState->GetEnemyTeamScore());
+
+		UE_LOG(LogTemp, Warning, TEXT("AHeroBase::UpdateTeamScoreUI UI Set with %d, %d values"), TeamFightPlayerState->GetMyTeamScore(), TeamFightPlayerState->GetEnemyTeamScore());
+	}
+}
+
 // 서버쪽에서 실행할 부활 함수
 void AHeroBase::Server_ReSpawn()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Server_ReSpawn Called"));
-	
+
 	if (ATeamFightGameMode* teamFightGameMode = Cast<ATeamFightGameMode>(
-	GetWorld()->GetAuthGameMode()))
+		GetWorld()->GetAuthGameMode()))
 	{
 		if (APlayerController* playerController = Cast<APlayerController>(
 			GetController()))
 		{
 			// 임시로 트레이서로 스폰되게 하자
 			//teamFightGameMode->SetPlayerHero(playerController, EHeroInfo::Tracer);
-			
+
 			teamFightGameMode->RespawnPlayer(playerController);
 		}
 	}
@@ -367,10 +398,11 @@ void AHeroBase::DieAfterAction()
 	FirstPersonCameraComp->bUsePawnControlRotation = false;
 	FirstPersonCameraComp->PostProcessSettings.ColorSaturation = FVector4(0.0f, 0.0f, 0.0f, 1.0f); // 흑백
 	FirstPersonCameraComp->SetRelativeLocation(FVector(-260.0f, 0.0f, 230.0f)); // 카메라 위로 올리기
-	FirstPersonCameraComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);	// 플레이어 콜라이더에서 떼기
-	
+	FirstPersonCameraComp->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform); // 플레이어 콜라이더에서 떼기
+
 	// 카메라가 위에서 플레이어 내려다보기
-	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(FirstPersonCameraComp->GetComponentLocation(), GetActorLocation());
+	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(FirstPersonCameraComp->GetComponentLocation(),
+	                                                                 GetActorLocation());
 	FirstPersonCameraComp->SetWorldRotation(LookAtRotation);
 }
 
@@ -403,15 +435,16 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 	if (!HasAuthority()) return 0.0f;
 
 	// 같은 팀이면 리턴
-	if (auto* instigatorPlayerState = Cast<ATeamFightPlayerState>(EventInstigator->PlayerState))
+	ATeamFightPlayerState* instigatorPlayerState = Cast<ATeamFightPlayerState>(EventInstigator->PlayerState);
+	if (instigatorPlayerState != nullptr)
 	{
 		if (instigatorPlayerState->GetPlayerTeam() == TeamFightPlayerState->GetPlayerTeam())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("같은 팀이라 공격이 무시되었습니다"), *GetName());
+			UE_LOG(LogTemp, Warning, TEXT("같은 팀이라 공격이 무시되었습니다"));
 			return 0.0f;
 		}
 	}
-	
+
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);
@@ -424,7 +457,10 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 
 		// 3초 후 리스폰 예약
 		GetWorld()->GetTimerManager().SetTimer(RespawnTimerHandle, this, &AHeroBase::Server_ReSpawn,
-			3.0f, false);
+		                                       3.0f, false);
+
+		// 공격자의 킬 스코어 올리기
+		if (instigatorPlayerState != nullptr) instigatorPlayerState->AddOneScore();
 	}
 
 	// OnRep은 서버쪽에서 안불리므로 서버쪽은 여기서 불러주자
@@ -500,7 +536,7 @@ void AHeroBase::OnRep_PlayerState()
 	//ApplyTeamVisuals();
 }
 
-// 로컬 플레이의 팀 상태를 가져와서 적 UI 외형을 설정
+// 로컬 플레이어의 팀 상태를 가져와서 적 UI 외형을 설정
 void AHeroBase::ApplyTeamVisuals()
 {
 	if (IsLocallyControlled()) return;
@@ -512,7 +548,7 @@ void AHeroBase::ApplyTeamVisuals()
 		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: localPlayerController Null"));
 		return;
 	}
-	
+
 	APlayerState* localPlayerState = localPlayerController->PlayerState;
 	if (localPlayerState == nullptr)
 	{

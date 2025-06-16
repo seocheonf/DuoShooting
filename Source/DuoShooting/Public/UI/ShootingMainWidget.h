@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "ShootingMainWidget.generated.h"
 
-/**
+/** 내 화면에 보여질 UI
  * 
  */
 UCLASS()
@@ -23,6 +23,15 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	int32 CurrentBullet;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 MyScore;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 MyTeamScore;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 EnemyTeamScore;
 	
 	// 체력
 	UPROPERTY(meta=(BindWidget))
@@ -49,4 +58,8 @@ public:
 	// 지속적으로 해줄 것
 	void SetCurrentHealth(float hp);
 	void SetCurrentBullet(int32 bullets);
+
+	void SetMyScore(int32 myScore);
+	void SetMyTeamScore(int32 myTeamScore);
+	void SetEnemyTeamScore(int32 enemyTeamScore);
 };

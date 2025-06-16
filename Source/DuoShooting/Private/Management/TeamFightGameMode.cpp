@@ -82,7 +82,7 @@ void ATeamFightGameMode::PostLogin(APlayerController* NewPlayer)
 		// A팀 수가 더 적다면 B팀으로 설정
 		if (Players_TeamA.Num() < Players_TeamB.Num())
 			SetPlayerTeam(NewPlayer, ETeamInfo::A);
-		// A팀 수가 더 적다면 A팀으로 설정
+		// B팀 수가 더 적다면 A팀으로 설정
 		else if (Players_TeamB.Num() < Players_TeamA.Num())
 			SetPlayerTeam(NewPlayer, ETeamInfo::B);
 		// 인원수가 같다면 랜덤부여(임시)

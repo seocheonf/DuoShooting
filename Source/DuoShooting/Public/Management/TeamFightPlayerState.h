@@ -19,6 +19,10 @@ protected:
 	UPROPERTY(ReplicatedUsing=OnRep_PlayerTeam)
 	ETeamInfo PlayerTeam;
 
+	// 개인 스코어(킬수)
+	UPROPERTY(ReplicatedUsing=OnRep_MyScore)
+	int32 MyScore = 0;
+
 public:
 	void SetPlayerTeam(ETeamInfo newTeam);
 	ETeamInfo GetPlayerTeam() const { return PlayerTeam; }
@@ -27,4 +31,14 @@ public:
 
 	UFUNCTION()
 	void OnRep_PlayerTeam();
+
+	UFUNCTION()
+	void OnRep_MyScore();
+
+	// 킬수 1점올리기
+	void AddOneScore();
+	int32 GetMyScore() const { return MyScore; }
+
+	int32 GetMyTeamScore() const;
+	int32 GetEnemyTeamScore() const;
 };

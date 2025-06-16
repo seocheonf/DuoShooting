@@ -24,7 +24,7 @@ private:
 	
 	//세션 아이디 : NetworkGameInstance에서 세션 검색 결과를 배열로 다루고 있는데, 이를 찾기위한 아이디이자 인덱스 
 	int32 SessionID_Index;
-	
+	//세션 리스트 요소 디자인
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* Text_RoomName;
 	UPROPERTY(meta = (BindWidget))
@@ -36,11 +36,11 @@ private:
 	//핑 UI	
 	UPROPERTY(meta = (BindWidget))
 	class UPingUI* PingUI;
+	//참가 버튼
 	UPROPERTY(meta = (BindWidget))
 	class UButton* Button_Join;
 
 	//==함수==
-
 private:
 	//입장 버튼 누를 시, 세션 및 맵 입장.
 	UFUNCTION()

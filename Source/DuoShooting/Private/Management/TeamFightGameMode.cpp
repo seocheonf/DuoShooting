@@ -4,6 +4,7 @@
 #include "Management/TeamFightGameMode.h"
 
 #include "Management/EnumContainer.h"
+#include "Management/NetworkGameInstance.h"
 #include "Management/TeamFightGameState.h"
 #include "Management/TeamFightPlayerState.h"
 #include "Player/HeroBase.h"
@@ -39,7 +40,18 @@ ATeamFightGameMode::ATeamFightGameMode()
 	{
 		GameStateClass = gameState.Class; 
 	}
-	
+
+}
+
+void ATeamFightGameMode::BeginPlay()
+{
+	Super::BeginPlay();
+
+	//내가 서버라면, 게임 인스턴스로 부터 최소 시작 인원수를 갱신한다.
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		StartPlayerCount = GetGameInstance<UNetworkGameInstance>()->GetStartPlayerCount();
+	}
 }
 
 void ATeamFightGameMode::SetPlayerHero(APlayerController* playerController, EHeroInfo playerHero)
@@ -92,6 +104,20 @@ void ATeamFightGameMode::PostLogin(APlayerController* NewPlayer)
 
 	//// n:n매치가 결성되었다면?
 	//if (Players_TeamA.Num() >= MinimumPlayerPerTeam && Players_TeamB.Num() >= MinimumPlayerPerTeam) {}
+
+	CurrentPlayerCount++;
+
+	//만약 시작 조건을 만족했다면 
+	if (CurrentPlayerCount == StartPlayerCount)
+	{
+		//게임 시작 준비를 해라
+		GetGameState<ATeamFightGameState>()->SetGameStartTimer();
+	}
+	//만약 넘는다면, 그냥 넘어간다.
+	else if (CurrentPlayerCount > StartPlayerCount)
+	{
+		
+	}
 }
 
 void ATeamFightGameMode::SetPlayerTeam(APlayerController* playerController, ETeamInfo playerTeam)
@@ -125,4 +151,13 @@ void ATeamFightGameMode::Logout(AController* Exiting)
 	// 팀에서 제거
 	Players_TeamA.Remove(ExitingPlayer);
 	Players_TeamB.Remove(ExitingPlayer);
+}
+
+void ATeamFightGameMode::RespawnAllPlayers()
+{
+	//서버에 등록된 모든 플레이어를 리스폰 한다.
+	for (auto each : PlayerSpawnHeroMaps)
+	{
+		RespawnPlayer(each.Key);
+	}
 }

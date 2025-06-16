@@ -199,3 +199,8 @@ void UNetworkGameInstance::OnJoinExistedSessionsComplete(FName sessionName, EOnJ
 	}
 }
 
+int32 UNetworkGameInstance::GetStartPlayerCount()
+{
+	return StartPlayerCount;
+}
+

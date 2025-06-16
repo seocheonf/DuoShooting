@@ -98,4 +98,6 @@ public:
 	//세션 입장 후 할 일 (실제 맵 이동과 같은 일들)
 	void OnJoinExistedSessionsComplete(FName sessionName, EOnJoinSessionCompleteResult::Type result);
 
+	int32 GetStartPlayerCount();
+	
 };

@@ -35,7 +35,9 @@ void APickPhasePawn::BeginPlay()
 		playerController->bShowMouseCursor = true;
 	}
 
-
+	//게임 모드에 본인의 캐릭터 설정 미리 요청.
+	ServerRPC_SetPlayerHero(EHeroInfo::Tracer);
+	
 	/*
 	FTimerHandle TimerHandle;
 	GetWorldTimerManager().SetTimer(TimerHandle, [&]()

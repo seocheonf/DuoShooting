@@ -144,4 +144,25 @@ public:
 	// void ClientRPC_FireHitScan(int bulletCount);
 	// UFUNCTION(NetMulticast, Reliable)
 	// void MultiRPC_FireEffects(FVector hitLocation);
+
+
+
+	//====김형모====
+private:
+	//스킬 아이콘 인덱스
+	int32 BlinkIconIndex;
+	int32 RecallIconIndex;
+	//스킬 아이콘 원본 텍스쳐
+	class UTexture2D* OriginBlinkTexture2D;
+	class UTexture2D* OriginRecallTexture2D;
+private:
+	//==스킬 쿨타임==
+	bool bBlink = true;
+	bool bRecall = true;
+	bool bPulseBomb = true;
+
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float BlinkCoolTime = 3.f;
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float RecallCoolTime = 12.f;
 };

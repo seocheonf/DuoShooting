@@ -28,6 +28,9 @@ enum class EHeroActionType : uint8
 	Skill2
 };
 
+//죽은 후 할일 후 실행할 델리게이트
+DECLARE_MULTICAST_DELEGATE(FOnDieCompleteDelegate);
+
 UCLASS(Abstract)
 class DUOSHOOTING_API AHeroBase : public ACharacter
 {
@@ -185,4 +188,6 @@ protected:
 	virtual void DoAfterAction(EHeroActionType actionType);
 
 	//==김형모==
+public:
+	FOnDieCompleteDelegate OnDieCompleteDelegate;
 };

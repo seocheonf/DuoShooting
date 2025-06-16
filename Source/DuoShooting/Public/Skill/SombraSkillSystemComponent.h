@@ -172,5 +172,17 @@ private:
 //
 // 	void BTick(float deltaTimes, float currentTimes);
 
-	
+	//=====스킬 아이콘=====//
+private:
+	//스킬 아이콘 인덱스
+	int32 TranslocatorIconIndex;
+	//스킬 아이콘 원본 텍스쳐
+	class UTexture2D* OriginTranslocatorTexture2D;
+
+	//==스킬 쿨타임==//
+private:
+	bool bTranslocator = true;
+
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float TranslocatorCoolTime = 6.f;
 };

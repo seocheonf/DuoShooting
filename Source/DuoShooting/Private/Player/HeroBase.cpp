@@ -404,6 +404,8 @@ void AHeroBase::DieAfterAction()
 	FRotator LookAtRotation = UKismetMathLibrary::FindLookAtRotation(FirstPersonCameraComp->GetComponentLocation(),
 	                                                                 GetActorLocation());
 	FirstPersonCameraComp->SetWorldRotation(LookAtRotation);
+
+	OnDieCompleteDelegate.Broadcast();
 }
 
 void AHeroBase::SetSkillSystemComponent(USkillSystemComponent* targetSystem)

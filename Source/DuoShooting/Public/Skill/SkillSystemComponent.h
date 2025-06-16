@@ -16,7 +16,7 @@ class DUOSHOOTING_API USkillSystemComponent : public UActorComponent
 public:
 	// Sets default values for this component's properties
 	USkillSystemComponent();
-
+	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -92,6 +92,28 @@ public:
 
 	//============피격 정보 받아오기==========//
 public:
-	virtual void TakeDamage(); 
+	virtual void TakeDamage();
+
+	//==스킬 UI 관련==//
+private:
+	//스킬 UI
+	class USkillSystemBaseUI* SkillUI;
+	//스킬 UI 기본 정보
+	TSubclassOf<class USkillSystemBaseUI> OriginSkillUI;
+	//스킬 갯수
+	int32 NextSkillIndex = 0;
+protected:
+	//스킬 UI에 추가
+	int32 AddSkillUI(UTexture2D* skillIcon, FText skillKeyName);
+	//스킬 쿨타임 UI 적용. 클라이언트에서만 해야 할 일
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetSkillCoolTimeUI(int32 index, float upper, float lower);
+
+	//스킬 아이콘 활성, 비활성 요청 RPC함수.
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetSkillIconActivation(int index, bool bActive);
 	
+	
+private:
+	void DoAfterTargetPlayerDie();
 };

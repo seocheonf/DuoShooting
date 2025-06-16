@@ -5,6 +5,7 @@
 
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Skill/SombraSkillSystemComponent.h"
 
 
@@ -74,9 +75,10 @@ void ATranslocatorProjectile::ConstructorInit()
 	SphereComp->SetSphereRadius(25.f);
 	StaticMeshComp->SetCollisionProfileName(TEXT("NoCollision"));
 	StaticMeshComp->SetStaticMesh(OriginStaticMesh);
-	
+
 	StaticMeshComp->SetRelativeLocation(FVector(0, 0, -22.5f));
 	StaticMeshComp->SetWorldScale3D(FVector(3, 3, 3));
+	StaticMeshComp->SetRelativeRotation(FRotator(0, 90.f, 0));
 	
 	bReplicates = true;
 }
@@ -88,6 +90,8 @@ void ATranslocatorProjectile::CustomBeginPlay()
 	//StaticMeshComp->SetMaterial(0, OriginMaterial);
 
 	SetReplicateMovement(true);
+
+	//UGameplayStatics::SpawnEmitterAttached();
 }
 
 void ATranslocatorProjectile::OnComponentHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,

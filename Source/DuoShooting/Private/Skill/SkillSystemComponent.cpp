@@ -4,9 +4,10 @@
 #include "DuoShooting/Public/Skill/SkillSystemComponent.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
 #include "Player/HeroBase.h"
 #include "Tool/CoolTimerManagerComponent.h"
-
+#include "UI/SkillSystemBaseUI.h"
 
 // Sets default values for this component's properties
 USkillSystemComponent::USkillSystemComponent()
@@ -19,6 +20,12 @@ USkillSystemComponent::USkillSystemComponent()
 	
 	CoolTimerManagerComp = CreateDefaultSubobject<UCoolTimerManagerComponent>(TEXT("CoolTimerManagerComp"));
 
+
+	ConstructorHelpers::FClassFinder<USkillSystemBaseUI> ui(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_SkillSystemBaseUI.WBP_SkillSystemBaseUI_C'"));
+	if (ui.Succeeded())
+	{
+		OriginSkillUI = ui.Class;
+	}
 }
 
 
@@ -34,8 +41,15 @@ void USkillSystemComponent::BeginPlay()
 	{
 		TargetPlayer = Cast<AHeroBase>(GetOwner());
 	}
-}
 
+	if (TargetPlayer->IsLocallyControlled())
+	{
+		SkillUI = CreateWidget<USkillSystemBaseUI>(GetWorld(), OriginSkillUI);
+		SkillUI->AddToViewport();
+
+		TargetPlayer->OnDieCompleteDelegate.AddUObject(this, &USkillSystemComponent::DoAfterTargetPlayerDie);
+	}
+}
 
 // Called every frame
 void USkillSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -127,6 +141,41 @@ AActor* USkillSystemComponent::GetTargetActor()
 void USkillSystemComponent::TakeDamage()
 {
 	
+}
+
+int32 USkillSystemComponent::AddSkillUI(UTexture2D* skillIcon, FText skillKeyName)
+{
+	if (SkillUI == nullptr || skillIcon == nullptr)
+		return -1;
+
+	int32 currentSkillIndex = NextSkillIndex;
+	NextSkillIndex++;
+
+	SkillUI->AddSkill(skillIcon, skillKeyName);
+
+	return currentSkillIndex;
+}
+
+void USkillSystemComponent::ClientRPC_SetSkillCoolTimeUI_Implementation(int32 index, float upper, float lower)
+{
+	if (SkillUI == nullptr)
+		return;
+	SkillUI->SetSkillCoolTimeUI(index, upper, lower);
+}
+
+void USkillSystemComponent::ClientRPC_SetSkillIconActivation_Implementation(int index, bool bActive)
+{
+	if (SkillUI == nullptr)
+		return;
+	SkillUI->SetActiveSkillIcon(index, bActive);
+}
+
+void USkillSystemComponent::DoAfterTargetPlayerDie()
+{
+	if (TargetPlayer != nullptr && SkillUI != nullptr)
+	{
+		SkillUI->RemoveFromParent();
+	}
 }
 
 

@@ -28,7 +28,7 @@ private:
 	// 팀 관련
 
 	// 최소 시작 인원
-	int32 StartPlayerCount;
+	int32 StartPlayerCount = 1;
 	// 현재 입장 인원
 	int32 CurrentPlayerCount = 0;
 

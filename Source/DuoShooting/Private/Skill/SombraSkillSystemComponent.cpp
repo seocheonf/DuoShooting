@@ -68,6 +68,13 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 	{
 		OriginTranslocatorProjectile = translocatorProjectile.Class;
 	}
+
+	//솜브라 투사체 스킬 아이콘 텍스쳐 불러오기
+	ConstructorHelpers::FObjectFinder<UTexture2D> translocatorTexture2D(TEXT("/Script/Engine.Texture2D'/Game/DuoShooting/Sprites/SkillIcons/SombraTranslocator.SombraTranslocator'"));
+	if (translocatorTexture2D.Succeeded())
+	{
+		OriginTranslocatorTexture2D = translocatorTexture2D.Object;
+	}
 }
 
 
@@ -95,6 +102,9 @@ void USombraSkillSystemComponent::BeginPlay()
 		// 	}
 		// }, 10.f, true);
 #endif
+
+	if (TargetPlayer->IsLocallyControlled())
+		TranslocatorIconIndex = AddSkillUI(OriginTranslocatorTexture2D, FText::FromString(TEXT("E")));
 }
 
 
@@ -186,8 +196,21 @@ void USombraSkillSystemComponent::OnTranslocator(const struct FInputActionValue&
 
 void USombraSkillSystemComponent::ServerRPC_OnTranslocator_Implementation(const struct FInputActionValue& value)
 {
+	if (!bTranslocator)
+		return;
+
+	//스킬 사용 제한 및 쿨타임 재기
+	{
+		//사용 중지
+		bTranslocator = false;
+
+		//나머지는 실제 쿨타임 시작 지점에서 시작.
+		//위치변환기는 순간이동 직후임. TriggerTranslocator 함수 쪽으로 가보면 됨
+	}
+
+	
 	UCameraComponent* playerCamera = TargetPlayer->GetCamera();
-	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile);
+	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile, playerCamera->GetComponentLocation(), TargetPlayer->GetControlRotation());
 	newTranslocatorProjectile->Initializer(this, playerCamera->GetComponentLocation(), TargetPlayer->GetControlRotation().Vector(), ProjectileLaunchSpeed, ProjectileMaxFlyingTime);
 }
 
@@ -229,7 +252,36 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 		
 		UE_LOG(LogTemp, Error, TEXT("End"));
 		TargetPlayer->SetActorLocation(end);
+		
+		//순간이동이 종료되었으니 쿨타임 갱신 시작
+		{
+			//아이콘 비활성화 및 게이지 초기화
+			ClientRPC_SetSkillIconActivation(TranslocatorIconIndex, false);
+			
+			FTimerHandle cool_TimerHandle;
+			//틱 동안 할일은, UI갱신
+			auto cool_tick = [&](float cool_deltaTime, float cool_currentTime)
+			{
+				//쿨타임 게이지 갱신
+				ClientRPC_SetSkillCoolTimeUI(TranslocatorIconIndex, cool_currentTime, TranslocatorCoolTime);
+			};
+			//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
+			auto cool_end = [&](float cool_existTime)
+			{
+				bTranslocator = true;
+				//아이콘 활성화 및 게이지 초기화
+				ClientRPC_SetSkillIconActivation(TranslocatorIconIndex, true);
+			};
 
+			FDoTimerTick cool_timerDo;
+			FNotifyTimerEnd cool_timerEnd;
+			cool_timerDo.BindLambda(cool_tick);
+			cool_timerEnd.BindLambda(cool_end);
+
+			//만들어둔 쿨타이머 기능을 활용
+			CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, TranslocatorCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+		}
+		
 		StartStealth();
 	};
 

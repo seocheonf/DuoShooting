@@ -3,6 +3,7 @@
 
 #include "Management/TeamFightGameMode.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "Management/EnumContainer.h"
 #include "Management/NetworkGameInstance.h"
 #include "Management/TeamFightGameState.h"
@@ -40,7 +41,6 @@ ATeamFightGameMode::ATeamFightGameMode()
 	{
 		GameStateClass = gameState.Class; 
 	}
-
 }
 
 void ATeamFightGameMode::BeginPlay()
@@ -160,4 +160,13 @@ void ATeamFightGameMode::RespawnAllPlayers()
 	{
 		RespawnPlayer(each.Key);
 	}
+}
+
+void ATeamFightGameMode::EndGame(ETeamInfo winnerTeam)
+{
+	// 우승한 팀을 기록
+	WinnerTeam = winnerTeam;
+
+	// 우승 세레모니로 넘어가기
+	GetWorld()->ServerTravel("/Game/DuoShooting/Maps/Integration/EndStatisticsLevel?listen?port=7777");
 }

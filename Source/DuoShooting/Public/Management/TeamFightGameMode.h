@@ -28,9 +28,14 @@ private:
 	// 팀 관련
 
 	// 최소 시작 인원
-	int32 StartPlayerCount;
+	int32 StartPlayerCount = 1;
 	// 현재 입장 인원
 	int32 CurrentPlayerCount = 0;
+
+	// 이기기 위해 모아야할 점수
+	int32 TargetWinScore = 5;
+
+	ETeamInfo WinnerTeam;
 
 	// 팀 A의 멤버들
 	UPROPERTY()
@@ -60,5 +65,11 @@ public:
 	//KHM
 	//모든 플레이어를 리스폰 하는 함수
 	void RespawnAllPlayers();
-	
+
+	//PJW
+	int32 GetTargetWinScore() const { return TargetWinScore; }
+
+	// 게임을 끝내고 랭킹씬으로 나감
+	void EndGame(ETeamInfo winnerTeam);
 };
+

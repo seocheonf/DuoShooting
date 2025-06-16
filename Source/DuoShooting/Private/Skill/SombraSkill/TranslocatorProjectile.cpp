@@ -22,17 +22,17 @@ ATranslocatorProjectile::ATranslocatorProjectile()
 
 	MovementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("MovementComp"));
 
-	ConstructorHelpers::FObjectFinder<UStaticMesh> mesh(TEXT("'/Engine/BasicShapes/Sphere.Sphere'"));
+	ConstructorHelpers::FObjectFinder<UStaticMesh> mesh(TEXT("/Script/Engine.StaticMesh'/Game/DuoShooting/AssetModel/Sombra/Translocator/Rugged_Tablet-fbx.Rugged_Tablet-fbx'"));
 	if (mesh.Succeeded())
 	{
 		OriginStaticMesh = mesh.Object;
 	}
 
-	ConstructorHelpers::FObjectFinder<UMaterial> mat(TEXT("'/Game/DuoShooting/Materials/Characters/Skill/Sombra/M_TranslocatorProjectile.M_TranslocatorProjectile'"));
-	if (mat.Succeeded())
-	{
-		OriginMaterial = mat.Object; 
-	}
+	// ConstructorHelpers::FObjectFinder<UMaterial> mat(TEXT("'/Game/DuoShooting/Materials/Characters/Skill/Sombra/M_TranslocatorProjectile.M_TranslocatorProjectile'"));
+	// if (mat.Succeeded())
+	// {
+	// 	OriginMaterial = mat.Object; 
+	// }
 	
 	ConstructorInit();
 }
@@ -71,18 +71,21 @@ void ATranslocatorProjectile::Tick(float DeltaTime)
 void ATranslocatorProjectile::ConstructorInit()
 {
 	SphereComp->SetCollisionProfileName(TEXT("TranslocatorProjectile"));
-	SphereComp->SetSphereRadius(50.f);
+	SphereComp->SetSphereRadius(25.f);
 	StaticMeshComp->SetCollisionProfileName(TEXT("NoCollision"));
 	StaticMeshComp->SetStaticMesh(OriginStaticMesh);
-
+	
+	StaticMeshComp->SetRelativeLocation(FVector(0, 0, -22.5f));
+	StaticMeshComp->SetWorldScale3D(FVector(3, 3, 3));
+	
 	bReplicates = true;
 }
 
 void ATranslocatorProjectile::CustomBeginPlay()
 {
 	SphereComp->OnComponentHit.AddDynamic(this, &ATranslocatorProjectile::OnComponentHit);
-	SphereComp->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
-	StaticMeshComp->SetMaterial(0, OriginMaterial);
+	//SphereComp->SetWorldScale3D(FVector(0.5f, 0.5f, 0.5f));
+	//StaticMeshComp->SetMaterial(0, OriginMaterial);
 
 	SetReplicateMovement(true);
 }

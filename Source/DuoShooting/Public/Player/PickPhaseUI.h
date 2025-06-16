@@ -31,11 +31,15 @@ class DUOSHOOTING_API UPickPhaseUI : public UUserWidget
 	//==상속==//
 protected:
 	virtual void NativeConstruct() override;
-	
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	virtual void NativeDestruct() override;
 	//==변수==
 private:
 	//주인
 	class APickPhasePawn* Owner;
+
+	//로컬 게임 스테이트
+	class ATeamFightGameState* GameState;
 	
 	//포커스 스케일
 	FVector2D FocusScale = FVector2D(1.25f, 1.25f);;
@@ -74,6 +78,13 @@ private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true), Category=Model)
 	TSubclassOf<class ACharacter> SombraModel;
 
+	//남은 대기 시간 보더
+	UPROPERTY(meta = (BindWidget))
+	class UBorder* Border_RemainTime;
+	//남은 대기 시간 글자
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* Text_RemainTime;
+	
 	//==함수==
 private:
 

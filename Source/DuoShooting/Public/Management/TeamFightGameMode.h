@@ -17,6 +17,7 @@ class DUOSHOOTING_API ATeamFightGameMode : public AGameMode
 
 public:
 	ATeamFightGameMode();
+	virtual void BeginPlay() override;
 	
 	//==변수==//
 private:
@@ -26,8 +27,10 @@ private:
 	
 	// 팀 관련
 
-	// 팀 최소인원 (n:n 팀플 - n을 몇으로 할것인가)
-	int32 MinimumPlayerPerTeam = 1;
+	// 최소 시작 인원
+	int32 StartPlayerCount;
+	// 현재 입장 인원
+	int32 CurrentPlayerCount = 0;
 
 	// 팀 A의 멤버들
 	UPROPERTY()
@@ -36,7 +39,7 @@ private:
 	// 팀 B의 멤버들
 	UPROPERTY()
 	TArray<APlayerController*> Players_TeamB;
-	
+
 	//==함수==//
 public:
 	//대상이 되는 플레이어의 영웅 정보를 갱신하는 함수
@@ -44,7 +47,7 @@ public:
 
 	//대상이 되는 플레이어의 영웅 정보에 따라 리스폰 해주는 함수
 	void RespawnPlayer(APlayerController* playerController);
-
+	
 	// PJW: 대상이 되는 플레이어의 팀 정보를 갱신하는 함수
 	void SetPlayerTeam(APlayerController* playerController, ETeamInfo playerTeam);
 
@@ -53,4 +56,9 @@ public:
 
 	// 해당 플레이어가 로그아웃할 때 설정할 것
 	virtual void Logout(AController* Exiting) override;
+
+	//KHM
+	//모든 플레이어를 리스폰 하는 함수
+	void RespawnAllPlayers();
+	
 };

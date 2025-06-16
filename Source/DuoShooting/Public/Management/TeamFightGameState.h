@@ -19,9 +19,39 @@ class DUOSHOOTING_API ATeamFightGameState : public AGameState
 protected:
 	virtual void BeginPlay() override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	//==변수==//
 private:
+	
+	//시작 대기 시간
+	float WaitingTime;
+	//현재 남은 시작 대기 시간
+	UPROPERTY(Replicated)
+	float CurrentRemainWaitingTime;
+	//시작 대기 타이머 핸들
+	FTimerHandle WaitingTimerHandle;
+	//시작 대기 여부
+	UPROPERTY(Replicated)
+	bool bWaiting;
+	//게임 시작 여부
+	UPROPERTY(Replicated)
+	bool bStart;
+	
 	//==함수==//
-public:
+private:
+	// 인게임 시작!
+	void StartGame();
 
+public:
+	// 게임 스타트 시간 재기
+	void SetGameStartTimer();
+
+	//남은 시간 가져오기
+	float GetCurrnetRemainWaitingTime();
+	//대기 진입 여부 확인하기
+	bool GetIsWaiting();
+	//게임 시작 여부 확인하기
+	bool GetIsStart();
+	
 };

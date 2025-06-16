@@ -4,6 +4,7 @@
 #include "UI/ConnectionRoomFindSessionUI.h"
 
 #include "Components/Button.h"
+#include "Components/CanvasPanel.h"
 #include "Components/ScrollBox.h"
 #include "Management/NetworkGameInstance.h"
 #include "UI/SessionListElementUI.h"
@@ -28,6 +29,10 @@ void UConnectionRoomFindSessionUI::NativeConstruct()
 
 void UConnectionRoomFindSessionUI::OnClickedFindRoomButton()
 {
+	//화면 어둡게
+	Canvas_Loading->SetVisibility(ESlateVisibility::Visible);
+	PlayAnimation(AnimLoadingIcon, 0, 0);
+	
 	//세션 찾기 요청
 	NetGameInstance->FindExistedSessions();
 }
@@ -45,4 +50,9 @@ void UConnectionRoomFindSessionUI::OnUpdateExistedSessions(const TArray<FSession
 		//스크롤 박스에 엘리멘트 부착
 		ScrollBox_SessionList->AddChild(eachElement);
 	}
+
+	//화면 밝게
+	StopAnimation(AnimLoadingIcon);
+	Canvas_Loading->SetVisibility(ESlateVisibility::Hidden);
+	
 }

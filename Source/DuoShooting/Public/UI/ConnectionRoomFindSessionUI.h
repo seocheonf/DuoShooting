@@ -33,7 +33,13 @@ private:
 	//찾은 방 목록에 들어갈 UI 원본
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
 	TSubclassOf<class USessionListElementUI> OriginSessionListElement;
-
+	
+	//찾기 로딩 캔버스
+	UPROPERTY(meta = (BindWidget))
+	class UCanvasPanel* Canvas_Loading;
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	class UWidgetAnimation* AnimLoadingIcon;
+	
 	//==함수==
 private:
 	

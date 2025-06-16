@@ -6,6 +6,8 @@
 #include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Management/NetworkGameInstance.h"
+#include "Management/TeamFightGameState.h"
 #include "Player/HeroBase.h"
 #include "Player/PickPhasePawn.h"
 
@@ -36,6 +38,29 @@ void UPickPhaseUI::NativeConstruct()
 	
 	//캐릭터 하나 선택해 두기.
 	SetCurrentSelectedHeroArea(TracerArea);
+
+	//게임 스테이트 받아오기
+	GameState = GetWorld()->GetGameState<ATeamFightGameState>();
+}
+
+void UPickPhaseUI::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (GameState->GetIsWaiting())
+	{
+		Border_RemainTime->SetVisibility(ESlateVisibility::Visible);
+		Text_RemainTime->SetText(FText::FromString(FString::Printf(TEXT("게임 시작 %d초 전"), static_cast<int>(GameState->GetCurrnetRemainWaitingTime()))));
+	}
+	if (GameState->GetIsStart())
+	{
+		Button_DecisionHero->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void UPickPhaseUI::NativeDestruct()
+{
+	Super::NativeDestruct();
 	
 }
 
@@ -123,6 +148,9 @@ void UPickPhaseUI::SetCurrentSelectedHeroArea(FSelectionHeroArea& characterArea)
 	//더미 캐릭터 위치 앞에 생성하도록 임시 처리
 	if (nullptr != model)
 		CurrentModel = GetWorld()->SpawnActor<ACharacter>(model, Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100.f, FRotator(0, -90, 0));
+
+	//선택 즉시 현재 원하는 캐릭터 상태를 변경해 달라고 서버에 요청한다.
+	Owner->ServerRPC_SetPlayerHero(CurrentSelectedHeroArea->HeroInfo);
 }
 
 void UPickPhaseUI::OnClickedDecisionHeroButton()

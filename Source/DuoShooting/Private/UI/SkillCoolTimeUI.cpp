@@ -6,6 +6,8 @@
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 
 void USkillCoolTimeUI::SetSkillImage(UTexture2D* texture)
 {
@@ -30,7 +32,7 @@ void USkillCoolTimeUI::SetSkillKeyName(FText skillKeyName)
 	Text_Key->SetText(skillKeyName);
 }
 
-void USkillCoolTimeUI::SetActiveDesign(bool bActive)
+void USkillCoolTimeUI::SetActiveDesign(bool bActive, bool bForbidden)
 {
 	if (bActive)
 	{
@@ -43,7 +45,19 @@ void USkillCoolTimeUI::SetActiveDesign(bool bActive)
 		//비활성화 되면 게이지 초기화 하고, 아이콘을 어둡게 한다.
 		ProgressBar_CoolTime->SetPercent(0.f);
 		Image_Activation->SetColorAndOpacity(FLinearColor(0,0,0,0.25f));
+		//이 때 금지 상태라는 효과가 온다면, 더 강렬하게 금지한다
+		if (bForbidden)
+		{
+			Image_Activation->SetColorAndOpacity(FLinearColor(1,0,0,0.25f));
+		}
 	}
+}
+
+void USkillCoolTimeUI::SetAdditionalUI(UUserWidget* widget)
+{
+	UVerticalBoxSlot* slot = VerticalBox_Additional->AddChildToVerticalBox(widget);
+	slot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	
 }
 
 

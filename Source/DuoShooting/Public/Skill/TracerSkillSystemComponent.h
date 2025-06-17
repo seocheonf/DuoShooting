@@ -152,9 +152,21 @@ private:
 	//스킬 아이콘 인덱스
 	int32 BlinkIconIndex;
 	int32 RecallIconIndex;
+	int32 PulseBombIconIndex;
 	//스킬 아이콘 원본 텍스쳐
 	class UTexture2D* OriginBlinkTexture2D;
 	class UTexture2D* OriginRecallTexture2D;
+	class UTexture2D* OriginPulseBombTexture2D;
+
+	//Blink용 쿨타임 UI
+	class UMiniSkillCoolTimeUI* BlinkCoolTimeUI;
+	TSubclassOf<class UMiniSkillCoolTimeUI> OriginBlinkCoolTimeUI;
+	
+	//트레이서 전용 스킬 UI
+	//class UTracerSkillSystemUI* TracerSkillUI;
+	//스킬 UI 기본 정보
+	//TSubclassOf<class UTracerSkillSystemUI> OriginTracerSkillUI;
+	
 private:
 	//==스킬 쿨타임==
 	bool bBlink = true;
@@ -165,4 +177,25 @@ private:
 	float BlinkCoolTime = 3.f;
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
 	float RecallCoolTime = 12.f;
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float PulseBombCoolTime = 30.f;
+
+	//점멸 카운트
+	int32 BlinkCount = 3.f;
+	int32 MaxBlinkCount = 3.f;
+	
+	//블링크 아이콘 요청 RPC함수
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetBlinkIconGage(float upper, float lower);
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetBlinkCountUI(int32 count);
+
+	//블링크 쿨 타이머 핸들
+	FTimerHandle BlinkCoolTimerHandle;
+	//블링크 쿨 타이머
+	void SetBlinkTimer();
+	
+protected:
+	//트레이서는 전용 UI를 자기가 지우도록
+	//virtual void DoAfterTargetPlayerDie() override;
 };

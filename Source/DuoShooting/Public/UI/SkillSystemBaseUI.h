@@ -35,5 +35,11 @@ public:
 	void SetSkillCoolTimeUI(int32 index, float upper, float lower);
 
 	//스킬 활성화 색 조정 함수
-	void SetActiveSkillIcon(int32 index, bool bActive);
+	void SetActiveSkillIcon(int32 index, bool bActive, bool bForbidden = false);
+
+	//스킬 아이콘 위에 추가 아이콘 설정
+	void AddAdditionalIcon(int32 index, UUserWidget* widget);
+	
+	//스킬 아이콘 위치 반환
+	//FVector2D GetSkillIconPosition(int32 index);
 };

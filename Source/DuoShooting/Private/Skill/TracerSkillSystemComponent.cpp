@@ -10,6 +10,7 @@
 #include "Player/TracerHero.h"
 #include "Skill/TracerSkill/PulseBomb.h"
 #include "Tool/CoolTimerManagerComponent.h"
+#include "UI/MiniSkillCoolTimeUI.h"
 
 
 FTracerRecallInfo::FTracerRecallInfo()
@@ -78,6 +79,23 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 		{
 			OriginRecallTexture2D = recallTexture.Object;
 		}
+		ConstructorHelpers::FObjectFinder<UTexture2D> pulseBombTexture(TEXT("/Script/Engine.Texture2D'/Game/DuoShooting/Sprites/SkillIcons/TracerBomb.TracerBomb'"));
+		{
+			OriginPulseBombTexture2D = pulseBombTexture.Object;
+		}
+	}
+	//트레이서 필요 스킬 UI 받아오기
+	{
+		ConstructorHelpers::FClassFinder<UMiniSkillCoolTimeUI> miniUI(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_MiniSkillCoolTimeUI.WBP_MiniSkillCoolTimeUI_C'"));
+		if (miniUI.Succeeded())
+		{
+			OriginBlinkCoolTimeUI = miniUI.Class;
+		}
+		// ConstructorHelpers::FClassFinder<UTracerSkillSystemUI> tracerUI(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_TracerSkillSystemUI.WBP_TracerSkillSystemUI_C'"));
+		// if (tracerUI.Succeeded())
+		// {
+		// 	OriginTracerSkillUI = tracerUI.Class;
+		// }
 	}
 	
 }
@@ -99,8 +117,19 @@ void UTracerSkillSystemComponent::BeginPlay()
 	//==김형모
 	if (TargetPlayer->IsLocallyControlled())
 	{
-		BlinkIconIndex = AddSkillUI(OriginBlinkTexture2D, FText::FromString(TEXT("SHIFT")));
+		BlinkIconIndex = AddSkillUI(OriginBlinkTexture2D, FText::FromString(TEXT("좌SHIFT")));
 		RecallIconIndex = AddSkillUI(OriginRecallTexture2D, FText::FromString(TEXT("E")));
+		PulseBombIconIndex = AddSkillUI(OriginPulseBombTexture2D, FText::FromString(TEXT("Q")));
+
+		BlinkCoolTimeUI = CreateWidget<UMiniSkillCoolTimeUI>(GetWorld(), OriginBlinkCoolTimeUI);
+		AddAdditionalSkillUI(BlinkIconIndex, BlinkCoolTimeUI);
+	}
+	else
+	{
+		//임시로 서버 데이터 갱신.
+		BlinkIconIndex = 0;
+		RecallIconIndex = 1;
+		PulseBombIconIndex = 2;
 	}
 }
 
@@ -159,7 +188,7 @@ void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 		return;
 	}
 
-	CurrentSkillState = ETracerSkillState::BLINK;
+	//CurrentSkillState = ETracerSkillState::BLINK;
 	UE_LOG(LogTemp, Warning, TEXT("점멸 활성화"));
 
 	/// 진행방향을 설정하여 서버에게 전달
@@ -407,6 +436,65 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }
 
+void UTracerSkillSystemComponent::SetBlinkTimer()
+{
+	UE_LOG(LogTemp, Error, TEXT("%d"), BlinkCoolTimerHandle.IsValid());
+
+	if (BlinkCoolTimerHandle.IsValid())
+		return;
+	
+	//틱 동안 할일은, UI갱신
+	auto cool_tick = [&](float cool_deltaTime, float cool_currentTime)
+	{
+		//쿨타임 게이지 갱신
+		//ClientRPC_SetSkillCoolTimeUI(BlinkIconIndex, cool_currentTime, BlinkCoolTime);
+		//블링크 아이콘 게이지 갱신
+		ClientRPC_SetBlinkIconGage(cool_currentTime, BlinkCoolTime);
+	};
+	//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
+	auto cool_end = [&](float cool_existTime)
+	{
+		//블링크 카운트를 채워준다.
+		BlinkCount++;
+		//아이콘 활성화 및 게이지 초기화
+		ClientRPC_SetSkillIconActivation(BlinkIconIndex, true);
+		//블링크 아이콘 게이지 초기화
+		ClientRPC_SetBlinkIconGage(0, 1);
+		//블링크 카운트 초기화
+		ClientRPC_SetBlinkCountUI(BlinkCount);
+
+		if (BlinkCount < MaxBlinkCount)
+			SetBlinkTimer();
+
+	};
+
+	FDoTimerTick cool_timerDo;
+	FNotifyTimerEnd cool_timerEnd;
+	cool_timerDo.BindLambda(cool_tick);
+	cool_timerEnd.BindLambda(cool_end);
+
+	//만들어둔 쿨타이머 기능을 활용
+	CoolTimerManagerComp->RegisterCoolTimerAll(BlinkCoolTimerHandle, 0, BlinkCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+}
+
+void UTracerSkillSystemComponent::ClientRPC_SetBlinkCountUI_Implementation(int32 count)
+{
+	BlinkCoolTimeUI->SetCount(count);
+}
+
+void UTracerSkillSystemComponent::ClientRPC_SetBlinkIconGage_Implementation(float upper, float lower)
+{
+	BlinkCoolTimeUI->SetGage(upper, lower);
+}
+
+// void UTracerSkillSystemComponent::DoAfterTargetPlayerDie()
+// {
+// 	if (TargetPlayer != nullptr && TracerSkillUI != nullptr)
+// 	{
+// 		TracerSkillUI->RemoveFromParent();
+// 	}
+// }
+
 void UTracerSkillSystemComponent::MultiRPC_RecallStart_Implementation()
 {
 	ActivateRecall();
@@ -435,6 +523,40 @@ void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 {
 	if (!bPulseBomb)
 		return;
+
+	if (!bPulseBomb)
+		return;
+
+	//사용 금지
+	bPulseBomb = false;
+	//펄스 폭탄이 사용되었으니 쿨타임 갱신 시작
+	{
+		//아이콘 비활성화 및 게이지 초기화
+		ClientRPC_SetSkillIconActivation(PulseBombIconIndex, false);
+			
+		FTimerHandle cool_TimerHandle;
+		//틱 동안 할일은, UI갱신
+		auto cool_tick = [&](float cool_deltaTime, float cool_currentTime)
+		{
+			//쿨타임 게이지 갱신
+			ClientRPC_SetSkillCoolTimeUI(PulseBombIconIndex, cool_currentTime, PulseBombCoolTime);
+		};
+		//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
+		auto cool_end = [&](float cool_existTime)
+		{
+			bPulseBomb = true;
+			//아이콘 활성화 및 게이지 초기화
+			ClientRPC_SetSkillIconActivation(PulseBombIconIndex, true);
+		};
+
+		FDoTimerTick cool_timerDo;
+		FNotifyTimerEnd cool_timerEnd;
+		cool_timerDo.BindLambda(cool_tick);
+		cool_timerEnd.BindLambda(cool_end);
+
+		//만들어둔 쿨타이머 기능을 활용
+		CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, PulseBombCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+	}
 	
 	FVector TempStart;
 	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
@@ -451,38 +573,57 @@ void UTracerSkillSystemComponent::ServerRPC_BlinkStart_Implementation(FVector St
 {
 	//=김형모===
 
-	//사용 금지 상태라면 무시한다.
-	if (!bBlink)
+	//블링크 카운트가 0이라면 금지한다.
+	if (BlinkCount <= 0)
 		return;
-	//사용을 금지한다
-	bBlink = false;
+
+	//블링크 카운트를 1 줄인다.
+	BlinkCount--;
+	
 	//타이머를 적용한다 (쿨타임 갱신 시작)
 	{
-		//아이콘 비활성화 및 게이지 초기화
-		ClientRPC_SetSkillIconActivation(BlinkIconIndex, false);
-			
-		FTimerHandle cool_TimerHandle;
-		//틱 동안 할일은, UI갱신
-		auto cool_tick = [&](float cool_deltaTime, float cool_currentTime)
-		{
-			//쿨타임 게이지 갱신
-			ClientRPC_SetSkillCoolTimeUI(BlinkIconIndex, cool_currentTime, BlinkCoolTime);
-		};
-		//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
-		auto cool_end = [&](float cool_existTime)
-		{
-			bBlink = true;
-			//아이콘 활성화 및 게이지 초기화
-			ClientRPC_SetSkillIconActivation(BlinkIconIndex, true);
-		};
+		//블링크 아이콘의 블링크 카운트 갱신
+		ClientRPC_SetBlinkCountUI(BlinkCount);
 
-		FDoTimerTick cool_timerDo;
-		FNotifyTimerEnd cool_timerEnd;
-		cool_timerDo.BindLambda(cool_tick);
-		cool_timerEnd.BindLambda(cool_end);
+		//이번 스킬 사용으로 인해 스킬 카운트가 없어졌다면
+		if (BlinkCount <= 0)
+		{
+			//아이콘 비활성화 및 게이지 초기화
+			//강렬하게 금지를 날린다.
+			ClientRPC_SetSkillIconActivation(BlinkIconIndex, false, true);
+		}
 
-		//만들어둔 쿨타이머 기능을 활용
-		CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, BlinkCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+		SetBlinkTimer();
+		
+		// FTimerHandle cool_TimerHandle;
+		// //틱 동안 할일은, UI갱신
+		// auto cool_tick = [&](float cool_deltaTime, float cool_currentTime)
+		// {
+		// 	//쿨타임 게이지 갱신
+		// 	//ClientRPC_SetSkillCoolTimeUI(BlinkIconIndex, cool_currentTime, BlinkCoolTime);
+		// 	//블링크 아이콘 게이지 갱신
+		// 	ClientRPC_SetBlinkIconGage(cool_currentTime, BlinkCoolTime);
+		// };
+		// //마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
+		// auto cool_end = [&](float cool_existTime)
+		// {
+		// 	//블링크 카운트를 채워준다.
+		// 	BlinkCount++;
+		// 	//아이콘 활성화 및 게이지 초기화
+		// 	ClientRPC_SetSkillIconActivation(BlinkIconIndex, true);
+		// 	//블링크 아이콘 게이지 초기화
+		// 	ClientRPC_SetBlinkIconGage(0, 1);
+		// 	//블링크 카운트 초기화
+		// 	ClientRPC_SetBlinkCountUI(BlinkCount);
+		// };
+		//
+		// FDoTimerTick cool_timerDo;
+		// FNotifyTimerEnd cool_timerEnd;
+		// cool_timerDo.BindLambda(cool_tick);
+		// cool_timerEnd.BindLambda(cool_end);
+		//
+		// //만들어둔 쿨타이머 기능을 활용
+		// CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, BlinkCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
 	}
 	
 	//========

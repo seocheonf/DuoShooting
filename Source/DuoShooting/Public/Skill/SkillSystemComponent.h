@@ -111,9 +111,14 @@ protected:
 
 	//스킬 아이콘 활성, 비활성 요청 RPC함수.
 	UFUNCTION(Client, Reliable)
-	void ClientRPC_SetSkillIconActivation(int index, bool bActive);
-	
-	
-private:
-	void DoAfterTargetPlayerDie();
+	void ClientRPC_SetSkillIconActivation(int index, bool bActive, bool bForbidden = false);
+
+protected:
+	virtual void DoAfterTargetPlayerDie();
+
+	//==스킬 UI==
+public:
+	void RemoveSkillUI();
+	void SetSkillUI(USkillSystemBaseUI* skillUI);
+	void AddAdditionalSkillUI(int32 index, UUserWidget* widget);
 };

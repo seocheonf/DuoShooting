@@ -163,11 +163,11 @@ void USkillSystemComponent::ClientRPC_SetSkillCoolTimeUI_Implementation(int32 in
 	SkillUI->SetSkillCoolTimeUI(index, upper, lower);
 }
 
-void USkillSystemComponent::ClientRPC_SetSkillIconActivation_Implementation(int index, bool bActive)
+void USkillSystemComponent::ClientRPC_SetSkillIconActivation_Implementation(int index, bool bActive, bool bForbidden)
 {
 	if (SkillUI == nullptr)
 		return;
-	SkillUI->SetActiveSkillIcon(index, bActive);
+	SkillUI->SetActiveSkillIcon(index, bActive, bForbidden);
 }
 
 void USkillSystemComponent::DoAfterTargetPlayerDie()
@@ -178,4 +178,24 @@ void USkillSystemComponent::DoAfterTargetPlayerDie()
 	}
 }
 
+void USkillSystemComponent::RemoveSkillUI()
+{
+	if (SkillUI != nullptr)
+	{
+		SkillUI->RemoveFromParent();
+	}
+}
+
+void USkillSystemComponent::SetSkillUI(USkillSystemBaseUI* skillUI)
+{
+	SkillUI = skillUI;
+}
+
+void USkillSystemComponent::AddAdditionalSkillUI(int32 index, UUserWidget* widget)
+{
+	if (SkillUI != nullptr)
+	{
+		SkillUI->AddAdditionalIcon(index, widget);
+	}
+}
 

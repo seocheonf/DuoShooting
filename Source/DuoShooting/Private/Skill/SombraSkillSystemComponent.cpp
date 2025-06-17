@@ -105,6 +105,11 @@ void USombraSkillSystemComponent::BeginPlay()
 
 	if (TargetPlayer->IsLocallyControlled())
 		TranslocatorIconIndex = AddSkillUI(OriginTranslocatorTexture2D, FText::FromString(TEXT("E")));
+	else
+	{
+		//서버용 동기화 임시
+		TranslocatorIconIndex = 0;
+	}
 }
 
 

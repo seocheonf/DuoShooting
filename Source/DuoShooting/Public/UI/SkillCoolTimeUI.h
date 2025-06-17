@@ -29,6 +29,10 @@ private:
 	//스킬 활성화 이미지
 	UPROPERTY(meta = (BindWidget))
 	class UImage* Image_Activation;
+
+	//추가 UI
+	UPROPERTY(meta = (BindWidget))
+	class UVerticalBox* VerticalBox_Additional;
 	
 public:
 
@@ -45,5 +49,8 @@ public:
 	void SetSkillKeyName(FText skillKeyName);
 
 	//스킬 사용 가능 여부 색 조정
-	void SetActiveDesign(bool bActive);
+	void SetActiveDesign(bool bActive, bool bForbidden = false);
+
+	//추가 UI 설정
+	void SetAdditionalUI(UUserWidget* widget);
 };

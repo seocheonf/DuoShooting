@@ -42,9 +42,16 @@ FNotifyTimerEnd UCoolTimerManagerComponent::RemoveTimer(FTimerHandle timerHandle
 		notifyEnd = CoolTimerContentsMap[timerHandle]->NotifyTimerEnd;
 		
 		CoolTimerContentsMap[timerHandle] = nullptr;
-		CoolTimerContentsMap.Remove(timerHandle);
+		//타이머 핸들에 대한 map값을 remove하면 값이 초기화 되어버림. 그전에 clear해줘야 함.
+		FTimerHandle temp = FTimerHandle(timerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
+		CoolTimerContentsMap.Remove(temp);
 	}
-	GetWorld()->GetTimerManager().ClearTimer(timerHandle);
+	else
+	{
+		GetWorld()->GetTimerManager().ClearTimer(timerHandle);
+	}
+	
 	return notifyEnd;
 }
 
@@ -143,7 +150,7 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 	FTimerManagerTimerParameters timerParameters(true, true);
 	
 	GetWorld()->GetTimerManager().SetTimer(timerHandle,
-		[this, coolTimerContents]()
+		[this, coolTimerContents, &timerHandle]()
 		{
 			coolTimerContents->CurrentTime += GetWorld()->DeltaTimeSeconds;
 			if (coolTimerContents->DoTimerTick.IsBound())
@@ -153,6 +160,7 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 			if (coolTimerContents->CurrentTime >= coolTimerContents->EndTime)
 			{
 				float excessDeltaTime = coolTimerContents->CurrentTime - coolTimerContents->EndTime;
+				GetWorld()->GetTimerManager().ClearTimer(timerHandle);
 				FNotifyTimerEnd notifyEnd = RemoveTimer(coolTimerContents->TimerHandle);
 				if (notifyEnd.IsBound())
 				{

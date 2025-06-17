@@ -27,7 +27,17 @@ void USkillSystemBaseUI::SetSkillCoolTimeUI(int32 index, float upper, float lowe
 	SkillCoolTimeUIList[index]->SetSkillCoolTimeUI(upper, lower);
 }
 
-void USkillSystemBaseUI::SetActiveSkillIcon(int32 index, bool bActive)
+void USkillSystemBaseUI::SetActiveSkillIcon(int32 index, bool bActive, bool bForbidden)
 {
-	SkillCoolTimeUIList[index]->SetActiveDesign(bActive);
+	SkillCoolTimeUIList[index]->SetActiveDesign(bActive, bForbidden);
 }
+
+void USkillSystemBaseUI::AddAdditionalIcon(int32 index, UUserWidget* widget)
+{
+	SkillCoolTimeUIList[index]->SetAdditionalUI(widget);
+}
+
+// FVector2D USkillSystemBaseUI::GetSkillIconPosition(int32 index)
+// {
+// 	return SkillCoolTimeUIList[index]->GetCachedGeometry().GetAbsolutePosition();
+// }

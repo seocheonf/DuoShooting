@@ -33,7 +33,9 @@ ATracerHero::ATracerHero()
 	FirstViewSkeletalMeshComp->SetRelativeLocation(FVector(0, 0, -90));
 	FirstViewSkeletalMeshComp->SetRelativeRotation(FRotator(0, 0, -90));
 	FirstViewSkeletalMeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	if (sm.Succeeded()) FirstViewSkeletalMeshComp->SetSkeletalMeshAsset(sm.Object);
+	ConstructorHelpers::FObjectFinder<USkeletalMesh> bodyRemovedMesh(
+		TEXT("'/Game/DuoShooting/Blueprints/Characters/Animation/Tracer/EditedDrongoAssets/Drongo_GDC_BodyRemoved.Drongo_GDC_BodyRemoved'"));
+	if (bodyRemovedMesh.Succeeded()) FirstViewSkeletalMeshComp->SetSkeletalMeshAsset(bodyRemovedMesh.Object);
 	if (animInstance.Succeeded()) FirstViewSkeletalMeshComp->SetAnimInstanceClass(animInstance.Class);
 	FirstViewSkeletalMeshComp->bOnlyOwnerSee = true;
 	FirstViewSkeletalMeshComp->SetCastShadow(false); // 그림자 끄기
@@ -83,6 +85,19 @@ void ATracerHero::InputJump(const struct FInputActionValue& value)
 void ATracerHero::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// 고개 숙일 때 일인칭 메쉬 뒤쪽으로 보내기
+	if (FirstViewSkeletalMeshComp && GetControlRotation().Pitch > 269.0f)
+	{
+		float DownLookValue = FMath::GetMappedRangeValueClamped(
+			FVector2D(0.f, -89.99f),
+			FVector2D(0.f, 1.f),
+			GetControlRotation().Pitch - 360.0f
+		);
+
+		FirstViewSkeletalMeshComp->SetRelativeLocation(
+			FVector(-FirstViewSkeletalMeshCompLookDownRetractScalar * DownLookValue, 0, -80.0f));
+	}
 }
 
 // Called to bind functionality to input

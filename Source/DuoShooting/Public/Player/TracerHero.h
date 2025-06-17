@@ -42,6 +42,9 @@ private:
 	UPROPERTY()
 	class UTracerAnimInstance* TracerAnimInstance;
 protected:
+	// 아래를 바라볼 때 일인칭 메쉬가 얼마나 뒤로 갈 것인지
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float FirstViewSkeletalMeshCompLookDownRetractScalar = 110.0f;
 public:
 	//=====함수=====
 protected:

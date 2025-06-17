@@ -78,20 +78,22 @@ void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UP
 {
 	if (GetLocalRole() != ROLE_Authority) return;
 	
-	// SphereComp->OnComponentHit.RemoveDynamic(this, &APulseBomb::OnHit);
-	//
-	// if (ProjectileMovementComp)
-	// {
-	// 	ProjectileMovementComp->StopMovementImmediately();
-	// 	ProjectileMovementComp->StopSimulating(hit);
-	// }
-	//
-	// CurrentState = EPulseBombState::ATTACHING;
+	SphereComp->OnComponentHit.RemoveDynamic(this, &APulseBomb::OnHit);
 
-	//AttachToComponent(otherComp, FAttachmentTransformRules::KeepWorldTransform);
+	// 부딪히면
+	if (ProjectileMovementComp)
+	{
+		ProjectileMovementComp->StopMovementImmediately();
+		ProjectileMovementComp->StopSimulating(hit);
+	}
+	
+	CurrentState = EPulseBombState::ATTACHING;
 
-	// StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
-	//
+	// 목표물에 붙이기
+	AttachToComponent(otherComp, FAttachmentTransformRules::KeepWorldTransform);
+	
+	StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
+	
 	// FVector SurfaceNormal = hit.ImpactNormal;
 	// FRotator AttachRot = SurfaceNormal.ToOrientationRotator();
 	// StaticMeshComp->SetWorldRotation(AttachRot);
@@ -128,14 +130,16 @@ void APulseBomb::Explode()
 
 	// 시각화
 	DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 30, FColor::Red, false, 1.0f);
-	
-	// 임시로 터진 뒤 1초 뒤 없애자
-	GetWorldTimerManager().SetTimer(
-		ExplosionTimerHandle,
-		[this]() { if (IsValid(this)) Destroy(); },
-		1.0f,
-		false
-	);
+
+	// 없어지기
+	if (IsValid(this)) Destroy();
+	// // 임시로 터진 뒤 1초 뒤 없애자
+	// GetWorldTimerManager().SetTimer(
+	// 	ExplosionTimerHandle,
+	// 	[this]() { if (IsValid(this)) Destroy(); },
+	// 	1.0f,
+	// 	false
+	// );
 }
 
 

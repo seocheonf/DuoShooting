@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Interfaces/OnlineSessionInterface.h"
+#include "EnumContainer.h"
 #include "NetworkGameInstance.generated.h"
 
 //세션 정보 구조체
@@ -33,6 +34,22 @@ struct FSessionInfo
 
 //세션 검색 모두 끝났을 때 호출될 델리게이트
 DECLARE_MULTICAST_DELEGATE_OneParam(FFindAndSetExistedSessionsComplete, const TArray<FSessionInfo>&);
+
+// PJW: 승리 정보
+USTRUCT()
+struct FFinalPlayStats
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString UserName;
+
+	UPROPERTY()
+	int32 Score;
+
+	UPROPERTY()
+	EHeroInfo HeroInfo;
+};
 
 /**
  * 
@@ -68,6 +85,16 @@ private:
 	//시작 인원 수
 	int32 StartPlayerCount;
 
+	// PJW: 배틀이 끝나면 게임인스턴스에 팀 정보 저장
+	UPROPERTY()
+	ETeamInfo WinnerTeam;
+	
+	UPROPERTY()
+	TArray<FFinalPlayStats> WinnerTeamStats;
+
+	UPROPERTY()
+	TArray<FFinalPlayStats> LoserTeamStats;
+
 public:
 	//세션 검색 후 해야할 일 이벤트 콜백용 델리게이트
 	FFindAndSetExistedSessionsComplete OnFindAndSetExistedSessionsCompleteDelegate;
@@ -99,5 +126,12 @@ public:
 	void OnJoinExistedSessionsComplete(FName sessionName, EOnJoinSessionCompleteResult::Type result);
 
 	int32 GetStartPlayerCount();
-	
+
+	void SetWinnerTeam(ETeamInfo winner);
+	void RememberTeamStats_Winner(const TArray<FFinalPlayStats>& stats);
+	void RememberTeamStats_Loser(const TArray<FFinalPlayStats>& stats);
+
+	ETeamInfo GetWinnerTeam() const { return WinnerTeam; }
+	const TArray<FFinalPlayStats>& GetWinnerTeamStats() const { return WinnerTeamStats; }
+	const TArray<FFinalPlayStats>& GetLoserTeamStats() const { return LoserTeamStats; }
 };

@@ -72,7 +72,7 @@ private:
 	UPROPERTY()
 	class UCameraShakeSourceComponent* CameraShakeSourceComp;
 	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
-	UPROPERTY(EditDefaultsOnly, Category = UI)
+	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.

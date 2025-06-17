@@ -3,47 +3,73 @@
 
 #include "Management/EndStatisticsGameModeBase.h"
 
-#include "EngineUtils.h"
-#include "Camera/CameraActor.h"
+#include "Management/NetworkGameInstance.h"
+#include "Management/TeamFightGameMode.h"
+#include "Player/EndStatisticsHelperActor.h"
 
-void AEndStatisticsGameModeBase::BeginPlay()
+void AEndStatisticsGameModeBase::CreateActorHelpers()
 {
-	Super::BeginPlay();
-
-	// 공용 카메라를 월드에서 찾아오기
-	ACameraActor* endGameCamera = nullptr;
-	for (TActorIterator<ACameraActor> It(GetWorld()); It; ++It)
+	if (HelperActor == nullptr)
 	{
-		if (It->GetName().Contains("EndGameCamera"))
-		{
-			endGameCamera = *It;
-			break;
-		}
+		UE_LOG(LogTemp, Warning, TEXT("HelperActor is null"));
+		return;
 	}
+	
+	FVector spawnLocation = FVector::ZeroVector;
 
-	// 현재 카메라로 설정
-	if (endGameCamera)
+	if (auto* gameInstance = Cast<UNetworkGameInstance>(GetGameInstance()))
 	{
-		if (ULocalPlayer* localPlayer = GetWorld()->GetFirstLocalPlayerFromController())
+		// 승리한 팀의 플레이어 리스트 가져오기
+		TArray<FFinalPlayStats> winners = gameInstance->GetWinnerTeamStats();
+
+		if (winners.Num() > 0)
 		{
-			if (APlayerController* playerController = localPlayer->GetPlayerController(GetWorld()))
+			// 승리한 팀을 순회하면서
+			for (FFinalPlayStats winner : winners)
 			{
-				playerController->SetViewTarget(endGameCamera);
-				UE_LOG(LogTemp, Warning, TEXT("View Target Set to EndGameCamera"));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("cannot Get Player Controller"));
+				// 더미 액터 스폰
+				auto spawnedHelperActor = GetWorld()->SpawnActor<AEndStatisticsHelperActor>(
+					HelperActor, spawnLocation, FRotator::ZeroRotator);
+
+				// 액터에 플레이어 정보 설정
+				spawnedHelperActor->Server_SetPlayStats(winner);
+
+				// 다음 스폰 위치
+				spawnLocation.X = spawnLocation.X - 80.0f;
+				spawnLocation.Y = spawnLocation.Y + 90.0f;
 			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("cannot Get Local Player"));
+			UE_LOG(LogTemp, Warning, TEXT("Winners empty"));
+
+			// 더미 액터 스폰
+			auto spawnedHelperActor = GetWorld()->SpawnActor<AEndStatisticsHelperActor>(
+				HelperActor, spawnLocation, FRotator::ZeroRotator);
+
+			// 액터에 플레이어 정보 설정
+			FFinalPlayStats dummy;
+			dummy.HeroInfo = EHeroInfo::Tracer;
+			dummy.UserName = TEXT("더미 액터");
+			dummy.Score = -77;
+			spawnedHelperActor->Server_SetPlayStats(dummy);
 		}
 	}
-	else
+}
+
+AEndStatisticsGameModeBase::AEndStatisticsGameModeBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
 	{
-		UE_LOG(LogTemp, Warning, TEXT("endGameCamera null"));
+		ConstructorHelpers::FClassFinder<AEndStatisticsHelperActor> tempActor(TEXT(
+			"/Script/Engine.Blueprint'/Game/DuoShooting/Blueprints/EndGameStatistics/BP_EndStatisticsHelperActor.BP_EndStatisticsHelperActor_C'"));
+		if (tempActor.Succeeded()) HelperActor = tempActor.Class;
 	}
-			
+}
+
+void AEndStatisticsGameModeBase::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	CreateActorHelpers();
 }

@@ -450,7 +450,6 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 
 	// 같은 팀이면 리턴
 	ATeamFightPlayerState* instigatorPlayerState = Cast<ATeamFightPlayerState>(EventInstigator->PlayerState);
-
 	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
 	{
 		if (instigatorPlayerState != nullptr)
@@ -462,7 +461,7 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 			}
 		}
 	}
-
+	
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);

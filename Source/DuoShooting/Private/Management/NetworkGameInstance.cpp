@@ -191,7 +191,6 @@ void UNetworkGameInstance::OnJoinExistedSessionsComplete(FName sessionName, EOnJ
 			//언리얼 폴더상 절대 좌표로 이동.
 			playerController->ClientTravel(url, TRAVEL_Absolute);
 		}
-		
 	}
 	else
 	{
@@ -204,3 +203,19 @@ int32 UNetworkGameInstance::GetStartPlayerCount()
 	return StartPlayerCount;
 }
 
+void UNetworkGameInstance::SetWinnerTeam(ETeamInfo winner)
+{
+	WinnerTeam = winner;
+}
+
+void UNetworkGameInstance::RememberTeamStats_Winner(const TArray<FFinalPlayStats>& stats)
+{
+	WinnerTeamStats = stats;
+	UE_LOG(LogTemp, Warning, TEXT("Winner Stats Remembered length: %d"), WinnerTeamStats.Num());
+}
+
+void UNetworkGameInstance::RememberTeamStats_Loser(const TArray<FFinalPlayStats>& stats)
+{
+	LoserTeamStats = stats;
+	UE_LOG(LogTemp, Warning, TEXT("Loser Stats Remembered length: %d"), LoserTeamStats.Num());
+}

@@ -33,9 +33,7 @@ private:
 	int32 CurrentPlayerCount = 0;
 
 	// 이기기 위해 모아야할 점수
-	int32 TargetWinScore = 5;
-
-	ETeamInfo WinnerTeam;
+	int32 TargetWinScore = 2;
 
 	// 팀 A의 멤버들
 	UPROPERTY()
@@ -68,6 +66,9 @@ public:
 
 	//PJW
 	int32 GetTargetWinScore() const { return TargetWinScore; }
+
+	// 컨트롤러의 캐릭터 매핑 정보를 가져온다
+	EHeroInfo GetPlayerHero(APlayerController* playerController);
 
 	// 게임을 끝내고 랭킹씬으로 나감
 	void EndGame(ETeamInfo winnerTeam);

@@ -15,4 +15,13 @@ class DUOSHOOTING_API AEndStatisticsGameModeBase : public AGameModeBase
 	GENERATED_BODY()
 
 	virtual void BeginPlay() override;
+	
+	void CreateActorHelpers();
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TSubclassOf<class AEndStatisticsHelperActor> HelperActor;
+
+public:
+	AEndStatisticsGameModeBase(const FObjectInitializer& ObjectInitializer);
 };

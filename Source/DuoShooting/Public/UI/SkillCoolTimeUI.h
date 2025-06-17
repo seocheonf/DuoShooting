@@ -33,6 +33,10 @@ private:
 	//추가 UI
 	UPROPERTY(meta = (BindWidget))
 	class UVerticalBox* VerticalBox_Additional;
+
+	//남은 스킬 쿨타임
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* Text_CoolTime;
 	
 public:
 
@@ -53,4 +57,7 @@ public:
 
 	//추가 UI 설정
 	void SetAdditionalUI(UUserWidget* widget);
+
+	//남은 스킬 쿨타임 갱신
+	void SetCoolTimeText(int32 remainTime, bool bEmpty);
 };

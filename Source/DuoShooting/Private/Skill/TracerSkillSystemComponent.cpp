@@ -367,6 +367,7 @@ void UTracerSkillSystemComponent::RecallInfo()
 			{
 				//쿨타임 게이지 갱신
 				ClientRPC_SetSkillCoolTimeUI(RecallIconIndex, cool_currentTime, RecallCoolTime);
+				ClientRPC_SetSkillRemainTimeUI(RecallIconIndex, RecallCoolTime - cool_currentTime, false);
 			};
 			//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
 			auto cool_end = [&](float cool_existTime)
@@ -374,6 +375,9 @@ void UTracerSkillSystemComponent::RecallInfo()
 				bRecall = true;
 				//아이콘 활성화 및 게이지 초기화
 				ClientRPC_SetSkillIconActivation(RecallIconIndex, true);
+				ClientRPC_SetSkillRemainTimeUI(RecallIconIndex, 0, true);
+				//스킬 온 사운드 재생
+				ClientRPC_PlaySoundSkillOn();
 			};
 
 			FDoTimerTick cool_timerDo;
@@ -462,10 +466,11 @@ void UTracerSkillSystemComponent::SetBlinkTimer()
 		ClientRPC_SetBlinkIconGage(0, 1);
 		//블링크 카운트 초기화
 		ClientRPC_SetBlinkCountUI(BlinkCount);
+		//스킬 온 사운드 재생
+		ClientRPC_PlaySoundSkillOn();
 
 		if (BlinkCount < MaxBlinkCount)
 			SetBlinkTimer();
-
 	};
 
 	FDoTimerTick cool_timerDo;
@@ -540,6 +545,7 @@ void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 		{
 			//쿨타임 게이지 갱신
 			ClientRPC_SetSkillCoolTimeUI(PulseBombIconIndex, cool_currentTime, PulseBombCoolTime);
+			ClientRPC_SetSkillRemainTimeUI(PulseBombIconIndex, PulseBombCoolTime - cool_currentTime, false);
 		};
 		//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
 		auto cool_end = [&](float cool_existTime)
@@ -547,6 +553,9 @@ void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 			bPulseBomb = true;
 			//아이콘 활성화 및 게이지 초기화
 			ClientRPC_SetSkillIconActivation(PulseBombIconIndex, true);
+			ClientRPC_SetSkillRemainTimeUI(PulseBombIconIndex, 0, true);
+			//스킬 온 사운드 재생
+			ClientRPC_PlaySoundSkillOn();
 		};
 
 		FDoTimerTick cool_timerDo;

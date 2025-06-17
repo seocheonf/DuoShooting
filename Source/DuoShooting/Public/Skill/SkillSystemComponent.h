@@ -113,6 +113,10 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_SetSkillIconActivation(int index, bool bActive, bool bForbidden = false);
 
+	//스킬 쿨타임 숫자 표시 요청 RPC함수.
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetSkillRemainTimeUI(int32 index, int32 remainTime, bool bEmpty);
+
 protected:
 	virtual void DoAfterTargetPlayerDie();
 
@@ -121,4 +125,14 @@ public:
 	void RemoveSkillUI();
 	void SetSkillUI(USkillSystemBaseUI* skillUI);
 	void AddAdditionalSkillUI(int32 index, UUserWidget* widget);
+
+	//==스킬 사운드==
+private:
+	//스킬 온 사운드
+	class USoundBase* OriginSoundSkillOn;
+
+protected:
+	//스킬 온 사운드 재생
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_PlaySoundSkillOn();
 };

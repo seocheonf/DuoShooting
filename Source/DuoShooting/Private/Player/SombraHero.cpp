@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/SombraAnimInstance.h"
 #include "Skill/SombraSkillSystemComponent.h"
 #include "UI/HealthBarWidget.h"
@@ -53,9 +54,35 @@ ASombraHero::ASombraHero()
 		FirstViewSkeletalMeshComp->SetAnimInstanceClass(animInstance.Class);
 	}
 	
-	
 	GetMesh()->bOwnerNoSee = true;
 	FirstViewSkeletalMeshComp->bOnlyOwnerSee = true;
+	
+	//솜브라 순간이동 전후 이펙트 불러오기
+	ConstructorHelpers::FClassFinder<AActor> tpParticle(TEXT("/Script/Engine.Blueprint'/Game/Pack_Simple_Particle_Burst/02_Blueprints/BP_Particle_SombraTranslocator.BP_Particle_SombraTranslocator_C'"));
+	if (tpParticle.Succeeded())
+	{
+		OriginTeleportAppearanceParticle = tpParticle.Class;
+	}
+
+	//솜브라 은신 사운드 불러오기
+	ConstructorHelpers::FObjectFinder<USoundBase> soundStealth(TEXT("/Script/Engine.SoundWave'/Game/DuoShooting/Sounds/Sombra/StealthEnterExit.StealthEnterExit'"));
+	if (soundStealth.Succeeded())
+	{
+		OriginSoundStealth = soundStealth.Object;
+	}
+	//솜브라 은신 사운드 옵션 불러오기
+	ConstructorHelpers::FObjectFinder<USoundAttenuation> soundAttenuationStealth(TEXT("/Script/Engine.SoundAttenuation'/Game/DuoShooting/Sounds/Sombra/SA_StealthEnterExit.SA_StealthEnterExit'"));
+	if (soundAttenuationStealth.Succeeded())
+	{
+		OriginSoundAttenuationStealth = soundAttenuationStealth.Object;
+	}
+
+	//솜브라 순간이동 사운드 불러오기
+	ConstructorHelpers::FObjectFinder<USoundBase> soundTPBeforeAfter(TEXT("/Script/Engine.SoundWave'/Game/DuoShooting/Sounds/Sombra/TPBeforeAfter.TPBeforeAfter'"));
+	if (soundTPBeforeAfter.Succeeded())
+	{
+		OriginSoundTPBeforeAfter = soundTPBeforeAfter.Object;
+	}
 }
 
 // Called when the game starts or when spawned
@@ -239,6 +266,12 @@ void ASombraHero::SetAppearance()
 
 	SetCollisionEnable(true);
 	SetMeshVisibility(true);
+
+	//솜브라 이펙트 발동
+	GetWorld()->SpawnActor<AActor>(OriginTeleportAppearanceParticle, GetActorTransform());
+
+	//순간이동 사운드 발동
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundTPBeforeAfter, GetActorLocation(), 1.0f, 1.0f, 0.0f, OriginSoundAttenuationStealth);
 }
 
 void ASombraHero::SetDisAppearance()
@@ -251,6 +284,12 @@ void ASombraHero::SetDisAppearance()
 	
 	SetCollisionEnable(false);
 	SetMeshVisibility(false);
+
+	//솜브라 이펙트 발동
+	GetWorld()->SpawnActor<AActor>(OriginTeleportAppearanceParticle, GetActorTransform());
+
+	//순간이동 사운드 발동
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundTPBeforeAfter, GetActorLocation(), 1.0f, 1.0f, 0.0f, OriginSoundAttenuationStealth);
 }
 
 void ASombraHero::DieAfterAction()
@@ -290,10 +329,18 @@ void ASombraHero::EnterStealth()
 	bStealth = true;
 	ClientRPC_SetStealthCamera(true);
 	SetStealthState(EStealthState::Hidden);
+	
+	//소리 재생
+	MultiRPC_PlaySoundStealth();
 }
 
 void ASombraHero::ExitStealth()
 {
+	//소리 재생 (실제 은신에서 빠져 나올 때만)
+	if (bStealth)
+		MultiRPC_PlaySoundStealth();
+
+	
 	SetStealthState(EStealthState::None);
 	ClientRPC_SetStealthCamera(false);
 	bStealth = false;
@@ -314,3 +361,9 @@ void ASombraHero::SetStealthState(EStealthState newState)
 	MultiRPC_SetStealthStateVisibility(StealthState);
 }
 
+void ASombraHero::MultiRPC_PlaySoundStealth_Implementation()
+{
+	{
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundStealth, GetActorLocation(), 1.0f, 1.0f, 0.0f, OriginSoundAttenuationStealth);
+	}
+}

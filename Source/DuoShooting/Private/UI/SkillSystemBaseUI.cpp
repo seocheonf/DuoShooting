@@ -37,6 +37,11 @@ void USkillSystemBaseUI::AddAdditionalIcon(int32 index, UUserWidget* widget)
 	SkillCoolTimeUIList[index]->SetAdditionalUI(widget);
 }
 
+void USkillSystemBaseUI::SetSkillRemainCoolTimeUI(int32 index, int32 remainTime, bool bEmpty)
+{
+	SkillCoolTimeUIList[index]->SetCoolTimeText(remainTime, bEmpty);
+}
+
 // FVector2D USkillSystemBaseUI::GetSkillIconPosition(int32 index)
 // {
 // 	return SkillCoolTimeUIList[index]->GetCachedGeometry().GetAbsolutePosition();

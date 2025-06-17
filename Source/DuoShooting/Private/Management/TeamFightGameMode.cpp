@@ -3,10 +3,13 @@
 
 #include "Management/TeamFightGameMode.h"
 
+#include "GameFramework/PlayerStart.h"
+#include "Kismet/GameplayStatics.h"
 #include "Management/EnumContainer.h"
 #include "Management/NetworkGameInstance.h"
 #include "Management/TeamFightGameState.h"
 #include "Management/TeamFightPlayerState.h"
+#include "Management/TeamPlayerStart.h"
 #include "Player/HeroBase.h"
 #include "Player/PickPhasePawn.h"
 #include "Player/SombraHero.h"
@@ -81,8 +84,31 @@ void ATeamFightGameMode::RespawnPlayer(APlayerController* playerController)
 	AHeroBase* newHero = GetWorld()->SpawnActorDeferred<AHeroBase>(heroSource, FTransform(), nullptr, nullptr);
 	//플레이어 컨트롤러에 새로운 캐릭터를 Possess 시킴.
 	playerController->Possess(newHero);
+
+	//위치 찾아 팀에 따라 배분
+	FVector location = FVector::ZeroVector;
+	TArray<AActor*> PlayerStarts;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATeamPlayerStart::StaticClass(), PlayerStarts);
+	for (AActor* each : PlayerStarts)
+	{
+		if (each->ActorHasTag("A"))
+		{
+			if (playerController->GetPlayerState<ATeamFightPlayerState>()->GetPlayerTeam() == ETeamInfo::A)
+			{
+				location = each->GetActorLocation();
+			}
+		}
+		else if (each->ActorHasTag("B"))
+		{
+			if (playerController->GetPlayerState<ATeamFightPlayerState>()->GetPlayerTeam() == ETeamInfo::B)
+			{
+				location = each->GetActorLocation();
+			}
+		}
+	}
+	
 	//지연 스폰을 마무리 한다.
-	newHero->FinishSpawning(FTransform());
+	newHero->FinishSpawning(FTransform(location));
 }
 
 void ATeamFightGameMode::PostLogin(APlayerController* NewPlayer)

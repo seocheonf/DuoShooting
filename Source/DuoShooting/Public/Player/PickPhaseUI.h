@@ -121,6 +121,10 @@ private:
 	UFUNCTION()
 	void OnClickedDecisionHeroButton();
 
+public:
+	//서버에 의해 파괴될 경우, UI를 통하지 않아 model이 제대로 파괴되지 않음. 그래서, pickphasepawn이 파괴될 때, 모델을 파괴해 주기위한 함수.
+	void DestroyModel();
+
 	//영웅에 맞는 모델 찾기 함수
 	TSubclassOf<class ACharacter> FindModel(EHeroInfo heroInfo);
 	

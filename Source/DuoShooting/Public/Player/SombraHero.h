@@ -121,4 +121,24 @@ public:
 private:
 protected:
 public:
+
+	//==솜브라 순간이동 이펙트
+private:
+	//솜브라가 순간이동 전후로 사라지고 나타날 때 내뿜는 파티클
+	TSubclassOf<class AActor> OriginTeleportAppearanceParticle;
+
+	//==사운드
+private:
+	//은신 사운드
+	class USoundBase* OriginSoundStealth;
+	//은신 사운드 옵션
+	class USoundAttenuation* OriginSoundAttenuationStealth;
+
+	//순간이동 시작 종료 사운드 (타인에게만)
+	class USoundBase* OriginSoundTPBeforeAfter;
+	
+	//은신 사운드는 모두에게!
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_PlaySoundStealth();
+	
 };

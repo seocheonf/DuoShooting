@@ -5,6 +5,7 @@
 
 #include "EnhancedInputSubsystems.h"
 #include "Blueprint/UserWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/HeroBase.h"
 #include "Tool/CoolTimerManagerComponent.h"
 #include "UI/SkillSystemBaseUI.h"
@@ -25,6 +26,13 @@ USkillSystemComponent::USkillSystemComponent()
 	if (ui.Succeeded())
 	{
 		OriginSkillUI = ui.Class;
+	}
+
+	//스킬 사운드
+	ConstructorHelpers::FObjectFinder<USoundBase> soundSkillOn(TEXT("/Script/Engine.SoundWave'/Game/DuoShooting/Sounds/Sombra/SkillOn.SkillOn'"));
+	if (soundSkillOn.Succeeded())
+	{
+		OriginSoundSkillOn = soundSkillOn.Object;
 	}
 }
 
@@ -170,6 +178,14 @@ void USkillSystemComponent::ClientRPC_SetSkillIconActivation_Implementation(int 
 	SkillUI->SetActiveSkillIcon(index, bActive, bForbidden);
 }
 
+void USkillSystemComponent::ClientRPC_SetSkillRemainTimeUI_Implementation(int32 index, int32 remainTime, bool bEmpty)
+{
+	if (SkillUI != nullptr)
+	{
+		SkillUI->SetSkillRemainCoolTimeUI(index, remainTime, bEmpty);
+	}
+}
+
 void USkillSystemComponent::DoAfterTargetPlayerDie()
 {
 	if (TargetPlayer != nullptr && SkillUI != nullptr)
@@ -199,3 +215,7 @@ void USkillSystemComponent::AddAdditionalSkillUI(int32 index, UUserWidget* widge
 	}
 }
 
+void USkillSystemComponent::ClientRPC_PlaySoundSkillOn_Implementation()
+{
+	UGameplayStatics::PlaySound2D(GetWorld(), OriginSoundSkillOn);
+}

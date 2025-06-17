@@ -60,4 +60,14 @@ void USkillCoolTimeUI::SetAdditionalUI(UUserWidget* widget)
 	
 }
 
+void USkillCoolTimeUI::SetCoolTimeText(int32 remainTime, bool bEmpty)
+{
+	if (bEmpty)
+	{
+		Text_CoolTime->SetText(FText::GetEmpty());
+		return;
+	}
+	Text_CoolTime->SetText(FText::FromString(FString::FromInt(remainTime + 1)));
+}
+
 

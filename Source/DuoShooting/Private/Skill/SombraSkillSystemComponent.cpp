@@ -75,6 +75,30 @@ USombraSkillSystemComponent::USombraSkillSystemComponent()
 	{
 		OriginTranslocatorTexture2D = translocatorTexture2D.Object;
 	}
+
+	//솜브라 날아가는 동안 사운드 불러오기
+	ConstructorHelpers::FObjectFinder<USoundBase> soundWhileTP(TEXT("/Script/Engine.SoundWave'/Game/DuoShooting/Sounds/Sombra/TPMoving.TPMoving'"));
+	if (soundWhileTP.Succeeded())
+	{
+		OriginSoundWhileTP = soundWhileTP.Object;
+	}
+
+	//솜브라 투사체 던지는 사운드 불러오기
+	ConstructorHelpers::FObjectFinder<USoundBase> soundShootTranslocator(TEXT("/Script/Engine.SoundWave'/Game/DuoShooting/Sounds/Sombra/ThrowTranslocator.ThrowTranslocator'"));
+	if (soundShootTranslocator.Succeeded())
+	{
+		OriginSoundShootTranslocator = soundShootTranslocator.Object;
+	}
+	
+	//소리 감쇠 불러오기
+	ConstructorHelpers::FObjectFinder<USoundAttenuation> soundAttenuation(TEXT("/Script/Engine.SoundAttenuation'/Game/DuoShooting/Sounds/Sombra/SA_StealthEnterExit.SA_StealthEnterExit'"));
+	if (soundWhileTP.Succeeded())
+	{
+		OriginSoundAttenuation = soundAttenuation.Object;
+	}
+
+	
+
 }
 
 
@@ -213,6 +237,8 @@ void USombraSkillSystemComponent::ServerRPC_OnTranslocator_Implementation(const 
 		//위치변환기는 순간이동 직후임. TriggerTranslocator 함수 쪽으로 가보면 됨
 	}
 
+	//투사 사운드 실행
+	MultiRPC_PlaySoundShootTranslocator();
 	
 	UCameraComponent* playerCamera = TargetPlayer->GetCamera();
 	ATranslocatorProjectile* newTranslocatorProjectile = GetWorld()->SpawnActor<ATranslocatorProjectile>(OriginTranslocatorProjectile, playerCamera->GetComponentLocation(), TargetPlayer->GetControlRotation());
@@ -235,6 +261,9 @@ void USombraSkillSystemComponent::TakeDamage()
 
 void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 {
+	//날아가는 스킬 사운드를 플레이어 본인에게만 들리게
+	ClientRPC_PlaySoundWhileTP();
+	
 	SombraPlayer->MultiRPC_SetAppearanceTP(false);
 	
 	FVector start = TargetPlayer->GetActorLocation();
@@ -269,6 +298,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 			{
 				//쿨타임 게이지 갱신
 				ClientRPC_SetSkillCoolTimeUI(TranslocatorIconIndex, cool_currentTime, TranslocatorCoolTime);
+				ClientRPC_SetSkillRemainTimeUI(TranslocatorIconIndex, TranslocatorCoolTime - cool_currentTime, false);
 			};
 			//마무리 시 할일은, UI원상복구 후, 사용가능하게 한다.
 			auto cool_end = [&](float cool_existTime)
@@ -276,6 +306,9 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 				bTranslocator = true;
 				//아이콘 활성화 및 게이지 초기화
 				ClientRPC_SetSkillIconActivation(TranslocatorIconIndex, true);
+				ClientRPC_SetSkillRemainTimeUI(TranslocatorIconIndex, 0, true);
+				//스킬 온 사운드 재생
+				ClientRPC_PlaySoundSkillOn();
 			};
 
 			FDoTimerTick cool_timerDo;
@@ -544,6 +577,28 @@ void USombraSkillSystemComponent::HackTick(float deltaTime)
 	}
 	*/
 }
+
+
+
+void USombraSkillSystemComponent::ClientRPC_PlaySoundWhileTP_Implementation()
+{
+	UGameplayStatics::PlaySound2D(GetWorld(), OriginSoundWhileTP);
+}
+
+void USombraSkillSystemComponent::MultiRPC_PlaySoundShootTranslocator_Implementation()
+{
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundShootTranslocator, TargetPlayer->GetActorLocation(), 1.0f, 1.0f, 0.0f, OriginSoundAttenuation);
+}
+
+
+
+
+
+
+
+
+
+
 
 // //Test======================
 //

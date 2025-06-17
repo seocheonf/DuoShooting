@@ -185,4 +185,22 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
 	float TranslocatorCoolTime = 6.f;
+
+	//==스킬 사운드==//
+private:
+	//날아가는 동안 나에게만 들릴 사운드
+	class USoundBase* OriginSoundWhileTP;
+	//투사체 발사 소리
+	class USoundBase* OriginSoundShootTranslocator;
+	
+	//원거리 감쇠
+	class USoundAttenuation* OriginSoundAttenuation;
+
+private:
+	//날아가는 동안 나에게만 들릴 사운드 요청 함수
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_PlaySoundWhileTP();
+	//투사체 발사하여 너에게도 들릴 사운드 요청 함수
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_PlaySoundShootTranslocator();
 };

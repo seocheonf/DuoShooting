@@ -163,6 +163,15 @@ void UPickPhaseUI::OnClickedDecisionHeroButton()
 	Owner->ServerRPC_RespawnPlayer();
 }
 
+void UPickPhaseUI::DestroyModel()
+{
+	if (CurrentModel != nullptr)
+	{
+		CurrentModel->Destroy();
+	}
+}
+
+
 TSubclassOf<ACharacter> UPickPhaseUI::FindModel(EHeroInfo heroInfo)
 {
 	switch (heroInfo)

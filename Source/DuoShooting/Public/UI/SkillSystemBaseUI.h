@@ -39,6 +39,9 @@ public:
 
 	//스킬 아이콘 위에 추가 아이콘 설정
 	void AddAdditionalIcon(int32 index, UUserWidget* widget);
+
+	//스킬 쿨타임 설정
+	void SetSkillRemainCoolTimeUI(int32 index, int32 remainTime, bool bEmpty);
 	
 	//스킬 아이콘 위치 반환
 	//FVector2D GetSkillIconPosition(int32 index);

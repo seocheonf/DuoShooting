@@ -3,6 +3,7 @@
 
 #include "Management/TeamFightGameState.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "Management/TeamFightGameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/HeroBase.h"
@@ -11,7 +12,8 @@ void ATeamFightGameState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WaitingTime = 5.f;
+	WaitingTime = 3.f;
+
 	CurrentRemainWaitingTime = WaitingTime;
 
 }
@@ -50,6 +52,15 @@ void ATeamFightGameState::AddOneScore_TeamA()
 	UE_LOG(LogTemp, Warning, TEXT("Team A Score: %d"), Score_TeamA);
 
 	OnRep_Score_TeamA();
+
+	// A팀이 먼저 목표 스코어에 도달하면 A팀을 승자로 전달하고 게임 끝내기
+	if (ATeamFightGameMode* teamFightGameMode = Cast<ATeamFightGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		if (Score_TeamA >= teamFightGameMode->GetTargetWinScore())
+		{
+			teamFightGameMode->EndGame(ETeamInfo::A);
+		}
+	}
 }
 
 void ATeamFightGameState::AddOneScore_TeamB()
@@ -58,6 +69,15 @@ void ATeamFightGameState::AddOneScore_TeamB()
 	UE_LOG(LogTemp, Warning, TEXT("Team B Score: %d"), Score_TeamB);
 
 	OnRep_Score_TeamB();
+
+	// A팀이 먼저 목표 스코어에 도달하면 B팀을 승자로 전달하고 게임 끝내기
+	if (ATeamFightGameMode* teamFightGameMode = Cast<ATeamFightGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		if (Score_TeamB >= teamFightGameMode->GetTargetWinScore())
+		{
+			teamFightGameMode->EndGame(ETeamInfo::B);
+		}
+	}
 }
 
 void ATeamFightGameState::StartGame()

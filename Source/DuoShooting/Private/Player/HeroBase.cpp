@@ -123,6 +123,7 @@ void AHeroBase::BeginPlay()
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 	GetCharacterMovement()->AirControl = 0.9f;
 
+	UE_LOG(LogTemp, Warning, TEXT("[%s] [%d]Begin Play ---------------"), GetNetMode()==NM_Client?TEXT("Clienit"):TEXT("Server"),IsLocallyControlled());
 	// 로컬이면 체력바를 끄고 메인위젯을 생성
 	if (IsLocallyControlled())
 	{
@@ -144,8 +145,21 @@ void AHeroBase::BeginPlay()
 				ShootingMainWidget->InitMaxHealth(MaxHealth);
 				ShootingMainWidget->SetCurrentHealth(CurrentHealth);
 
+				// 메인위젯에 점수와 팀정보를 전달
 				UpdateMyScoreUI();
 				UpdateTeamScoreUI();
+
+				// 월드에 이미 있는 모든 비로컬 플레이어들을 순회하며 팀 UI를 설정해주자
+				TArray<AActor*> foundHeroes;
+				UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHeroBase::StaticClass(), foundHeroes);
+				for (AActor* actor : foundHeroes)
+				{
+					AHeroBase* hero = Cast<AHeroBase>(actor);
+					if (hero && !hero->IsLocallyControlled())
+					{
+						hero->ApplyTeamVisuals();
+					}
+				}
 			}
 		}
 	}
@@ -160,9 +174,11 @@ void AHeroBase::BeginPlay()
 			{
 				HealthBarWidget->InitMaxHealth(MaxHealth);
 				HealthBarWidget->SetCurrentHealth(CurrentHealth);
-				ApplyTeamVisuals();
 			}
 		}
+
+		// 태어났을 때 나의 체력바의 팀을 설정 (로컬 플레이어보다 뒤늦게 들어온 경우)
+		ApplyTeamVisuals();
 	}
 
 	// 히트스캔 컴포넌트에 필수정보 전달
@@ -261,18 +277,15 @@ void AHeroBase::PrintNetLog()
 
 void AHeroBase::PrintTeamLog()
 {
-	if (!TeamFightPlayerState)
+	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("TeamFightPlayerState IS NULL"));
-		return;
+		const FString logStr = FString::Printf(
+			TEXT("Team: %s"),
+			*UEnum::GetValueAsString(teamFightPlayerState->GetPlayerTeam())
+		);
+
+		DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
 	}
-
-	const FString logStr = FString::Printf(
-		TEXT("Team: %s"),
-		*UEnum::GetValueAsString(TeamFightPlayerState->GetPlayerTeam())
-	);
-
-	DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
 }
 
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
@@ -331,15 +344,16 @@ void AHeroBase::UpdateMyScoreUI()
 
 void AHeroBase::UpdateTeamScoreUI()
 {
-	UE_LOG(LogTemp, Warning, TEXT("AHeroBase::UpdateTeamScoreUI called"));
-	
-	// 게임 스테이트의 팀 스코어를 가져와서 UI에 업데이트한다
-	if (ShootingMainWidget && TeamFightPlayerState)
+	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
 	{
-		ShootingMainWidget->SetMyTeamScore(TeamFightPlayerState->GetMyTeamScore());
-		ShootingMainWidget->SetEnemyTeamScore(TeamFightPlayerState->GetEnemyTeamScore());
+		if (ShootingMainWidget)
+		{
+			ShootingMainWidget->SetMyTeamScore(teamFightPlayerState->GetMyTeamScore());
+			ShootingMainWidget->SetEnemyTeamScore(teamFightPlayerState->GetEnemyTeamScore());
 
-		UE_LOG(LogTemp, Warning, TEXT("AHeroBase::UpdateTeamScoreUI UI Set with %d, %d values"), TeamFightPlayerState->GetMyTeamScore(), TeamFightPlayerState->GetEnemyTeamScore());
+			UE_LOG(LogTemp, Warning, TEXT("AHeroBase::UpdateTeamScoreUI UI Set with %d, %d values"),
+			       teamFightPlayerState->GetMyTeamScore(), teamFightPlayerState->GetEnemyTeamScore());
+		}
 	}
 }
 
@@ -438,15 +452,18 @@ float AHeroBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Damag
 
 	// 같은 팀이면 리턴
 	ATeamFightPlayerState* instigatorPlayerState = Cast<ATeamFightPlayerState>(EventInstigator->PlayerState);
-	if (instigatorPlayerState != nullptr)
+	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
 	{
-		if (instigatorPlayerState->GetPlayerTeam() == TeamFightPlayerState->GetPlayerTeam())
+		if (instigatorPlayerState != nullptr)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("같은 팀이라 공격이 무시되었습니다"));
-			return 0.0f;
+			if (instigatorPlayerState->GetPlayerTeam() == teamFightPlayerState->GetPlayerTeam())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("같은 팀이라 공격이 무시되었습니다"));
+				return 0.0f;
+			}
 		}
 	}
-
+	
 	float actualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	UE_LOG(LogTemp, Warning, TEXT("%s가 %f만큼의 데미지를 입었습니다"), *GetName(), actualDamage);
 	AddHealth(-actualDamage);
@@ -518,76 +535,61 @@ UHealthBarWidget* AHeroBase::GetHealthBarUI()
 	return HealthBarWidget;
 }
 
-void AHeroBase::PossessedBy(AController* NewController)
-{
-	Super::PossessedBy(NewController);
-
-	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (서버)
-	TeamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
-
-	//ApplyTeamVisuals();
-}
-
-// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (클라이언트)
-void AHeroBase::OnRep_PlayerState()
-{
-	Super::OnRep_PlayerState();
-
-	TeamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
-
-	//ApplyTeamVisuals();
-}
-
 // 로컬 플레이어의 팀 상태를 가져와서 적 UI 외형을 설정
 void AHeroBase::ApplyTeamVisuals()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals called"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
+
 	if (IsLocallyControlled()) return;
 
 	// 로컬 플레이어의 게임 스테이트 가져오기
 	APlayerController* localPlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (localPlayerController == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: localPlayerController Null"));
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: localPlayerController Null"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
 		return;
 	}
 
 	APlayerState* localPlayerState = localPlayerController->PlayerState;
 	if (localPlayerState == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: localPlayerState Null"));
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: localPlayerState Null"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
 		return;
 	}
 
 	ATeamFightPlayerState* localTeamFightPlayerState = Cast<ATeamFightPlayerState>(localPlayerState);
 	if (localTeamFightPlayerState == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: localPlayerState cannot be cast to ATeamFightPlayerState"));
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: localPlayerState cannot be cast to ATeamFightPlayerState"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
 		return;
 	}
 
 	// 이 캐릭터의 플레이어 스테이트가 비어 있으면 리턴
-	if (TeamFightPlayerState == nullptr)
+	ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState());
+	if (teamFightPlayerState == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: TeamFightPlayerState Null"));
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: teamFightPlayerState Null"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
 		return;
 	}
 
 	// UI가 존재하는지 체크
 	if (HealthBarWidget == nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ApplyTeamVisuals: HealthBarWidget Null"));
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: HealthBarWidget Null"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
 		return;
 	}
 
 	// 로컬 플레이어와 같은 팀이면 같은편 비주얼로 설정
-	if (localTeamFightPlayerState->GetPlayerTeam() == TeamFightPlayerState->GetPlayerTeam())
+	if (localTeamFightPlayerState->GetPlayerTeam() == teamFightPlayerState->GetPlayerTeam())
 	{
 		HealthBarWidget->ApplyMyTeamMode();
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: Successfully Executed (Local Player Team)"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"));
 	}
 	// 로컬 플레이어와 다른팀이면 다른편 비주얼로 설정
 	else
 	{
 		HealthBarWidget->ApplyEnemyTeamMode();
+		UE_LOG(LogTemp, Warning, TEXT("[%s]ApplyTeamVisuals: Successfully Executed (Enemy Team)"), GetNetMode() == NM_Client?TEXT("Client"):TEXT("Server"))
 	}
 }
 

@@ -20,7 +20,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	//==변수==//
-private:
 protected:
 	UPROPERTY(ReplicatedUsing=OnRep_Score_TeamA)
 	int32 Score_TeamA = 0;

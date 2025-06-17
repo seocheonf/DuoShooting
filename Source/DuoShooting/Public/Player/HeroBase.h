@@ -75,7 +75,7 @@ private:
 	UPROPERTY()
 	class UCameraShakeSourceComponent* CameraShakeSourceComp;
 	// 슈팅 기본 UI (조준선, 내 체력, 스킬 등?)
-	UPROPERTY(EditDefaultsOnly, Category = UI)
+	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class UShootingMainWidget> ShootingMainWidgetFactory;
 	//스킬 시스템 (영웅은 스킬 시스템의 세부 내용을 직접 알 필요가 없다고 판단)
 	//스킬 시스템을 각 캐릭터마다 설정해 주세요. 적용할 스킬 시스템을 반환시켜주면 됩니다.
@@ -105,8 +105,6 @@ protected:
 	class UWidgetComponent* HealthBarWidgetComp;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	class UHealthBarWidget* HealthBarWidget;
-	UPROPERTY()
-	class ATeamFightPlayerState* TeamFightPlayerState;
 	//영웅 상태 (bitmask)
 	int32 CurrentHeroState;
 public:
@@ -173,12 +171,6 @@ public:
 
 	// 체력바(타인용) UI 가져오기
 	UHealthBarWidget* GetHealthBarUI();
-
-	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (서버)
-	virtual void PossessedBy(AController* NewController) override;
-	
-	// 플레이어 스테이트가 들어왔을 때 무엇을 할 것인가 (클라이언트)
-	virtual void OnRep_PlayerState() override;
 	
 	// 로컬 플레이어 기준에서 이 캐릭터의 적 여부를 UI에 적용하기 위해 부를 함수 
 	void ApplyTeamVisuals();

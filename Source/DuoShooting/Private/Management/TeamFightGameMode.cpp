@@ -3,7 +3,9 @@
 
 #include "Management/TeamFightGameMode.h"
 
+
 #include "GameFramework/PlayerStart.h"
+
 #include "Kismet/GameplayStatics.h"
 #include "Management/EnumContainer.h"
 #include "Management/NetworkGameInstance.h"
@@ -29,13 +31,6 @@ ATeamFightGameMode::ATeamFightGameMode()
 	{
 		HeroSourceMap.Add(EHeroInfo::Sombra, sombra.Class);
 	}
-
-	//default pawn을 PickPhasePawn으로 변경
-	ConstructorHelpers::FClassFinder<APickPhasePawn> pawn(TEXT("/Script/Engine.Blueprint'/Game/DuoShooting/Blueprints/Characters/BP_PickPhasePawn.BP_PickPhasePawn_C'"));
-	if (pawn.Succeeded())
-	{
-		DefaultPawnClass = pawn.Class; 
-	}
 	
 	//default gamestate를 TeamFightGameState로 변경
 	ConstructorHelpers::FClassFinder<ATeamFightGameState> gameState(TEXT("/Script/Engine.Blueprint'/Game/DuoShooting/Blueprints/GameStates/BP_TeamFightGameState.BP_TeamFightGameState_C'"));
@@ -43,7 +38,6 @@ ATeamFightGameMode::ATeamFightGameMode()
 	{
 		GameStateClass = gameState.Class; 
 	}
-
 }
 
 void ATeamFightGameMode::BeginPlay()
@@ -187,4 +181,52 @@ void ATeamFightGameMode::RespawnAllPlayers()
 	{
 		RespawnPlayer(each.Key);
 	}
+}
+
+EHeroInfo ATeamFightGameMode::GetPlayerHero(APlayerController* playerController)
+{
+	return PlayerSpawnHeroMaps[playerController];
+}
+
+void ATeamFightGameMode::EndGame(ETeamInfo winnerTeam)
+{
+	// 우승한 팀 정보를 게임 인스턴스로 넘김
+	if (auto gameInstance = Cast<UNetworkGameInstance>(GetGameInstance()))
+	{
+		gameInstance->SetWinnerTeam(winnerTeam);
+
+		// 팀별 랭킹 저장
+		TArray<FFinalPlayStats> Stats_TeamA;
+		for (APlayerController* playerController : Players_TeamA)
+		{
+			FFinalPlayStats stats;
+			stats.HeroInfo = PlayerSpawnHeroMaps[playerController];
+			if (auto* playerState = playerController->GetPlayerState<ATeamFightPlayerState>())
+			{
+				stats.Score = playerState->GetMyScore();
+			}
+			stats.UserName = TEXT("A팀의 아무개");
+			Stats_TeamA.Add(stats);
+		}
+
+		TArray<FFinalPlayStats> Stats_TeamB;
+		for (APlayerController* playerController : Players_TeamB)
+		{
+			FFinalPlayStats stats;
+			stats.HeroInfo = PlayerSpawnHeroMaps[playerController];
+			if (auto* playerState = playerController->GetPlayerState<ATeamFightPlayerState>())
+			{
+				stats.Score = playerState->GetMyScore();
+			}
+			stats.UserName = TEXT("B팀의 아무개");
+			Stats_TeamB.Add(stats);
+		}
+
+		// 게임인스턴스로 정보 넘기기
+		gameInstance->RememberTeamStats_Winner(winnerTeam == ETeamInfo::A ? Stats_TeamA : Stats_TeamB);
+		gameInstance->RememberTeamStats_Loser(winnerTeam == ETeamInfo::A ? Stats_TeamB : Stats_TeamA);
+	}
+
+	// 우승 세레모니로 넘어가기
+	GetWorld()->ServerTravel("/Game/DuoShooting/Maps/Integration/EndStatisticsLevel?listen?port=7777");
 }

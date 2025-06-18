@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "PulseBomb.generated.h"
 
+UENUM(BlueprintType)
 enum class EPulseBombState : uint8
 {
 	INACTIVE,
@@ -46,6 +47,7 @@ private:
 	class UProjectileMovementComponent* ProjectileMovementComp;
 
 	// 폭탄의 현재 상태
+	UPROPERTY(ReplicatedUsing=OnRep_CurrentState)
 	EPulseBombState CurrentState = EPulseBombState::INACTIVE;
 
 	// 메쉬 부착
@@ -90,8 +92,18 @@ private:
 	void Explode();
 	
 	FTimerHandle ExplosionTimerHandle;
-	
+
+	UPROPERTY()
+	class USoundBase* ExplosionSound;
+
+	void PlayExplosionEffects();
+
 public:
+	UFUNCTION()
+	void OnRep_CurrentState();
+	
 	// 던지기
 	void Launch(FVector direction, float speed, AController* instigator);
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 };

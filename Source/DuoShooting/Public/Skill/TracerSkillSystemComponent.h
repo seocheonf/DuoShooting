@@ -96,7 +96,13 @@ private:
 	FTracerRecallInfo IntervalOrigin;
 	FTracerRecallInfo IntervalTarget;
 	float RecallStepDuration;
-
+	// 사운드
+	UPROPERTY()
+	class USoundBase* BlinkSound;
+	UPROPERTY()
+	class USoundBase* RecallSound_Start;
+	UPROPERTY()
+	class USoundBase* RecallSound_End;
 protected:
 public:
 	//=====함수=====
@@ -132,12 +138,16 @@ public:
 	void MultiRPC_BlinkStart(FVector StartPos, FVector Direction);
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_BlinkEnd();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_BlinkEnd();
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_RecallStart();
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_RecallStart();
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_RecallEnd();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_RecallEnd();
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_ThrowPulseBomb();
 	// UFUNCTION(Client, Reliable)

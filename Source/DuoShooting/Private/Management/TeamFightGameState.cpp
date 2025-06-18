@@ -5,6 +5,7 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Management/TeamFightGameMode.h"
+#include "Management/TeamFightPlayerController.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/HeroBase.h"
 
@@ -12,7 +13,7 @@ void ATeamFightGameState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WaitingTime = 15.f;
+	WaitingTime = 3.0f;
 
 	CurrentRemainWaitingTime = WaitingTime;
 
@@ -84,6 +85,18 @@ void ATeamFightGameState::StartGame()
 {
 	//게임 모드로 부터 모든 플레이어를 리스폰 하라는 요청을 진행한다.
 	GetWorld()->GetAuthGameMode<ATeamFightGameMode>()->RespawnAllPlayers();
+	
+	// PJW: 모두에게 게임 시작 메시지 보내기
+	if (ATeamFightGameMode* teamFightGameMode = Cast<ATeamFightGameMode>(GetWorld()->GetAuthGameMode()))
+	{
+		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			if (ATeamFightPlayerController* pc = Cast<ATeamFightPlayerController>(Iterator->Get()))
+			{
+				pc->ServerRPC_RequestGameEnterNotice_Implementation();
+			}
+		}
+	}
 }
 
 void ATeamFightGameState::SetGameStartTimer()

@@ -7,7 +7,9 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Management/NetworkGameInstance.h"
+#include "Management/TeamFightGameMode.h"
 #include "Management/TeamFightGameState.h"
+#include "Management/TeamFightPlayerController.h"
 #include "Player/HeroBase.h"
 #include "Player/PickPhasePawn.h"
 
@@ -161,6 +163,11 @@ void UPickPhaseUI::OnClickedDecisionHeroButton()
 	
 	Owner->ServerRPC_SetPlayerHero(CurrentSelectedHeroArea->HeroInfo);
 	Owner->ServerRPC_RespawnPlayer();
+
+	if (ATeamFightPlayerController* pc = Cast<ATeamFightPlayerController>(Owner->GetController()))
+	{
+		pc->ServerRPC_RequestGameEnterNotice();
+	}
 }
 
 void UPickPhaseUI::DestroyModel()

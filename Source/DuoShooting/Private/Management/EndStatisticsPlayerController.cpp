@@ -14,7 +14,7 @@ AEndStatisticsPlayerController::AEndStatisticsPlayerController(const FObjectInit
 	{
 		ConstructorHelpers::FClassFinder<UEndStatisticsMain> tempWidget(
 			TEXT(
-				"/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_EndStatisticsMain.WBP_EndStatisticsMain_C'"));
+				"'/Game/DuoShooting/UIs/WBP_EndStatisticsMain.WBP_EndStatisticsMain_C'"));
 		if (tempWidget.Succeeded()) { EndStatisticsMainFactory = tempWidget.Class; }
 	}
 }

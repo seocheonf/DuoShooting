@@ -59,7 +59,8 @@ void UConnectionRoomUI::NativeConstruct()
 
 	//방만들기 버튼 기능 등록
 	Button_CreateRoom->OnClicked.AddDynamic(this, &UConnectionRoomUI::OnClickedCreateRoomButton);
-	
+
+	NetGameInstance->CreateAndJoinRoomFailedDelegate.AddUObject(this, &UConnectionRoomUI::RemoveCreateLoadingUI);
 }
 
 void UConnectionRoomUI::OnUserNameInput(const FText& text)
@@ -143,8 +144,20 @@ void UConnectionRoomUI::UnSelectButtonDesign(UButton* button)
 
 void UConnectionRoomUI::OnClickedCreateRoomButton()
 {
+	//로딩 UI 생성
+	CreateLoadingUI = CreateWidget(GetWorld(), OriginCreateLoadingUI);
+	CreateLoadingUI->AddToViewport(1);
+	
 	FString roomName = TextEdit_RoomName->GetText().ToString();
 	int32 maxPlayerCount = (MaxPlayerCountIndex + 1) * 2;
 	int32 startPlayerCount = (StartPlayerCountIndex + 1) * 2;
 	NetGameInstance->CreateNewSession(roomName, maxPlayerCount, startPlayerCount);
+}
+
+void UConnectionRoomUI::RemoveCreateLoadingUI()
+{
+	if (CreateLoadingUI == nullptr)
+		return;
+	CreateLoadingUI->RemoveFromParent();
+	CreateLoadingUI = nullptr;
 }

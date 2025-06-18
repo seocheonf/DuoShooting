@@ -87,11 +87,19 @@ void UNetworkGameInstance::OnCreateNewSessionComplete(FName roomName, bool bSucc
 {
 	//세션 생성 및 접속에 성공했다면
 	if (bSuccessful)
-	{	
+	{
+		//방 생성 성공 시점을 안내한다.
+		CreateAndJoinRoomCompleteDelegate.Broadcast();
+		
 		//검색을 위해 가지고 있던 정보들을 비워주자.
 		CurrentFindSessions.Empty();
 		//listen 서버로 열면서, 맵을 이동하겠다!
 		GetWorld()->ServerTravel(TEXT("/Game/DuoShooting/Maps/KHM/L_KMH_TeamFight?Listen?port=7777"));
+	}
+	else
+	{
+		//방 생성 실패 시점을 안내한다.
+		CreateAndJoinRoomFailedDelegate.Broadcast();
 	}
 }
 
@@ -182,6 +190,9 @@ void UNetworkGameInstance::OnJoinExistedSessionsComplete(FName sessionName, EOnJ
 	//만약 잘 접속 했다면
 	if (EOnJoinSessionCompleteResult::Success == result)
 	{
+		//Join 성공 시점을 안내한다.
+		CreateAndJoinRoomCompleteDelegate.Broadcast();
+		
 		APlayerController* playerController = GetWorld()->GetFirstPlayerController();
 		FString url;
 		//세션 호스트가 ServerTravle로 이동한 정보를 가져오는 것으로 추정
@@ -194,6 +205,9 @@ void UNetworkGameInstance::OnJoinExistedSessionsComplete(FName sessionName, EOnJ
 	}
 	else
 	{
+		//Join 실패 시점을 안내한다.
+		CreateAndJoinRoomFailedDelegate.Broadcast();
+		
 		UE_LOG(LogTemp, Warning, TEXT("JoinSessionComplete Failed : %d"), result);
 	}
 }

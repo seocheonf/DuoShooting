@@ -39,6 +39,16 @@ private:
 	class UCanvasPanel* Canvas_Loading;
 	UPROPERTY(Transient, meta = (BindWidgetAnim))
 	class UWidgetAnimation* AnimLoadingIcon;
+
+	//입장 로딩 캔버스
+	UPROPERTY(meta = (BindWidget))
+	class UCanvasPanel* Canvas_Entering;
+	UPROPERTY(Transient, meta = (BindWidgetAnim))
+	class UWidgetAnimation* AnimLoadingIconEnter;
+
+	//입장 중 로딩 캔버스
+	UPROPERTY(meta = (BindWidget))
+	class UUserWidget* WBP_MapLoading;
 	
 	//==함수==
 private:
@@ -53,4 +63,12 @@ private:
 	void OnUpdateExistedSessions(const TArray<struct FSessionInfo>& newSessionInfos);
 	
 public:
+
+	//입장 로딩 캔버스 켜기
+	void SetOnEnterLoadingUI();
+	//입장 로딩 캔버스 끄기
+	void SetOffEnterLoadingUI();
+
+	//입장 중 로딩 캔버스 켜기
+	void SetOnEnterUI();
 };

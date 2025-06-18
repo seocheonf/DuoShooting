@@ -42,6 +42,13 @@ private:
 	UPROPERTY()
 	class UTracerAnimInstance* TracerAnimInstance;
 protected:
+	// 점멸 이펙트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UNiagaraComponent* BlinkNiagaraComponent;
+	// 시간 역행 이펙트
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UNiagaraComponent* RecallNiagaraComponent;
+protected:
 	// 아래를 바라볼 때 일인칭 메쉬가 얼마나 뒤로 갈 것인지
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	float FirstViewSkeletalMeshCompLookDownRetractScalar = 110.0f;
@@ -55,4 +62,6 @@ public:
 private:
 protected:
 public:
+	class UNiagaraComponent* GetRecallNiagaraComponent() const { return RecallNiagaraComponent; }
+	class UNiagaraComponent* GetBlinkNiagaraComponent() const { return BlinkNiagaraComponent; }
 };

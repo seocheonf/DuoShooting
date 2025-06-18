@@ -7,6 +7,8 @@
 #include "Animations/TracerAnimInstance.h"
 #include "Components/CapsuleComponent.h"
 #include "UI/ShootingMainWidget.h"
+#include "NiagaraComponent.h"
+#include "Camera/CameraComponent.h"
 
 // Sets default values
 ATracerHero::ATracerHero()
@@ -39,6 +41,21 @@ ATracerHero::ATracerHero()
 	if (animInstance.Succeeded()) FirstViewSkeletalMeshComp->SetAnimInstanceClass(animInstance.Class);
 	FirstViewSkeletalMeshComp->bOnlyOwnerSee = true;
 	FirstViewSkeletalMeshComp->SetCastShadow(false); // 그림자 끄기
+	
+	RecallNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("RecallNiagaraComponent"));
+	RecallNiagaraComponent->SetupAttachment(GetCamera());
+	RecallNiagaraComponent->SetRelativeLocation(FVector(-40.0f, 0.0f, 0.0f));
+	RecallNiagaraComponent->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+	RecallNiagaraComponent->SetRelativeScale3D(FVector(2.0f, 2.0f, 2.0f));
+	RecallNiagaraComponent->bAutoActivate = false;
+	//ConstructorHelpers::FObjectFinder<UNiagaraSystem> tempNiagara(TEXT("/Game/DuoShooting/Materials/Characters/Skill/Tracer/NS_TracerBlinkLines.NS_TracerBlinkLines"));
+	//if (tempNiagara.Succeeded()) RecallNiagaraComponent->SetAsset(tempNiagara.Object);
+
+	BlinkNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("BlinkNiagaraComponent"));
+	BlinkNiagaraComponent->SetupAttachment(GetCamera());
+	BlinkNiagaraComponent->SetRelativeLocation(FVector(110.0f, 0.0f, 0.0f));
+	BlinkNiagaraComponent->SetRelativeRotation(FRotator(90.0f, 0.0f, 0.0f));
+	BlinkNiagaraComponent->bAutoActivate = false;
 }
 
 // Called when the game starts or when spawned

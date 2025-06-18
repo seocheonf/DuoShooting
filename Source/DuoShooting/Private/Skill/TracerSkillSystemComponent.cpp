@@ -5,8 +5,10 @@
 
 #include "InputMappingContext.h"
 #include "EnhancedInputComponent.h"
+#include "NiagaraComponent.h"
 #include "Attack/HitscanEmitterComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/TracerHero.h"
 #include "Skill/TracerSkill/PulseBomb.h"
 
@@ -61,6 +63,22 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 		ConstructorHelpers::FClassFinder<APulseBomb> TempClass(
 			TEXT("'/Game/DuoShooting/Blueprints/Characters/Skill/Tracer/BP_PulseBomb.BP_PulseBomb_C'"));
 		if (TempClass.Succeeded()) { PulseBombFactory = TempClass.Class; }
+	}
+	// 사운드
+	{
+		ConstructorHelpers::FObjectFinder<USoundBase> TempSound(
+			TEXT("'/Game/DuoShooting/Sounds/TracerBlinkSound.TracerBlinkSound'"));
+		if (TempSound.Succeeded()) { BlinkSound = TempSound.Object; }
+	}
+	{
+		ConstructorHelpers::FObjectFinder<USoundBase> TempSound(
+			TEXT("'/Game/DuoShooting/Sounds/TracerRecallSound_Start.TracerRecallSound_Start'"));
+		if (TempSound.Succeeded()) { RecallSound_Start = TempSound.Object; }
+	}
+	{
+		ConstructorHelpers::FObjectFinder<USoundBase> TempSound(
+			TEXT("'/Game/DuoShooting/Sounds/TracerRecallSound_End.TracerRecallSound_End'"));
+		if (TempSound.Succeeded()) { RecallSound_End = TempSound.Object; }
 	}
 
 	SetIsReplicated(true);
@@ -158,6 +176,9 @@ void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 	BlinkStartPos = Owner->GetActorLocation();
 
 	ServerRPC_BlinkStart(BlinkStartPos, BlinkDirection);
+
+	UGameplayStatics::PlaySoundAtLocation(this, BlinkSound, Owner->GetActorLocation());
+	if (Owner) Owner->GetBlinkNiagaraComponent()->Activate();
 }
 
 void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue& value)
@@ -203,12 +224,17 @@ void UTracerSkillSystemComponent::TickBlink()
 void UTracerSkillSystemComponent::DeactivateBlink()
 {
 	MultiRPC_BlinkEnd();
+	ClientRPC_BlinkEnd();
 }
 
 // 클라이언트 사이드 시간역행 활성화
 void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Tracer Input Recall"));
+
+	// 개인적으로 보일 이펙트
+	UGameplayStatics::PlaySoundAtLocation(this, RecallSound_Start, Owner->GetActorLocation(), 0.4f);
+	if (Owner) Owner->GetRecallNiagaraComponent()->Activate();
 	
 	// 이미 스킬이 실행중이면 리턴
 	if (CurrentSkillState != ETracerSkillState::NONE)
@@ -290,7 +316,11 @@ void UTracerSkillSystemComponent::RecallInfo()
 	IntervalTarget = Records.Pop_Back(valid);
 
 	// 서버쪽이 시간역행을 끝내면 모두에게 끝내라고 하기
-	if (Owner->HasAuthority() && !valid) MultiRPC_RecallEnd();
+	if (Owner->HasAuthority() && !valid)
+	{
+		MultiRPC_RecallEnd();
+		ClientRPC_RecallEnd();
+	}
 }
 
 void UTracerSkillSystemComponent::ToggleRecallOwnerSettings(bool isRecall)
@@ -337,6 +367,17 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 }
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }
+
+void UTracerSkillSystemComponent::ClientRPC_BlinkEnd_Implementation()
+{
+	if (Owner) Owner->GetBlinkNiagaraComponent()->Deactivate();
+}
+
+void UTracerSkillSystemComponent::ClientRPC_RecallEnd_Implementation()
+{
+	UGameplayStatics::PlaySoundAtLocation(this, RecallSound_End, Owner->GetActorLocation());
+	if (Owner) Owner->GetRecallNiagaraComponent()->Deactivate();
+}
 
 void UTracerSkillSystemComponent::MultiRPC_RecallStart_Implementation()
 {

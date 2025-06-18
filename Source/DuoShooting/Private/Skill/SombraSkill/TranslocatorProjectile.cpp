@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Skill/SombraSkillSystemComponent.h"
 
 
@@ -46,6 +47,13 @@ void ATranslocatorProjectile::BeginPlay()
 	CustomBeginPlay();
 }
 
+void ATranslocatorProjectile::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ATranslocatorProjectile, CurrentVelocity);
+}
+
 // Called every frame
 void ATranslocatorProjectile::Tick(float DeltaTime)
 {
@@ -66,7 +74,16 @@ void ATranslocatorProjectile::Tick(float DeltaTime)
 		bStop = true;
 		OnOperate();
 	}
+
+	//서버라면 갱신. OnRep함수는 서버에서 호출되지 않으므로, 서버는 서버대로 로직을 굴리며 클라이언트에 데이터를 뿌리는 형태가 됨
+	if (GetLocalRole() == ROLE_Authority)
+		CurrentVelocity = MovementComp->Velocity;
 	
+}
+
+void ATranslocatorProjectile::OnRep_SetVelocity()
+{
+	MovementComp->Velocity = CurrentVelocity;
 }
 
 void ATranslocatorProjectile::ConstructorInit()

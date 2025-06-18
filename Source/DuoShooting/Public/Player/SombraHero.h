@@ -91,9 +91,13 @@ private:
 
 	//공격 성공 시점에 할 일
 	void DoAttackSuccess();
+	//재장전 시점에 할 일
+	void DoReloadStart();
 
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_PlayAttackMontage();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_PlayReloadMontage();
 	
 protected:
 	//material alpha값 변환 (타이머 보간, 타이머 단일 실행)

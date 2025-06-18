@@ -25,7 +25,8 @@ enum class EHeroActionType : uint8
 	NormalAttackEnd,
 	NormalAttackSuccess,
 	Skill1,
-	Skill2
+	Skill2,
+	ReloadStart
 };
 
 //죽은 후 할일 후 실행할 델리게이트

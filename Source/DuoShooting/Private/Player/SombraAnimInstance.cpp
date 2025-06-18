@@ -5,7 +5,6 @@
 
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "Player/SombraHero.h"
 
 void USombraAnimInstance::NativeInitializeAnimation()
@@ -42,4 +41,9 @@ void USombraAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 void USombraAnimInstance::PlayAttackMontage()
 {
 	Montage_Play(AttackMontage);
+}
+
+void USombraAnimInstance::PlayReloadMontage()
+{
+	Montage_Play(ReloadMontage);
 }

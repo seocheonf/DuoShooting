@@ -147,7 +147,10 @@ void ASombraHero::DoAfterAction(EHeroActionType actionType)
 	case EHeroActionType::NormalAttackSuccess:
 		DoAttackSuccess();
 		break;
-	
+
+	case EHeroActionType::ReloadStart:
+		DoReloadStart();
+		
 	default:
 		break;
 	}
@@ -201,10 +204,20 @@ void ASombraHero::DoAttackSuccess()
 	MultiRPC_PlayAttackMontage();
 }
 
+void ASombraHero::DoReloadStart()
+{
+	ClientRPC_PlayReloadMontage();
+}
+
 void ASombraHero::MultiRPC_PlayAttackMontage_Implementation()
 {
 	FirstViewSkeletalAnimInstance->PlayAttackMontage();
 	ThirdViewSkeletalAnimInstance->PlayAttackMontage();
+}
+
+void ASombraHero::ClientRPC_PlayReloadMontage_Implementation()
+{
+	FirstViewSkeletalAnimInstance->PlayReloadMontage();
 }
 
 void ASombraHero::SetVisibilityAlpha(float alpha)

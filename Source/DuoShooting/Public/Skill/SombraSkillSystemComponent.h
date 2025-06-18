@@ -203,4 +203,14 @@ private:
 	//투사체 발사하여 너에게도 들릴 사운드 요청 함수
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_PlaySoundShootTranslocator();
+
+	//==클라이언트 시뮬레이션==
+private:
+	//시뮬레이션 타이머
+	FTimerHandle CoolTimer_TranslocatorPlayerSimulationTimerHandle;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_StartTranslocatorPlayerSimulate(FVector start, FVector end, float moveTime);
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_EndTranslocatorPlayerSimulate(FVector end);
 };

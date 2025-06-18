@@ -37,11 +37,33 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 	{
 		// HeroBase용 임시.. 각자 캐릭터에서 새로 지정할 것
 		ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(
-			TEXT("'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
+			TEXT("/Script/Engine.ParticleSystem'/Game/StarterContent/Particles/P_Explosion1.P_Explosion1'"));//'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
 		if (ParticleAsset.Succeeded()) { FireParticle = ParticleAsset.Object; }
 	}
 
 	SetIsReplicated(true);
+
+	//==김형모
+	//사운드 관련 데이터 가져오기
+	{
+		//발사 관련 사운드
+		ConstructorHelpers::FObjectFinder<USoundBase> soundShoot(TEXT("/Script/Engine.SoundWave'/Game/ProjectSD/Blueprints/Character/Player/Player_Shot_AR.Player_Shot_AR'"));
+		if (soundShoot.Succeeded())
+		{
+			OriginSoundShoot = soundShoot.Object;
+		}
+		ConstructorHelpers::FObjectFinder<USoundAttenuation> soundAttenuation(TEXT("/Script/Engine.SoundAttenuation'/Game/DuoShooting/Sounds/Sombra/SA_StealthEnterExit.SA_StealthEnterExit'"));
+		if (soundAttenuation.Succeeded())
+		{
+			OriginSoundAttenuation = soundAttenuation.Object;
+		}
+		//장전 사운드
+		ConstructorHelpers::FObjectFinder<USoundBase> soundReload(TEXT("/Script/Engine.SoundWave'/Game/Resources/Sounds/Weapon/AR_1005/RW_AR_1005_Reload.RW_AR_1005_Reload'"));
+		if (soundReload.Succeeded())
+		{
+			OriginSoundReload = soundReload.Object;
+		}
+	}
 }
 
 void UHitscanEmitterComponent::SetHitScanSettings(float fireInterval, float damagePerBullet, float spread,
@@ -180,6 +202,9 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 		// 라인트레이스 쏘기
 		SingleLineTrace();
 
+		//총기 사운드 발생 요청
+		MultiRPC_PlaySoundShoot();
+		
 		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
 		Owner->ServerRPC_DoAfterAction_Implementation(EHeroActionType::NormalAttackSuccess);
 	}
@@ -241,7 +266,10 @@ void UHitscanEmitterComponent::InputReload()
 {
 	if (CurrentBullet >= Owner->GetMaxBullet()) return;
 
+	if (bReloading == true) return;
+	
 	bReloading = true;
+	
 	ServerRPC_Reload();
 }
 
@@ -297,6 +325,12 @@ void UHitscanEmitterComponent::ServerRPC_Reload_Implementation()
 	FTimerHandle TempReloadHandle;
 	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Server_EndReloading, 1.0f,
 	                                       false);
+
+	
+	// 총기 장전 사운드 시작 요청
+	ClientRPC_PlaySoundReload();
+	// 장전 시작 시점 트리거
+	Owner->ServerRPC_DoAfterAction(EHeroActionType::ReloadStart);
 }
 
 void UHitscanEmitterComponent::ClientRPC_ReloadEnd_Implementation(int bulletCount)
@@ -333,4 +367,14 @@ void UHitscanEmitterComponent::DebugInfo()
 	);
 
 	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);
+}
+
+void UHitscanEmitterComponent::MultiRPC_PlaySoundShoot_Implementation()
+{
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundShoot, Owner->GetActorLocation(), 1, 1, 0, OriginSoundAttenuation);
+}
+
+void UHitscanEmitterComponent::ClientRPC_PlaySoundReload_Implementation()
+{
+	UGameplayStatics::PlaySound2D(GetWorld(), OriginSoundReload, 1, 1, 0);
 }

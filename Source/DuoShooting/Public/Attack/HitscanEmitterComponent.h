@@ -136,4 +136,21 @@ public:
 
 	// 서버용 함수들
 	void Server_EndReloading();
+
+	//==김형모
+	//총기 사운드 데이터
+	class USoundBase* OriginSoundShoot;
+	//총기 사운드 Attenation
+	class USoundAttenuation* OriginSoundAttenuation;
+
+	//총기 장전 사운드 데이터
+	class USoundBase* OriginSoundReload;
+	
+	//총기 사운드 발생 요청
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_PlaySoundShoot();
+
+	//총기 장전 사운드 발생 요청
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_PlaySoundReload();
 };

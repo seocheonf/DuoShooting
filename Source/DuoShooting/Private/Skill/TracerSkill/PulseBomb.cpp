@@ -183,7 +183,7 @@ void APulseBomb::Explode()
 	);
 
 	// 시각화
-	DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 30, FColor::Red, false, 1.0f);
+	//DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 30, FColor::Red, false, 1.0f);
 
 	// 없어지기
 	StaticMeshComp->SetVisibility(false);

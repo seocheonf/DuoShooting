@@ -67,7 +67,8 @@ void USkillCoolTimeUI::SetCoolTimeText(int32 remainTime, bool bEmpty)
 		Text_CoolTime->SetText(FText::GetEmpty());
 		return;
 	}
-	Text_CoolTime->SetText(FText::FromString(FString::FromInt(remainTime + 1)));
+	if (Text_CoolTime != nullptr)
+		Text_CoolTime->SetText(FText::FromString(FString::FromInt(remainTime + 1)));
 }
 
 

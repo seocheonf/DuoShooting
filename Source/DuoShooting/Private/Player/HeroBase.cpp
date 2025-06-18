@@ -203,7 +203,7 @@ void AHeroBase::Tick(float DeltaTime)
 
 #if WITH_EDITOR
 	//PrintNetLog();
-	PrintTeamLog();
+	//PrintTeamLog();
 #endif
 }
 

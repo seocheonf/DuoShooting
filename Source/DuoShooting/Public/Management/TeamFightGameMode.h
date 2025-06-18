@@ -33,7 +33,7 @@ private:
 	int32 CurrentPlayerCount = 0;
 
 	// 이기기 위해 모아야할 점수
-	int32 TargetWinScore = 5;
+	int32 TargetWinScore = 2;
 
 	// 팀 A의 멤버들
 	UPROPERTY()

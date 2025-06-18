@@ -12,7 +12,7 @@ void ATeamFightGameState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WaitingTime = 3.f;
+	WaitingTime = 15.f;
 
 	CurrentRemainWaitingTime = WaitingTime;
 

@@ -229,9 +229,6 @@ void UTracerSkillSystemComponent::InputBlink(const FInputActionValue& value)
 	BlinkStartPos = Owner->GetActorLocation();
 
 	ServerRPC_BlinkStart(BlinkStartPos, BlinkDirection);
-
-	UGameplayStatics::PlaySoundAtLocation(this, BlinkSound, Owner->GetActorLocation());
-	if (Owner) Owner->GetBlinkNiagaraComponent()->Activate();
 }
 
 void UTracerSkillSystemComponent::InputPulseBomb(const struct FInputActionValue& value)
@@ -277,17 +274,12 @@ void UTracerSkillSystemComponent::TickBlink()
 void UTracerSkillSystemComponent::DeactivateBlink()
 {
 	MultiRPC_BlinkEnd();
-	ClientRPC_BlinkEnd();
 }
 
 // 클라이언트 사이드 시간역행 활성화
 void UTracerSkillSystemComponent::InputRecall(const FInputActionValue& value)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Tracer Input Recall"));
-
-	// 개인적으로 보일 이펙트
-	UGameplayStatics::PlaySoundAtLocation(this, RecallSound_Start, Owner->GetActorLocation(), 0.4f);
-	if (Owner) Owner->GetRecallNiagaraComponent()->Activate();
 	
 	// 이미 스킬이 실행중이면 리턴
 	if (CurrentSkillState != ETracerSkillState::NONE)
@@ -328,6 +320,13 @@ void UTracerSkillSystemComponent::ActivateRecall()
 		RecallStepDuration, true);
 
 	ToggleRecallOwnerSettings(true);
+
+	if (Owner && Owner->IsLocallyControlled())
+	{
+		// 로컬에서만 보일 이펙트
+		UGameplayStatics::PlaySoundAtLocation(this, RecallSound_Start, Owner->GetActorLocation(), 0.4f);
+		if (Owner) Owner->GetRecallNiagaraComponent()->Activate();
+	}
 }
 
 // 평상시에 큐에 위치 기록
@@ -416,7 +415,6 @@ void UTracerSkillSystemComponent::RecallInfo()
 		//=======
 		
 		MultiRPC_RecallEnd();
-		ClientRPC_RecallEnd();
 	}
 }
 
@@ -461,6 +459,13 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 		RecordInterval, true);
 
 	ToggleRecallOwnerSettings(false);
+
+	if (Owner && Owner->IsLocallyControlled())
+	{
+		// 로컬에서만 보일 이펙트
+		UGameplayStatics::PlaySoundAtLocation(this, RecallSound_End, Owner->GetActorLocation());
+		if (Owner) Owner->GetRecallNiagaraComponent()->Deactivate();
+	}
 }
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }
@@ -526,17 +531,6 @@ void UTracerSkillSystemComponent::ClientRPC_SetBlinkIconGage_Implementation(floa
 // 	}
 // }
 
-void UTracerSkillSystemComponent::ClientRPC_BlinkEnd_Implementation()
-{
-	if (Owner) Owner->GetBlinkNiagaraComponent()->Deactivate();
-}
-
-void UTracerSkillSystemComponent::ClientRPC_RecallEnd_Implementation()
-{
-	UGameplayStatics::PlaySoundAtLocation(this, RecallSound_End, Owner->GetActorLocation());
-	if (Owner) Owner->GetRecallNiagaraComponent()->Deactivate();
-}
-
 void UTracerSkillSystemComponent::MultiRPC_RecallStart_Implementation()
 {
 	ActivateRecall();
@@ -550,6 +544,11 @@ void UTracerSkillSystemComponent::MultiRPC_RecallEnd_Implementation()
 void UTracerSkillSystemComponent::MultiRPC_BlinkEnd_Implementation()
 {
 	CurrentSkillState = ETracerSkillState::NONE;
+
+	if (Owner && Owner->IsLocallyControlled())
+	{
+		if (Owner) Owner->GetBlinkNiagaraComponent()->Deactivate();
+	}
 }
 
 void UTracerSkillSystemComponent::MultiRPC_BlinkStart_Implementation(FVector StartPos, FVector Direction)
@@ -559,13 +558,18 @@ void UTracerSkillSystemComponent::MultiRPC_BlinkStart_Implementation(FVector Sta
 	// 전달받은 위치와 방향을 두고 시작
 	Owner->SetActorLocation(StartPos);
 	BlinkDirection = Direction;
+
+	// 클라이언트 RPC 대용
+	if (Owner && Owner->IsLocallyControlled())
+	{
+		// 로컬에서만 보일 이펙트
+		UGameplayStatics::PlaySoundAtLocation(this, BlinkSound, Owner->GetActorLocation());
+		if (Owner) Owner->GetBlinkNiagaraComponent()->Activate();
+	}
 }
 
 void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 {
-	if (!bPulseBomb)
-		return;
-
 	if (!bPulseBomb)
 		return;
 
@@ -609,10 +613,10 @@ void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
 
 	// 일단 앞의 적당한 방향에 던져보는 걸로
-	FVector TempDir = Owner->GetActorForwardVector();
+	FVector TempDir = Owner->GetControlRotation().Vector();
 	TempDir.Z = TempDir.Z + 1.0f;
 	if (bomb)
-		bomb->Launch(TempDir, 500.0f, Owner->Controller);
+		bomb->Launch(TempDir, 550.0f, Owner->Controller);
 }
 
 void UTracerSkillSystemComponent::ServerRPC_BlinkStart_Implementation(FVector StartPos, FVector Direction)

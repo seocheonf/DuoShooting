@@ -46,13 +46,13 @@ struct FFinalPlayStats
 	GENERATED_BODY()
 
 	UPROPERTY()
-	FString UserName;
+	FString UserName = TEXT("");
 
 	UPROPERTY()
-	int32 Score;
+	int32 Score = 0;
 
 	UPROPERTY()
-	EHeroInfo HeroInfo;
+	EHeroInfo HeroInfo = EHeroInfo::Tracer;
 };
 
 /**

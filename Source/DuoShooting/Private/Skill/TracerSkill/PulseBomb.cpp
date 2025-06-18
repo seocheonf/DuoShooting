@@ -2,8 +2,9 @@
 
 
 #include "Skill/TracerSkill/PulseBomb.h"
-#include "Components/SphereComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
+
+#include "Attack/RepProjectileMovementComponent.h"
+#include "Attack/RepSphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Particles/ParticleSystem.h"
@@ -15,17 +16,17 @@ APulseBomb::APulseBomb()
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	SphereComp = CreateDefaultSubobject<URepSphereComponent>(TEXT("SphereComp"));
 	SetRootComponent(SphereComp);
-	SphereComp->SetIsReplicated(true);
+	//SphereComp->SetIsReplicated(true);
 
 	StaticMeshComp = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComp"));
 	StaticMeshComp->SetupAttachment(SphereComp);
 
-	ProjectileMovementComp = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComp"));
+	ProjectileMovementComp = CreateDefaultSubobject<URepProjectileMovementComponent>(TEXT("ProjectileMovementComp"));
 	ProjectileMovementComp->bShouldBounce = false;
 	ProjectileMovementComp->SetUpdatedComponent(SphereComp);
-	ProjectileMovementComp->SetIsReplicated(true);
+	//ProjectileMovementComp->SetIsReplicated(true);
 	// ProjectileMovement->bRotationFollowsVelocity = true;
 	// ProjectileMovement->ProjectileGravityScale = 1.0f; // Bomb drops over time
 	// ProjectileMovement->InitialSpeed = 1000.f;

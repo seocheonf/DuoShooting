@@ -41,7 +41,7 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 		if (ParticleAsset.Succeeded()) { FireParticle = ParticleAsset.Object; }
 	}
 
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 
 	//==김형모
 	//사운드 관련 데이터 가져오기

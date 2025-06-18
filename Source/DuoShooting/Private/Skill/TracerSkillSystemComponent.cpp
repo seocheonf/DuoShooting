@@ -83,7 +83,7 @@ UTracerSkillSystemComponent::UTracerSkillSystemComponent()
 		if (TempSound.Succeeded()) { RecallSound_End = TempSound.Object; }
 	}
 
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 
 	//==김형모
 	//스킬 아이콘 받아오기

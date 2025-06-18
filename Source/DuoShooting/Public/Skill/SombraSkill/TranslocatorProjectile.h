@@ -19,6 +19,9 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -60,6 +63,13 @@ private:
 
 	//operate를 했는지 여부. 한번 operate하면, 더이상 operate가 되지 말아야 함. 그 친구의 역할은 한번 하고 끝나니까.  
 	bool bOperation = false;
+
+	//현재 속도를 클라이언트에 동기화
+	UPROPERTY(ReplicatedUsing=OnRep_SetVelocity)
+	FVector CurrentVelocity;
+	//서버상 현재 속도를 클라이언트상 속도에 적용
+	UFUNCTION()
+	void OnRep_SetVelocity();
 	
 	//==초기화==
 #if WITH_EDITOR

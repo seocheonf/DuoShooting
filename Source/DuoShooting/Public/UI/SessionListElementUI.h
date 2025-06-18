@@ -40,13 +40,17 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UButton* Button_Join;
 
+	//본인을 생성해준 UI
+	class UConnectionRoomFindSessionUI* ConnectionRoomFindSessionUI;
+	
 	//==함수==
 private:
 	//입장 버튼 누를 시, 세션 및 맵 입장.
 	UFUNCTION()
 	void JoinExistedSession();
+	
 public:
 	//기본 값을 설정하는 함수. 초기화 함수 정도로 생각하면 좋음
-	void Set(const struct FSessionInfo& sessionInfo);
+	void Set(const struct FSessionInfo& sessionInfo, UConnectionRoomFindSessionUI* connectionRoomFindSessionUI);
 	
 };

@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Management/NetworkGameInstance.h"
+#include "UI/ConnectionRoomFindSessionUI.h"
 #include "UI/PingUI.h"
 
 void USessionListElementUI::NativeConstruct()
@@ -19,14 +20,18 @@ void USessionListElementUI::NativeConstruct()
 	}
 
 	Button_Join->OnClicked.AddDynamic(this, &USessionListElementUI::JoinExistedSession);
+
 }
 
 void USessionListElementUI::JoinExistedSession()
 {
+	//입장 로딩 UI 띄우기
+	ConnectionRoomFindSessionUI->SetOnEnterLoadingUI();
+	
 	NetGameInstance->JoinExistedSessions(SessionID_Index);
 }
 
-void USessionListElementUI::Set(const FSessionInfo& sessionInfo)
+void USessionListElementUI::Set(const FSessionInfo& sessionInfo, UConnectionRoomFindSessionUI* connectionRoomFindSessionUI)
 {
 	Text_RoomName->SetText(FText::FromString(sessionInfo.RoomName));
 	Text_HostName->SetText(FText::FromString(sessionInfo.HostUserName));
@@ -36,4 +41,8 @@ void USessionListElementUI::Set(const FSessionInfo& sessionInfo)
 	PingUI->SetPingUI(sessionInfo.PingSpeed);
 	
 	SessionID_Index = sessionInfo.ID_Index;
+
+	//==
+
+	ConnectionRoomFindSessionUI = connectionRoomFindSessionUI;
 }

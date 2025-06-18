@@ -35,6 +35,10 @@ struct FSessionInfo
 //세션 검색 모두 끝났을 때 호출될 델리게이트
 DECLARE_MULTICAST_DELEGATE_OneParam(FFindAndSetExistedSessionsComplete, const TArray<FSessionInfo>&);
 
+//일반적으로 상황에 맞게 호출될 델리게이트
+DECLARE_MULTICAST_DELEGATE(FAfterCompleteDelegate);
+
+
 // PJW: 승리 정보
 USTRUCT()
 struct FFinalPlayStats
@@ -134,4 +138,9 @@ public:
 	ETeamInfo GetWinnerTeam() const { return WinnerTeam; }
 	const TArray<FFinalPlayStats>& GetWinnerTeamStats() const { return WinnerTeamStats; }
 	const TArray<FFinalPlayStats>& GetLoserTeamStats() const { return LoserTeamStats; }
+
+	//Join Room이나 Create Room에 성공했을 때 호출 되는 델리게이트
+	FAfterCompleteDelegate CreateAndJoinRoomFailedDelegate;
+	//Join Room이나 Create Room에 실패했을 때 호출 되는 델리게이트
+	FAfterCompleteDelegate CreateAndJoinRoomCompleteDelegate;
 };

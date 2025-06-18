@@ -144,4 +144,17 @@ private:
 	//방 만들기 버튼 클릭 시 해야 할 일
 	UFUNCTION()
 	void OnClickedCreateRoomButton();
+
+
+	//===방생성 로딩 UI
+	//생성 로딩 위젯
+private:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UUserWidget> OriginCreateLoadingUI;
+	class UUserWidget* CreateLoadingUI;
+
+private:
+	//생성 로딩 위젯 제거
+	UFUNCTION()
+	void RemoveCreateLoadingUI();
 };

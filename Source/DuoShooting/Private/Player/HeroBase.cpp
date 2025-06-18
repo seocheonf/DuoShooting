@@ -259,6 +259,8 @@ void AHeroBase::InputJump(const FInputActionValue& value)
 	Jump();
 }
 
+#if WITH_EDITOR
+
 void AHeroBase::PrintNetLog()
 {
 	const FString isConnectedStr = GetNetConnection() ? TEXT("연결됨") : TEXT("연결되지 않음");
@@ -287,6 +289,9 @@ void AHeroBase::PrintTeamLog()
 		DrawDebugString(GetWorld(), GetActorLocation(), logStr, nullptr, FColor::Yellow, 0, true, 1);
 	}
 }
+
+#endif
+
 
 void AHeroBase::InitSkillSystemInput(class UInputComponent* playerInputComponent)
 {

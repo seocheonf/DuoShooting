@@ -321,12 +321,19 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 		}
 		
 		StartStealth();
+
+		//클라이언트에도 이동 시뮬레이션을 중단하라고 요청해 두세요.
+		MultiRPC_EndTranslocatorPlayerSimulate(end);
 	};
 
 	doTimerTick.BindLambda(TickTranslocator);
 	notifyTimerEnd.BindLambda(EndTranslocator);
 	
 	CoolTimerManagerComp->RegisterCoolTimerAll(timerHandle, 0.f, MoveTime, 0.0003f, doTimerTick, notifyTimerEnd);
+
+	
+	//클라이언트에 움직임 시뮬레이션을 요청해 두세요.
+	MultiRPC_StartTranslocatorPlayerSimulate(start, end, MoveTime);
 }
 
 void USombraSkillSystemComponent::SetDetectionLayer(EDetection newDetection, bool bSwitch)
@@ -578,8 +585,6 @@ void USombraSkillSystemComponent::HackTick(float deltaTime)
 	*/
 }
 
-
-
 void USombraSkillSystemComponent::ClientRPC_PlaySoundWhileTP_Implementation()
 {
 	UGameplayStatics::PlaySound2D(GetWorld(), OriginSoundWhileTP);
@@ -588,6 +593,51 @@ void USombraSkillSystemComponent::ClientRPC_PlaySoundWhileTP_Implementation()
 void USombraSkillSystemComponent::MultiRPC_PlaySoundShootTranslocator_Implementation()
 {
 	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundShootTranslocator, TargetPlayer->GetActorLocation(), 1.0f, 1.0f, 0.0f, OriginSoundAttenuation);
+}
+
+void USombraSkillSystemComponent::MultiRPC_StartTranslocatorPlayerSimulate_Implementation(FVector start, FVector end, float moveTime)
+{
+	//만약 서버라면 무시하세요.
+	if (SombraPlayer->GetLocalRole() == ROLE_Authority)
+		return;
+
+	//만약 이전에 한게 남아있다면 없애주세요
+	if (CoolTimer_TranslocatorPlayerSimulationTimerHandle.IsValid())
+		CoolTimerManagerComp->RemoveTimer(CoolTimer_TranslocatorPlayerSimulationTimerHandle);		
+
+
+	//캐릭터 이동에 대한 서버에서의 lerp로직을 클라이언트에서 쓸 겁니다.
+	auto timerTick = [&, start, end, moveTime](float deltaTime, float currentTime)
+	{
+		FVector nextEnd = FMath::Lerp(start, end, currentTime / moveTime);
+		TargetPlayer->SetActorLocation(nextEnd);
+	};
+	//마지막이면 위치도 정확히!
+	auto timerEnd = [&, end](float existedTime)
+	{
+		TargetPlayer->SetActorLocation(end);	
+	};
+
+	FDoTimerTick doTimerTick;
+	doTimerTick.BindLambda(timerTick);
+	FNotifyTimerEnd doNotifyEnd;
+	doNotifyEnd.BindLambda(timerEnd);
+	//이동 시간만큼 지나면 알아서 꺼지도록 하는 커스텀 쿨 타이머를 쓸거에요.	
+	CoolTimerManagerComp->RegisterCoolTimerAll(CoolTimer_TranslocatorPlayerSimulationTimerHandle, 0, moveTime, 0.003f, doTimerTick, doNotifyEnd);
+}
+
+void USombraSkillSystemComponent::MultiRPC_EndTranslocatorPlayerSimulate_Implementation(FVector end)
+{
+	//만약 서버라면 무시하세요.
+	if (SombraPlayer->GetLocalRole() == ROLE_Authority)
+		return;
+
+	//만약 이전에 한게 남아있다면 없애주세요
+	if (CoolTimer_TranslocatorPlayerSimulationTimerHandle.IsValid())
+		CoolTimerManagerComp->RemoveTimer(CoolTimer_TranslocatorPlayerSimulationTimerHandle);
+
+	//마지막으로 혹시모르니 직접 동기화를 해줘 봅시다.
+	TargetPlayer->SetActorLocation(end);
 }
 
 

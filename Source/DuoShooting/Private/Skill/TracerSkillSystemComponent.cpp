@@ -406,7 +406,7 @@ void UTracerSkillSystemComponent::MultiRPC_BlinkStart_Implementation(FVector Sta
 void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 {
 	FVector TempStart;
-	TempStart = Owner->GetActorLocation() + Owner->GetActorForwardVector() * 100;
+	TempStart = Owner->GetActorLocation() + Owner->GetControlRotation().Vector() * 100;
 	APulseBomb* bomb = GetWorld()->SpawnActor<APulseBomb>(PulseBombFactory, TempStart, Owner->GetActorRotation());
 
 	// 일단 앞의 적당한 방향에 던져보는 걸로

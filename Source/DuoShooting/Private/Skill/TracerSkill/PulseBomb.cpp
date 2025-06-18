@@ -5,6 +5,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Particles/ParticleSystem.h"
 
 
@@ -30,11 +31,17 @@ APulseBomb::APulseBomb()
 	// ProjectileMovement->InitialSpeed = 1000.f;
 	// ProjectileMovement->MaxSpeed = 1000.f;
 
+	{
+		ConstructorHelpers::FObjectFinder<USoundBase> TempSound(
+			TEXT("'/Game/StarterContent/Audio/Explosion02.Explosion02'"));
+		if (TempSound.Succeeded()) { ExplosionSound = TempSound.Object; }
+	}
+
 	bReplicates = true;
 	SetReplicatingMovement(true);
 	
 	ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(
-		TEXT("'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
+		TEXT("'/Game/LargeFile/ParagonDrongo/FX/Particles/Abilities/Grenade/FX/P_Drongo_Grenade_Explode.P_Drongo_Grenade_Explode'"));
 	if (ParticleAsset.Succeeded()) { FireParticle = ParticleAsset.Object; }
 }
 
@@ -57,8 +64,49 @@ void APulseBomb::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void APulseBomb::PlayExplosionEffects()
+{
+	if (FireParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, StaticMeshComp->GetComponentLocation());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("FireParticle is null"));
+	}
+	if (ExplosionSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, GetActorLocation());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("ExplosionSound is null"));
+	}
+}
+
+// 클라이언트 사이드에서 처리해줄 것
+void APulseBomb::OnRep_CurrentState()
+{
+	switch (CurrentState)
+	{
+	case EPulseBombState::FLYING:
+		break;
+	case EPulseBombState::ATTACHING:
+		break;
+	case EPulseBombState::ATTACHED:
+		break;
+	case EPulseBombState::EXPLODING:
+		PlayExplosionEffects();
+		UE_LOG(LogTemp, Error, TEXT("CurrentState changed to explision"));
+		break;
+	}
+}
+
+// 핵심 로직은 전부 서버에서 처리
 void APulseBomb::Launch(FVector direction, float speed, AController* instigator)
 {
+	if (GetLocalRole() != ROLE_Authority) return;
+	
 	direction.Normalize();
 	ProjectileMovementComp->Velocity = direction * speed;
 
@@ -71,6 +119,13 @@ void APulseBomb::Launch(FVector direction, float speed, AController* instigator)
 	InstigatorController = instigator;
 
 	CurrentState = EPulseBombState::FLYING;
+}
+
+void APulseBomb::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(APulseBomb, CurrentState);
 }
 
 void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UPrimitiveComponent* otherComp,
@@ -92,7 +147,7 @@ void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UP
 	// 목표물에 붙이기
 	AttachToComponent(otherComp, FAttachmentTransformRules::KeepWorldTransform);
 	
-	StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
+	//StaticMeshComp->SetWorldLocation(hit.ImpactPoint);
 	
 	// FVector SurfaceNormal = hit.ImpactNormal;
 	// FRotator AttachRot = SurfaceNormal.ToOrientationRotator();
@@ -104,13 +159,12 @@ void APulseBomb::OnHit(UPrimitiveComponent* hitComponent, AActor* otherActor, UP
 
 void APulseBomb::Explode()
 {
+	if (GetLocalRole() != ROLE_Authority) return;
+	
 	CurrentState = EPulseBombState::EXPLODING;
 	UE_LOG(LogTemp, Warning, TEXT("펄스 폭탄 터짐!"));
 
-	if (FireParticle)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), FireParticle, StaticMeshComp->GetComponentLocation());
-	}
+	PlayExplosionEffects();
 	
 	// 터지기
 	// 반경 내의 Authority를 가진 액터들에게만 범위형 공격을 가합니다
@@ -132,14 +186,15 @@ void APulseBomb::Explode()
 	DrawDebugSphere(GetWorld(), GetActorLocation(), Radius, 30, FColor::Red, false, 1.0f);
 
 	// 없어지기
-	if (IsValid(this)) Destroy();
-	// // 임시로 터진 뒤 1초 뒤 없애자
-	// GetWorldTimerManager().SetTimer(
-	// 	ExplosionTimerHandle,
-	// 	[this]() { if (IsValid(this)) Destroy(); },
-	// 	1.0f,
-	// 	false
-	// );
+	StaticMeshComp->SetVisibility(false);
+	
+	// 일정 시간이 지난 뒤 없애자
+	GetWorldTimerManager().SetTimer(
+		ExplosionTimerHandle,
+		[this]() { if (IsValid(this)) Destroy(); },
+		3.0f,
+		false
+	);
 }
 
 

@@ -61,14 +61,16 @@ void UConnectionRoomFindSessionUI::OnUpdateExistedSessions(const TArray<FSession
 
 void UConnectionRoomFindSessionUI::SetOnEnterLoadingUI()
 {
-	Canvas_Entering->SetVisibility(ESlateVisibility::Visible);
-	PlayAnimation(AnimLoadingIconEnter, 0, 0);
+	WBP_MapLoading->SetVisibility(ESlateVisibility::Visible);
+	//Canvas_Entering->SetVisibility(ESlateVisibility::Visible);
+	//PlayAnimation(AnimLoadingIconEnter, 0, 0);
 }
 
 void UConnectionRoomFindSessionUI::SetOffEnterLoadingUI()
 {
-	Canvas_Entering->SetVisibility(ESlateVisibility::Visible);
-	StopAnimation(AnimLoadingIconEnter);
+	WBP_MapLoading->SetVisibility(ESlateVisibility::Hidden);
+	//Canvas_Entering->SetVisibility(ESlateVisibility::Visible);
+	//StopAnimation(AnimLoadingIconEnter);
 
 	NetGameInstance->CreateAndJoinRoomCompleteDelegate.Clear();
 }

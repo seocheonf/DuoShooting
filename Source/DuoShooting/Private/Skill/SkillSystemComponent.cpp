@@ -59,6 +59,16 @@ void USkillSystemComponent::BeginPlay()
 	}
 }
 
+void USkillSystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	if (SkillUI != nullptr)
+	{
+		SkillUI->RemoveFromParent();
+	}
+}
+
 // Called every frame
 void USkillSystemComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                           FActorComponentTickFunction* ThisTickFunction)
@@ -190,7 +200,7 @@ void USkillSystemComponent::DoAfterTargetPlayerDie()
 {
 	if (TargetPlayer != nullptr && SkillUI != nullptr)
 	{
-		SkillUI->RemoveFromParent();
+		SkillUI->SetVisibility(ESlateVisibility::Hidden);// ->RemoveFromParent();
 	}
 }
 

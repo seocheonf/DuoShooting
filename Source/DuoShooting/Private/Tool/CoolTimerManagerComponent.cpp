@@ -24,6 +24,19 @@ void UCoolTimerManagerComponent::BeginPlay()
 	
 }
 
+void UCoolTimerManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	for (auto each : CoolTimerContentsMap)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(each.Key);
+		each.Value = nullptr;
+	}
+
+	CoolTimerContentsMap.Empty();
+}
+
 
 // Called every frame
 void UCoolTimerManagerComponent::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -178,3 +191,4 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 	CoolTimerContentsMap.Add(timerHandle, coolTimerContents);
 
 };
+

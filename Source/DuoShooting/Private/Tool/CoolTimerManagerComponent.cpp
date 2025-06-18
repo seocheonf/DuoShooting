@@ -155,16 +155,20 @@ void UCoolTimerManagerComponent::RegisterCoolTimerAll(FTimerHandle& timerHandle,
 			coolTimerContents->CurrentTime += GetWorld()->DeltaTimeSeconds;
 			if (coolTimerContents->DoTimerTick.IsBound())
 			{
-				coolTimerContents->DoTimerTick.Execute(GetWorld()->DeltaTimeSeconds, coolTimerContents->CurrentTime);
+				if (GetWorld())
+					coolTimerContents->DoTimerTick.Execute(GetWorld()->DeltaTimeSeconds, coolTimerContents->CurrentTime);
 			}
 			if (coolTimerContents->CurrentTime >= coolTimerContents->EndTime)
 			{
-				float excessDeltaTime = coolTimerContents->CurrentTime - coolTimerContents->EndTime;
-				GetWorld()->GetTimerManager().ClearTimer(timerHandle);
-				FNotifyTimerEnd notifyEnd = RemoveTimer(coolTimerContents->TimerHandle);
-				if (notifyEnd.IsBound())
+				if (GetWorld())
 				{
-					notifyEnd.Execute(excessDeltaTime);
+					float excessDeltaTime = coolTimerContents->CurrentTime - coolTimerContents->EndTime;
+					GetWorld()->GetTimerManager().ClearTimer(timerHandle);
+					FNotifyTimerEnd notifyEnd = RemoveTimer(coolTimerContents->TimerHandle);
+					if (notifyEnd.IsBound())
+					{
+						notifyEnd.Execute(excessDeltaTime);
+					}
 				}
 			}
 			

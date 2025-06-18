@@ -47,7 +47,7 @@ void ATeamFightGameMode::BeginPlay()
 	//내가 서버라면, 게임 인스턴스로 부터 최소 시작 인원수를 갱신한다.
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		//StartPlayerCount = GetGameInstance<UNetworkGameInstance>()->GetStartPlayerCount();
+		StartPlayerCount = GetGameInstance<UNetworkGameInstance>()->GetStartPlayerCount();
 	}
 }
 

@@ -4,6 +4,7 @@
 #include "Management/NetworkGameInstance.h"
 #include "OnlineSessionSettings.h"
 #include "Online/OnlineSessionNames.h"
+#include "Tool/CoolTimerManager.h"
 
 
 void UNetworkGameInstance::Init()
@@ -25,6 +26,12 @@ void UNetworkGameInstance::Init()
 		SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UNetworkGameInstance::OnJoinExistedSessionsComplete);
 	}
 
+
+	//쿨타이머 시스템 주기적 가비지 회수 처리 추가 함수
+	
+	FTickerDelegate TickerDelegate;
+	TickerDelegate.BindStatic(&CoolTimerManager::TickCheckTimerContents);
+	FTSTicker::GetCoreTicker().AddTicker(TickerDelegate, 5.f);
 	
 }
 

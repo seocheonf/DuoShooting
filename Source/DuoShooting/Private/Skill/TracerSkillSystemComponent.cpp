@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Player/TracerHero.h"
 #include "Skill/TracerSkill/PulseBomb.h"
+#include "Tool/CoolTimerManager.h"
 #include "Tool/CoolTimerManagerComponent.h"
 #include "UI/MiniSkillCoolTimeUI.h"
 
@@ -403,14 +404,9 @@ void UTracerSkillSystemComponent::RecallInfo()
 				//스킬 온 사운드 재생
 				ClientRPC_PlaySoundSkillOn();
 			};
-
-			FDoTimerTick cool_timerDo;
-			FNotifyTimerEnd cool_timerEnd;
-			cool_timerDo.BindLambda(cool_tick);
-			cool_timerEnd.BindLambda(cool_end);
-
+			
 			//만들어둔 쿨타이머 기능을 활용
-			CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, RecallCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+			CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), cool_TimerHandle, cool_tick, cool_end, 0.003f, 0, RecallCoolTime);
 		}
 		//=======
 		
@@ -500,17 +496,13 @@ void UTracerSkillSystemComponent::SetBlinkTimer()
 		//스킬 온 사운드 재생
 		ClientRPC_PlaySoundSkillOn();
 
+		CoolTimerManager::ClearCoolTimer(BlinkCoolTimerHandle);
 		if (BlinkCount < MaxBlinkCount)
 			SetBlinkTimer();
 	};
 
-	FDoTimerTick cool_timerDo;
-	FNotifyTimerEnd cool_timerEnd;
-	cool_timerDo.BindLambda(cool_tick);
-	cool_timerEnd.BindLambda(cool_end);
-
 	//만들어둔 쿨타이머 기능을 활용
-	CoolTimerManagerComp->RegisterCoolTimerAll(BlinkCoolTimerHandle, 0, BlinkCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+	CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), BlinkCoolTimerHandle, cool_tick, cool_end, 0.003f, 0, BlinkCoolTime);
 }
 
 void UTracerSkillSystemComponent::ClientRPC_SetBlinkCountUI_Implementation(int32 count)
@@ -599,13 +591,8 @@ void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 			ClientRPC_PlaySoundSkillOn();
 		};
 
-		FDoTimerTick cool_timerDo;
-		FNotifyTimerEnd cool_timerEnd;
-		cool_timerDo.BindLambda(cool_tick);
-		cool_timerEnd.BindLambda(cool_end);
-
 		//만들어둔 쿨타이머 기능을 활용
-		CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, PulseBombCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+		CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), cool_TimerHandle, cool_tick, cool_end, 0.003f, 0, PulseBombCoolTime);
 	}
 	
 	FVector TempStart;

@@ -18,9 +18,6 @@ USkillSystemComponent::USkillSystemComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// ...
-	
-	CoolTimerManagerComp = CreateDefaultSubobject<UCoolTimerManagerComponent>(TEXT("CoolTimerManagerComp"));
-
 
 	ConstructorHelpers::FClassFinder<USkillSystemBaseUI> ui(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/DuoShooting/UIs/WBP_SkillSystemBaseUI.WBP_SkillSystemBaseUI_C'"));
 	if (ui.Succeeded())

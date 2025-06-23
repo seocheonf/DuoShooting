@@ -81,12 +81,13 @@ AHeroBase::AHeroBase()
 	// 체력바
 	HealthBarWidgetComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarWidgetComp->SetupAttachment(RootComponent);
-	HealthBarWidgetComp->SetRelativeLocation(FVector(0.0f, 0.0f, 104.0f));
-	HealthBarWidgetComp->SetRelativeScale3D(FVector(1.0f, 0.13f, 0.02f));
+	HealthBarWidgetComp->SetRelativeLocation(FVector(0.0f, 0.0f, 114.0f));
+	HealthBarWidgetComp->SetRelativeScale3D(FVector(1.0f, 0.2f, 0.2f));
 	HealthBarWidgetComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	ConstructorHelpers::FClassFinder<UUserWidget> TempHealthBar(
 		TEXT("'/Game/DuoShooting/UIs/WBP_HealthBarWidget.WBP_HealthBarWidget_C'"));
 	if (TempHealthBar.Succeeded()) { HealthBarWidgetComp->SetWidgetClass(TempHealthBar.Class); }
+	HealthBarWidgetComp->SetDrawSize(FVector2D(1000.0f, 500.0f));
 }
 
 void AHeroBase::NotifyControllerChanged()
@@ -109,6 +110,9 @@ void AHeroBase::NotifyControllerChanged()
 
 void AHeroBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// 배치파일로 실행시 서버쪽에는 고장난 메인위젯이 하나(?) 더 깔리는 오류가 생겨 추가해봄
+	DestroyShootingMainWidget();
+	
 	Super::EndPlay(EndPlayReason);
 
 	GetWorld()->GetTimerManager().ClearTimer(RespawnTimerHandle);
@@ -127,58 +131,14 @@ void AHeroBase::BeginPlay()
 	// 로컬이면 체력바를 끄고 메인위젯을 생성
 	if (IsLocallyControlled())
 	{
-		if (HealthBarWidgetComp)
-		{
-			HealthBarWidgetComp->SetVisibility(false);
-		}
+		if (HealthBarWidgetComp) HealthBarWidgetComp->SetVisibility(false);
 
-		// 슈팅 위젯 생성
-		if (ShootingMainWidgetFactory)
-		{
-			ShootingMainWidget = CreateWidget<UShootingMainWidget>(GetWorld(), ShootingMainWidgetFactory);
-			if (ShootingMainWidget != nullptr)
-			{
-				ShootingMainWidget->AddToViewport(); // ZOrder?
-
-				// 메인위젯에 총탄, 체력 기본값 전달
-				ShootingMainWidget->InitMaxBullet(MaxBullet);
-				ShootingMainWidget->InitMaxHealth(MaxHealth);
-				ShootingMainWidget->SetCurrentHealth(CurrentHealth);
-
-				// 메인위젯에 점수와 팀정보를 전달
-				UpdateMyScoreUI();
-				UpdateTeamScoreUI();
-
-				// 월드에 이미 있는 모든 비로컬 플레이어들을 순회하며 팀 UI를 설정해주자
-				TArray<AActor*> foundHeroes;
-				UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHeroBase::StaticClass(), foundHeroes);
-				for (AActor* actor : foundHeroes)
-				{
-					AHeroBase* hero = Cast<AHeroBase>(actor);
-					if (hero && !hero->IsLocallyControlled())
-					{
-						hero->ApplyTeamVisuals();
-					}
-				}
-			}
-		}
+		CreateShootingMainWidget();
 	}
 	// 로컬이 아니면 체력바를 초기화
 	else
 	{
-		if (HealthBarWidgetComp)
-		{
-			HealthBarWidgetComp->InitWidget();
-			HealthBarWidget = Cast<UHealthBarWidget>(HealthBarWidgetComp->GetWidget());
-			if (HealthBarWidget)
-			{
-				HealthBarWidget->InitMaxHealth(MaxHealth);
-				HealthBarWidget->SetCurrentHealth(CurrentHealth);
-			}
-		}
-
-		// 태어났을 때 나의 체력바의 팀을 설정 (로컬 플레이어보다 뒤늦게 들어온 경우)
-		ApplyTeamVisuals();
+		CreateHealthBarWidget();
 	}
 
 	// 히트스캔 컴포넌트에 필수정보 전달
@@ -324,7 +284,7 @@ void AHeroBase::OnRep_CurrentHealth()
 	UpdateCurrentHealthUI();
 }
 
-void AHeroBase::UpdateCurrentHealthUI()
+void AHeroBase::UpdateCurrentHealthUI() const
 {
 	if (ShootingMainWidget) // 주인공인 경우 메인 UI를 업데이트
 		ShootingMainWidget->SetCurrentHealth(CurrentHealth);
@@ -334,7 +294,71 @@ void AHeroBase::UpdateCurrentHealthUI()
 		UE_LOG(LogTemp, Warning, TEXT("ShootingMainWidget Null"));
 }
 
-void AHeroBase::UpdateMyScoreUI()
+void AHeroBase::CreateHealthBarWidget()
+{
+	if (HealthBarWidgetComp)
+	{
+		HealthBarWidgetComp->InitWidget();
+		HealthBarWidget = Cast<UHealthBarWidget>(HealthBarWidgetComp->GetWidget());
+		if (HealthBarWidget)
+		{
+			HealthBarWidget->InitMaxHealth(MaxHealth);
+			HealthBarWidget->SetCurrentHealth(CurrentHealth);
+			UpdateUserNameUI();
+		}
+	}
+
+	// 태어났을 때 나의 체력바의 팀을 설정 (로컬 플레이어보다 뒤늦게 들어온 경우)
+	ApplyTeamVisuals();
+}
+
+void AHeroBase::CreateShootingMainWidget()
+{
+	// 슈팅 위젯 생성
+	if (ShootingMainWidgetFactory)
+	{
+		ShootingMainWidget = CreateWidget<UShootingMainWidget>(GetWorld(), ShootingMainWidgetFactory);
+		if (ShootingMainWidget != nullptr)
+		{
+			ShootingMainWidget->AddToViewport(); // ZOrder?
+
+			// 메인위젯에 총탄, 체력 기본값 전달
+			ShootingMainWidget->InitMaxBullet(MaxBullet);
+			ShootingMainWidget->InitMaxHealth(MaxHealth);
+			ShootingMainWidget->SetCurrentHealth(CurrentHealth);
+				
+			// 메인위젯에 점수와 팀정보를 전달
+			UpdateMyScoreUI();
+			UpdateTeamScoreUI();
+
+			// 월드에 이미 있는 모든 비로컬 플레이어들을 순회하며 팀 UI를 설정해주자
+			TArray<AActor*> foundHeroes;
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), AHeroBase::StaticClass(), foundHeroes);
+			for (AActor* actor : foundHeroes)
+			{
+				AHeroBase* hero = Cast<AHeroBase>(actor);
+				if (hero && !hero->IsLocallyControlled())
+				{
+					hero->ApplyTeamVisuals();
+				}
+			}
+		}
+	}
+}
+
+void AHeroBase::DestroyShootingMainWidget()
+{
+	if (ShootingMainWidget)
+	{
+		if (ShootingMainWidget->IsInViewport())
+		{
+			ShootingMainWidget->RemoveFromParent();
+		}
+		ShootingMainWidget = nullptr;
+	}
+}
+
+void AHeroBase::UpdateMyScoreUI() const
 {
 	// 플레이어 스테이트의 점수를 가져와서 UI에 업데이트한다
 	if (ShootingMainWidget)
@@ -347,7 +371,7 @@ void AHeroBase::UpdateMyScoreUI()
 	}
 }
 
-void AHeroBase::UpdateTeamScoreUI()
+void AHeroBase::UpdateTeamScoreUI() const
 {
 	if (ATeamFightPlayerState* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
 	{
@@ -507,6 +531,20 @@ void AHeroBase::SetHealth(float hp)
 void AHeroBase::AddHealth(float hp)
 {
 	SetHealth(CurrentHealth + hp);
+}
+
+// 로컬 플레이어가 아닌 다른 애들의 이름을 머리 위에 보여주기
+void AHeroBase::UpdateUserNameUI() const
+{
+	if (IsLocallyControlled()) return;
+
+	if (HealthBarWidget)
+	{
+		if (auto* teamFightPlayerState = Cast<ATeamFightPlayerState>(GetPlayerState()))
+		{
+			HealthBarWidget->SetUserName(teamFightPlayerState->GetUserName());
+		}
+	}
 }
 
 //==김형모==

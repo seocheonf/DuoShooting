@@ -6,6 +6,7 @@
 #include "Management/TeamFightGameState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/HeroBase.h"
+#include "UI/HealthBarWidget.h"
 #include "UI/ShootingMainWidget.h"
 
 void ATeamFightPlayerState::SetPlayerTeam(ETeamInfo newTeam)
@@ -13,35 +14,32 @@ void ATeamFightPlayerState::SetPlayerTeam(ETeamInfo newTeam)
 	if (!HasAuthority()) return;
 	
 	PlayerTeam = newTeam;
-	OnRep_PlayerTeam();
 }
 
 void ATeamFightPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
+	DOREPLIFETIME(ATeamFightPlayerState, UserName);
 	DOREPLIFETIME(ATeamFightPlayerState, PlayerTeam);
 	DOREPLIFETIME(ATeamFightPlayerState, MyScore);
 }
 
-void ATeamFightPlayerState::OnRep_PlayerTeam()
+void ATeamFightPlayerState::OnRep_UserName()
 {
-	
+	if (AHeroBase* hero = Cast<AHeroBase>(GetPawn()))
+	{
+		hero->UpdateUserNameUI();
+	}
 }
 
+// 점수가 업데이트되면 UI도 없데이트하기
 void ATeamFightPlayerState::OnRep_MyScore()
 {
 	// 로컬 플레이어의 게임스테이트라면
 	if (IsOwnedBy(GetWorld()->GetFirstPlayerController()))
 	{
-		APawn* playerPawn = GetPawn();
-		if (playerPawn == nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("ATeamFightPlayerState::OnRep_MyScore: playerPawn null"));
-			return;
-		}
-	
-		if (AHeroBase* hero = Cast<AHeroBase>(playerPawn))
+		if (AHeroBase* hero = Cast<AHeroBase>(GetPawn()))
 		{
 			hero->UpdateMyScoreUI();
 			UE_LOG(LogTemp, Warning, TEXT("ATeamFightPlayerState::OnRep_MyScore: Successfully executed"));
@@ -116,4 +114,19 @@ int32 ATeamFightPlayerState::GetEnemyTeamScore() const
 	}
 
 	return enemyTeamScore;
+}
+
+void ATeamFightPlayerState::SetUserName(const FString& newUserName)
+{
+	if (!HasAuthority()) return;
+	
+	UserName = newUserName;
+
+	// 서버에서는 OnRep이 안불리므로 직접 불러준다
+	OnRep_UserName();
+}
+
+const FString& ATeamFightPlayerState::GetUserName()
+{
+	return UserName;
 }

@@ -16,6 +16,7 @@
 #include "Player/PickPhasePawn.h"
 #include "Player/SombraHero.h"
 #include "Player/TracerHero.h"
+#include "Algo/Sort.h"
 
 ATeamFightGameMode::ATeamFightGameMode()
 {
@@ -193,38 +194,31 @@ void ATeamFightGameMode::EndGame(ETeamInfo winnerTeam)
 	// 우승한 팀 정보를 게임 인스턴스로 넘김
 	if (auto gameInstance = Cast<UNetworkGameInstance>(GetGameInstance()))
 	{
-		gameInstance->SetWinnerTeam(winnerTeam);
+		// 승리한 팀 리스트 가져오기
+		TArray<APlayerController*> Winners = winnerTeam == ETeamInfo::A ? Players_TeamA : Players_TeamB;
 
-		// 팀별 랭킹 저장
-		TArray<FFinalPlayStats> Stats_TeamA;
-		for (APlayerController* playerController : Players_TeamA)
+		// 승리한 팀원의 필수 정보(캐릭터, 점수, 유저이름) 모으기
+		TArray<FFinalPlayStats> Stats_Winners;
+		for (APlayerController* playerController : Winners)
 		{
 			FFinalPlayStats stats;
 			stats.HeroInfo = PlayerSpawnHeroMaps[playerController];
 			if (auto* playerState = playerController->GetPlayerState<ATeamFightPlayerState>())
 			{
 				stats.Score = playerState->GetMyScore();
+				stats.UserName = playerState->GetUserName();
 			}
-			stats.UserName = TEXT("A팀의 아무개");
-			Stats_TeamA.Add(stats);
+			Stats_Winners.Add(stats);
 		}
 
-		TArray<FFinalPlayStats> Stats_TeamB;
-		for (APlayerController* playerController : Players_TeamB)
+		// 점수 내림차순 정렬
+		Algo::Sort(Stats_Winners, [](const FFinalPlayStats& A, const FFinalPlayStats& B)
 		{
-			FFinalPlayStats stats;
-			stats.HeroInfo = PlayerSpawnHeroMaps[playerController];
-			if (auto* playerState = playerController->GetPlayerState<ATeamFightPlayerState>())
-			{
-				stats.Score = playerState->GetMyScore();
-			}
-			stats.UserName = TEXT("B팀의 아무개");
-			Stats_TeamB.Add(stats);
-		}
-
-		// 게임인스턴스로 정보 넘기기
-		gameInstance->RememberTeamStats_Winner(winnerTeam == ETeamInfo::A ? Stats_TeamA : Stats_TeamB);
-		gameInstance->RememberTeamStats_Loser(winnerTeam == ETeamInfo::A ? Stats_TeamB : Stats_TeamA);
+			return A.Score > B.Score;
+		});
+		
+		// 정렬된 리스트를 게임인스턴스로 넘기기
+		gameInstance->RememberTeamStats_Winner(Stats_Winners);
 	}
 
 	// 우승 세레모니로 넘어가기

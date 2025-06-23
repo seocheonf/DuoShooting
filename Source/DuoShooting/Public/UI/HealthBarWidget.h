@@ -20,6 +20,10 @@ protected:
 	// 블루프린트에서 바인드
 	UPROPERTY(BlueprintReadOnly)
 	int32 CurrentHealth;
+
+	// 유저 이름
+	UPROPERTY(meta=(BindWidget))
+	class UTextBlock* UserNameTextBlock;
 	
 	// 체력
 	UPROPERTY(meta=(BindWidget))
@@ -27,11 +31,14 @@ protected:
 
 public:
 	// 초반에 해줄 것
-	void InitMaxHealth(float hp);
+	void InitMaxHealth(float maxHealth);
 
 	// 지속적으로 해줄 것
 	void SetCurrentHealth(float hp);
 
+	// 지속적으로 해줄 것
+	void SetUserName(const FString& UserName) const;
+	
 	// 같은팀용 UI 모드로 설정
 	void ApplyMyTeamMode();
 

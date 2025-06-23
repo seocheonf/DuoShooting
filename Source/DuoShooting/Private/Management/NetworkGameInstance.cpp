@@ -33,6 +33,11 @@ void UNetworkGameInstance::SetUserName(FString newUserName)
 	UserName = newUserName;
 }
 
+const FString& UNetworkGameInstance::GetUserName() const
+{
+	return UserName;
+}
+
 const TArray<FSessionInfo>& UNetworkGameInstance::GetSessionInfos()
 {
 	return CurrentFindSessions;
@@ -217,19 +222,7 @@ int32 UNetworkGameInstance::GetStartPlayerCount()
 	return StartPlayerCount;
 }
 
-void UNetworkGameInstance::SetWinnerTeam(ETeamInfo winner)
-{
-	WinnerTeam = winner;
-}
-
 void UNetworkGameInstance::RememberTeamStats_Winner(const TArray<FFinalPlayStats>& stats)
 {
 	WinnerTeamStats = stats;
-	UE_LOG(LogTemp, Warning, TEXT("Winner Stats Remembered length: %d"), WinnerTeamStats.Num());
-}
-
-void UNetworkGameInstance::RememberTeamStats_Loser(const TArray<FFinalPlayStats>& stats)
-{
-	LoserTeamStats = stats;
-	UE_LOG(LogTemp, Warning, TEXT("Loser Stats Remembered length: %d"), LoserTeamStats.Num());
 }

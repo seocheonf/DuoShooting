@@ -119,7 +119,10 @@ private:
 	void RemoveCurrentHeroState(EHeroState oldState);
 	UFUNCTION()
 	void OnRep_CurrentHealth();
-	void UpdateCurrentHealthUI();
+	void UpdateCurrentHealthUI() const;
+	void CreateHealthBarWidget();
+	void CreateShootingMainWidget();
+	void DestroyShootingMainWidget();
 protected:
 	// 서버쪽에서 실행할 부활 함수
 	virtual void Server_ReSpawn();
@@ -141,17 +144,20 @@ public:
 	UHitscanEmitterComponent* GetHitscanEmitter() const { return HitscanEmitterComp; }
 	UShootingMainWidget* GetShootingMainWidget() const { return ShootingMainWidget; }
 	float GetDefaultSpeed() const { return DefaultSpeed; }
-	// 체력 Get/Set
+	//체력 Get/Set
 	float GetHealth();
 	void SetHealth(float hp);
 	void AddHealth(float hp);
-	// 개인 스코어 UI 업데이트하기
-	void UpdateMyScoreUI();
-	// 개인 스코어 UI 업데이트하기
-	void UpdateTeamScoreUI();
+	// PJW: 유저이름, 스코어 등의 UI 업데이트를 플레이어 스테이트나 게임 스테이트 내부에서 처리하지 않고 히어로의 함수로 처리한 이유는, 히어로가 태어날 때 UI 초기화를 위해 BeginPlay에서도 인위적으로 불러 주기 위함
+	//유저이름 UI 업데이트하기
+	void UpdateUserNameUI() const;
+	//개인 스코어 UI 업데이트하기
+	void UpdateMyScoreUI() const;
+	//개인 스코어 UI 업데이트하기
+	void UpdateTeamScoreUI() const;
 	//데미지 입기
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-	// 최대 총알 Get
+	//최대 총알 Get
 	int32 GetMaxBullet() const { return MaxBullet; }
 	
 	//==김형모==

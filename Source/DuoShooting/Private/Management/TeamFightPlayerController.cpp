@@ -3,7 +3,9 @@
 
 #include "Management/TeamFightPlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Management/NetworkGameInstance.h"
 #include "Management/TeamFightGameMode.h"
+#include "Management/TeamFightPlayerState.h"
 #include "UI/TeamFightNoticeUI.h"
 
 void ATeamFightPlayerController::ShowNoticeUI(const FString& message, float duration)
@@ -37,6 +39,21 @@ void ATeamFightPlayerController::BeginPlay()
 		{
 			NoticeUIWidget->AddToViewport();
 		}
+	}
+
+	// 서버에게 유저 이름을 알린다
+	if (UNetworkGameInstance* netGameInstance = Cast<UNetworkGameInstance>(GetWorld()->GetGameInstance()))
+	{
+		ServerRPC_SendUserName(netGameInstance->GetUserName());
+	}
+}
+
+void ATeamFightPlayerController::ServerRPC_SendUserName_Implementation(const FString& UserName)
+{
+	// 서버는 클라이언트로부터 유저이름을 받아 플레이어 스테이트에 저장
+	if (ATeamFightPlayerState* teamFightPlayerState = GetPlayerState<ATeamFightPlayerState>())
+	{
+		teamFightPlayerState->SetUserName(UserName);
 	}
 }
 

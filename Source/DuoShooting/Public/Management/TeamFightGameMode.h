@@ -28,7 +28,7 @@ private:
 	// 팀 관련
 
 	// 최소 시작 인원
-	int32 StartPlayerCount = 0;
+	int32 StartPlayerCount = 1;
 	// 현재 입장 인원
 	int32 CurrentPlayerCount = 0;
 
@@ -44,6 +44,8 @@ private:
 	TArray<APlayerController*> Players_TeamB;
 
 	//==함수==//
+	
+	
 public:
 	//대상이 되는 플레이어의 영웅 정보를 갱신하는 함수
 	void SetPlayerHero(APlayerController* playerController, EHeroInfo playerHero);

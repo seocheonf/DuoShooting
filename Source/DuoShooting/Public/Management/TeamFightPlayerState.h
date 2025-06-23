@@ -15,8 +15,12 @@ class DUOSHOOTING_API ATeamFightPlayerState : public APlayerState
 {
 	GENERATED_BODY()
 
+	//사용자 이름
+	UPROPERTY(ReplicatedUsing=OnRep_UserName)
+	FString UserName;
+	
 protected:
-	UPROPERTY(ReplicatedUsing=OnRep_PlayerTeam)
+	UPROPERTY(Replicated)
 	ETeamInfo PlayerTeam;
 
 	// 개인 스코어(킬수)
@@ -30,7 +34,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION()
-	void OnRep_PlayerTeam();
+	void OnRep_UserName();
 
 	UFUNCTION()
 	void OnRep_MyScore();
@@ -41,4 +45,7 @@ public:
 
 	int32 GetMyTeamScore() const;
 	int32 GetEnemyTeamScore() const;
+
+	void SetUserName(const FString& newUserName);
+	const FString& GetUserName();
 };

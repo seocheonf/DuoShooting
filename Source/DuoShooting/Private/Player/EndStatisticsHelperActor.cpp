@@ -3,11 +3,10 @@
 
 #include "Player/EndStatisticsHelperActor.h"
 
+#include "Components/WidgetComponent.h"
 #include "Net/UnrealNetwork.h"
-#include "Player/RepChildActorComponent.h"
 #include "Player/SombraHero.h"
 #include "UI/EndStatisticsIndividual.h"
-#include "UI/RepWidgetComponent.h"
 
 // Sets default values
 AEndStatisticsHelperActor::AEndStatisticsHelperActor()
@@ -29,13 +28,13 @@ AEndStatisticsHelperActor::AEndStatisticsHelperActor()
 	}
 	
 	// 캐릭터를 넣을 컴포넌트의 껍데기만 만들어 두자
-	ChildActorComponent = CreateDefaultSubobject<URepChildActorComponent>(TEXT("ChildActorComponent"));
+	ChildActorComponent = CreateDefaultSubobject<UChildActorComponent>(TEXT("ChildActorComponent"));
 	SetRootComponent(ChildActorComponent);
-	//ChildActorComponent->SetIsReplicated(true);
+	ChildActorComponent->SetIsReplicated(true);
 	ChildActorComponent->SetVisibility(true);
 	
 	// 위젯 컴포넌트를 생성자에서 만들어 놓기만 하자
-	WidgetComponent = CreateDefaultSubobject<URepWidgetComponent>(TEXT("WidgetComponent"));
+	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("WidgetComponent"));
 	WidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	ConstructorHelpers::FClassFinder<UEndStatisticsIndividual> TempWidget(
@@ -44,7 +43,7 @@ AEndStatisticsHelperActor::AEndStatisticsHelperActor()
 	WidgetComponent->SetupAttachment(RootComponent);
 	WidgetComponent->SetRelativeLocation(FVector(40.0f, 50.0f, 20.0f));
 	WidgetComponent->SetRelativeScale3D(FVector(1.0f, 0.3f, 0.3f));
-	//WidgetComponent->SetIsReplicated(true);
+	WidgetComponent->SetIsReplicated(true);
 	WidgetComponent->SetVisibility(true);
 }
 

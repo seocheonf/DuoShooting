@@ -11,6 +11,15 @@
  * 연사 간격, 최대거리, 한발당 공격력 등 설정가능
  */
 
+UENUM(BlueprintType)
+enum class EHitscanEmitterState : uint8
+{
+	IDLE UMETA(DisplayName = "기본"),
+	TRIGGERED UMETA(DisplayName = "사격 눌림 상태"),
+	RELOADING UMETA(DisplayName = "재장전 상태"),
+	BLOCKED UMETA(DisplayName = "사용 불가")
+};
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class DUOSHOOTING_API UHitscanEmitterComponent : public UActorComponent
 {
@@ -29,120 +38,80 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
+	/// ==========공통==========
 private:
+	EHitscanEmitterState State = EHitscanEmitterState::IDLE;
+
 	UPROPERTY()
 	class AHeroBase* Owner;
 	
 	UPROPERTY()
 	class UCameraComponent* OwnerCamera;
 
-	/// ----------인풋----------
-	UPROPERTY(EditAnywhere, Category = Input)
-	class UInputAction* IA_Fire;
-	UPROPERTY(EditAnywhere, Category = Input)
-	class UInputAction* IA_Reload;
-	
-	// 연사 시작/정지
-	void InputFire_Started();
-	void InputFire_Completed();
-
-	// 리로드
-	void InputReload();
-	
-	// 사격 가능한지 (인풋 막기용)
-	//UPROPERTY(Replicated)
-	bool bEnabled = true;
-	
-	// 사격이 트리거되었는지 (트리거되어있으면 연사)
-	//UPROPERTY(Replicated)
-	bool bTriggered = false;
-
-	bool bReloading = false;
-
-	/// ----------총알----------
-	// 현재 총알 개수
-	UPROPERTY(EditAnywhere)
-	int32 CurrentBullet = 100;
-
-	void SetCurrentBullet(int32 bullets);
-
-	// 한발 쏘기
-	void SingleLineTrace();
-
-	// 재장전
-	void StartReload();
-
-	void EndReload();
-	
-	void TickHitScan(float dt);
-
-	/// ----------세부설정----------
-	// 연사 간격
-	float FireInterval = 0.025f;
-	float FireTimer = 1000.0f; // 충분히 큰 수
-
-	// 최대 거리
-	float MaxDistance = 10000.0f;
-
-	// 한발당 공격력
-	float DamagePerBullet = 5.0f;
-
-	// 방향 정확도 (0일 떄 완전히 정확함 숫자가 커질수록 난사)
-	float Spread = 2.0f;
-
-	// ----------이펙트----------
-	UPROPERTY(EditDefaultsOnly)
-	class UParticleSystem* FireParticle = nullptr;
-
-	UPROPERTY()
-	class UCameraShakeSourceComponent* CameraShakeSourceComp;
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<class UCameraShakeBase> FireCameraShake;
-	
-	// ----------UI----------
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;
 
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	// 현재 총알 개수
+	UPROPERTY(EditAnywhere)
+	int32 CurrentBullet = 100;
+	void SetCurrentBullet(int32 bullets);
 
-	void DebugInfo();
-	
 public:
-	// 인풋 전달
-	void SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent);
-
 	// 액터에서 필요한 인스턴스 전달받음
 	void Initialize(UShootingMainWidget* mainWidgetInst, UCameraShakeSourceComponent* camShakeSourceInst);
 
-	void SetHitScanSettings(float fireInterval, float damagePerBullet, float spread, float maxDist);
+	// 인풋 전달
+	void SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent);
 	
-	// 사격 활성화/비활성화
-	void Enable();
-	void Disable();
+	/// ==========총기==========
+private:
+	void InputFire_Started();
+	void InputFire_Completed();
 
-	/// 네트워크
+	void TickHitScan(float dt);
+	void SingleLineTrace();
+
+	// 네트워크
 	UFUNCTION(Server, Reliable)
-	void ServerRPC_FireHitScan(bool triggered);
+	void ServerRPC_InputFireStarted();
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_RequestSingleLineTrace();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_ReceiveSingleLineTraceResult();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_ReceiveSingleLineTraceResult(FVector hitLocation);	
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_InputFireCompleted();
+
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_FireHitScan(int bulletCount);
-	UFUNCTION(NetMulticast, Reliable)
-	void MultiRPC_FireEffects(FVector hitLocation);
+	
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Fire;
 
-	UFUNCTION(Server, Reliable)
-	void ServerRPC_Reload();
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_ReloadEnd(int bulletCount);
+	// 연사 간격
+	float FireInterval = 0.025f;
+	float FireTimer = 1000.0f; // 충분히 큰 수
+	// 최대 거리
+	float MaxDistance = 10000.0f;
+	// 한발당 공격력
+	float DamagePerBullet = 5.0f;
+	// 방향 정확도 (0일 떄 완전히 정확함 숫자가 커질수록 난사)
+	float Spread = 2.0f;
 
-	// 서버용 함수들
-	void Server_EndReloading();
+	// 이펙트
+	UPROPERTY(EditDefaultsOnly)
+	class UParticleSystem* FireParticle = nullptr;
+	UPROPERTY()
+	class UCameraShakeSourceComponent* CameraShakeSourceComp;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UCameraShakeBase> FireCameraShake;
 
 	//==김형모
 	//총기 사운드 데이터
 	class USoundBase* OriginSoundShoot;
 	//총기 사운드 Attenation
 	class USoundAttenuation* OriginSoundAttenuation;
-
 	//총기 장전 사운드 데이터
 	class USoundBase* OriginSoundReload;
 	
@@ -153,4 +122,38 @@ public:
 	//총기 장전 사운드 발생 요청
 	UFUNCTION(Client, Reliable)
 	void ClientRPC_PlaySoundReload();
+
+public:
+	void SetHitScanSettings(float fireInterval, float damagePerBullet, float spread, float maxDist);
+	
+	/// ==========리로드==========
+private:
+	void InputReload();
+
+	void StartReload();
+	void EndReload();
+	void Server_EndReloading();
+
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Reload();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_ReloadEnd(int bulletCount);
+	
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Reload;
+	
+	/// ==========이 컴포넌트 활성화/비활성화==========
+private:
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Enable();
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_Disable();
+
+public:
+	void Enable();
+	void Disable();
+
+	/// ==========기타==========
+private:
+	void DebugInfo();
 };

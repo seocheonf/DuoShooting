@@ -37,7 +37,8 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 	{
 		// HeroBase용 임시.. 각자 캐릭터에서 새로 지정할 것
 		ConstructorHelpers::FObjectFinder<UParticleSystem> ParticleAsset(
-			TEXT("/Script/Engine.ParticleSystem'/Game/StarterContent/Particles/P_Explosion1.P_Explosion1'"));//'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
+			TEXT("/Script/Engine.ParticleSystem'/Game/StarterContent/Particles/P_Explosion1.P_Explosion1'"));
+		//'/Game/StarterContent/Particles/P_Explosion.P_Explosion'"));
 		if (ParticleAsset.Succeeded()) { FireParticle = ParticleAsset.Object; }
 	}
 
@@ -47,18 +48,21 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 	//사운드 관련 데이터 가져오기
 	{
 		//발사 관련 사운드
-		ConstructorHelpers::FObjectFinder<USoundBase> soundShoot(TEXT("/Script/Engine.SoundWave'/Game/ProjectSD/Blueprints/Character/Player/Player_Shot_AR.Player_Shot_AR'"));
+		ConstructorHelpers::FObjectFinder<USoundBase> soundShoot(TEXT(
+			"/Script/Engine.SoundWave'/Game/ProjectSD/Blueprints/Character/Player/Player_Shot_AR.Player_Shot_AR'"));
 		if (soundShoot.Succeeded())
 		{
 			OriginSoundShoot = soundShoot.Object;
 		}
-		ConstructorHelpers::FObjectFinder<USoundAttenuation> soundAttenuation(TEXT("/Script/Engine.SoundAttenuation'/Game/DuoShooting/Sounds/Sombra/SA_StealthEnterExit.SA_StealthEnterExit'"));
+		ConstructorHelpers::FObjectFinder<USoundAttenuation> soundAttenuation(TEXT(
+			"/Script/Engine.SoundAttenuation'/Game/DuoShooting/Sounds/Sombra/SA_StealthEnterExit.SA_StealthEnterExit'"));
 		if (soundAttenuation.Succeeded())
 		{
 			OriginSoundAttenuation = soundAttenuation.Object;
 		}
 		//장전 사운드
-		ConstructorHelpers::FObjectFinder<USoundBase> soundReload(TEXT("/Script/Engine.SoundWave'/Game/Resources/Sounds/Weapon/AR_1005/RW_AR_1005_Reload.RW_AR_1005_Reload'"));
+		ConstructorHelpers::FObjectFinder<USoundBase> soundReload(TEXT(
+			"/Script/Engine.SoundWave'/Game/Resources/Sounds/Weapon/AR_1005/RW_AR_1005_Reload.RW_AR_1005_Reload'"));
 		if (soundReload.Succeeded())
 		{
 			OriginSoundReload = soundReload.Object;
@@ -145,7 +149,7 @@ void UHitscanEmitterComponent::SingleLineTrace()
 				{
 					if (instigatorPlayerState->GetPlayerTeam() != hitPlayerState->GetPlayerTeam())
 					{
-						MultiRPC_FireEffects(Result.Location);
+						MultiRPC_ReceiveSingleLineTraceResult(Result.Location);
 					}
 				}
 			}
@@ -153,7 +157,7 @@ void UHitscanEmitterComponent::SingleLineTrace()
 		// 히어로가 아닌 일반 사물이 맞았을 경우
 		else
 		{
-			MultiRPC_FireEffects(Result.Location);
+			MultiRPC_ReceiveSingleLineTraceResult(Result.Location);
 		}
 	}
 }
@@ -161,9 +165,8 @@ void UHitscanEmitterComponent::SingleLineTrace()
 void UHitscanEmitterComponent::StartReload()
 {
 	// 이미 리로딩 중이면 리턴
-	if (bReloading) return;
-
-	bReloading = true;
+	if (State == EHitscanEmitterState::RELOADING || State == EHitscanEmitterState::BLOCKED) return;
+	State = EHitscanEmitterState::RELOADING;
 
 	ServerRPC_Reload();
 }
@@ -179,14 +182,13 @@ void UHitscanEmitterComponent::EndReload()
 	UE_LOG(LogTemp, Warning, TEXT("재장전 완료"));
 }
 
+// 로컬 컨트롤러가 발사 시점을 결정하고, 서버 -> 모두에게 알림
 void UHitscanEmitterComponent::TickHitScan(float dt)
 {
-	// 서버에서만 돌아가는 코드
-	if (!Owner->HasAuthority()) return;
-	if (!bEnabled) return;
-	if (!bTriggered) return;
-	if (bReloading) return;
+	if (Owner == nullptr) return;
+	if (!Owner->IsLocallyControlled()) return;
 	if (CurrentBullet <= 0) return;
+	if (State != EHitscanEmitterState::TRIGGERED) return;
 
 	// 트리거되어있다면 연사
 	FireTimer += dt;
@@ -195,27 +197,10 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 		// 타이머 초기화
 		FireTimer = 0.0f;
 
-		// 총알 쓰기
-		SetCurrentBullet(CurrentBullet - 1);
-		ClientRPC_FireHitScan(CurrentBullet);
-
-		// 라인트레이스 쏘기
-		SingleLineTrace();
-
-		//총기 사운드 발생 요청
-		MultiRPC_PlaySoundShoot();
-		
-		//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
-		Owner->ServerRPC_DoAfterAction_Implementation(EHeroActionType::NormalAttackSuccess);
+		// 서버면 직접 Implementation 실행, 아니면 서버 RPC로 총 쏘기 리퀘스트
+		if (Owner->HasAuthority()) ServerRPC_RequestSingleLineTrace_Implementation();
+		else ServerRPC_RequestSingleLineTrace();
 	}
-}
-
-void UHitscanEmitterComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	//DOREPLIFETIME(UHitscanEmitterComponent, bEnabled);
-	//DOREPLIFETIME(UHitscanEmitterComponent, bTriggered);
 }
 
 void UHitscanEmitterComponent::SetupHitscanInputInfo(UEnhancedInputComponent* enhancedInputComponent)
@@ -239,55 +224,82 @@ void UHitscanEmitterComponent::Initialize(UShootingMainWidget* mainWidgetInst,
 
 void UHitscanEmitterComponent::InputFire_Started()
 {
-	// 이미 트리거되어 있다면 리턴
-	if (bTriggered) return;
-	bTriggered = true;
-	UE_LOG(LogTemp, Warning, TEXT("InputFire_Started"));
+	// 기본 상태에서만 총 쏘기 가능
+	if (State != EHitscanEmitterState::IDLE) return;
+	State = EHitscanEmitterState::TRIGGERED;
 
-	ServerRPC_FireHitScan(true);
-
+	ServerRPC_InputFireStarted();
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackStart);
 }
 
 void UHitscanEmitterComponent::InputFire_Completed()
 {
-	// 이미 트리거되어있지 않다면 리턴
-	if (!bTriggered) return;
-	bTriggered = false;
+	// 트리거되어있을 때만 실행
+	if (State != EHitscanEmitterState::TRIGGERED) return;
+	State = EHitscanEmitterState::IDLE;
+
 	FireTimer = 1000.0f; // 충분히 큰 수
-	UE_LOG(LogTemp, Warning, TEXT("InputFire_Completed"));
 
-	ServerRPC_FireHitScan(false);
-
+	ServerRPC_InputFireCompleted();
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackEnd);
 }
 
 void UHitscanEmitterComponent::InputReload()
 {
+	// 총알이 이미 풀이면 리턴
 	if (CurrentBullet >= Owner->GetMaxBullet()) return;
 
-	if (bReloading == true) return;
-	
-	bReloading = true;
-	
+	// 이미 리로딩 중이면 리턴
+	if (State == EHitscanEmitterState::RELOADING) return;
+
+	// 히트스킨의 인풋 자체가 막혀있어도 리턴
+	if (State == EHitscanEmitterState::BLOCKED) return;
+
+	State = EHitscanEmitterState::RELOADING;
+
 	ServerRPC_Reload();
 }
 
 void UHitscanEmitterComponent::Enable()
 {
-	if (bEnabled) return;
-	bEnabled = true;
-	UE_LOG(LogTemp, Warning, TEXT("총 활성화"));
+	if (State == EHitscanEmitterState::BLOCKED)
+	{
+		State = EHitscanEmitterState::IDLE;
+		ServerRPC_Enable();
+	}
 }
 
 void UHitscanEmitterComponent::Disable()
 {
-	if (!bEnabled) return;
-	bEnabled = false;
-	UE_LOG(LogTemp, Warning, TEXT("총 비활성화"));
+	if (State != EHitscanEmitterState::BLOCKED)
+	{
+		State = EHitscanEmitterState::BLOCKED;
+		ServerRPC_Disable();
+	}
 }
 
-void UHitscanEmitterComponent::MultiRPC_FireEffects_Implementation(FVector hitLocation)
+void UHitscanEmitterComponent::ServerRPC_RequestSingleLineTrace_Implementation()
+{
+	// 총알 쓰기
+	SetCurrentBullet(CurrentBullet - 1);
+	ClientRPC_FireHitScan(CurrentBullet);
+
+	// 라인트레이스 쏘기
+	SingleLineTrace();
+
+	//총기 사운드 발생 요청
+	MultiRPC_PlaySoundShoot();
+
+	//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
+	Owner->ServerRPC_DoAfterAction_Implementation(EHeroActionType::NormalAttackSuccess);
+}
+
+void UHitscanEmitterComponent::ServerRPC_InputFireCompleted_Implementation()
+{
+	State = EHitscanEmitterState::IDLE;
+}
+
+void UHitscanEmitterComponent::MultiRPC_ReceiveSingleLineTraceResult_Implementation(FVector hitLocation)
 {
 	// 이펙트
 	if (FireParticle)
@@ -311,22 +323,20 @@ void UHitscanEmitterComponent::ClientRPC_FireHitScan_Implementation(int bulletCo
 	UE_LOG(LogTemp, Warning, TEXT("Fire_Requester called - CurrentBullet %d"), CurrentBullet);
 }
 
-void UHitscanEmitterComponent::ServerRPC_FireHitScan_Implementation(bool triggered)
+void UHitscanEmitterComponent::ServerRPC_InputFireStarted_Implementation()
 {
-	bTriggered = triggered;
-	UE_LOG(LogTemp, Warning, TEXT("bTriggered set to %s by SetTriggered"), bTriggered ? TEXT("true") : TEXT("false"));
+	State = EHitscanEmitterState::TRIGGERED;
 }
 
 void UHitscanEmitterComponent::ServerRPC_Reload_Implementation()
 {
-	bReloading = true;
+	State = EHitscanEmitterState::RELOADING;
 
-	// 임시로 1초후에 리로딩 완료해주는것
+	// 1초후에 리로딩 완료해주는것
 	FTimerHandle TempReloadHandle;
 	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Server_EndReloading, 1.0f,
 	                                       false);
 
-	
 	// 총기 장전 사운드 시작 요청
 	ClientRPC_PlaySoundReload();
 	// 장전 시작 시점 트리거
@@ -335,15 +345,21 @@ void UHitscanEmitterComponent::ServerRPC_Reload_Implementation()
 
 void UHitscanEmitterComponent::ClientRPC_ReloadEnd_Implementation(int bulletCount)
 {
-	// 총알 개수 적용
+	// 총알 개수 풀로 돌려두기
 	SetCurrentBullet(bulletCount);
 
-	bReloading = false;
+	// 원래 상태로 돌려놓기
+	State = EHitscanEmitterState::IDLE;
+}
+
+void UHitscanEmitterComponent::ClientRPC_ReceiveSingleLineTraceResult_Implementation()
+{
 }
 
 void UHitscanEmitterComponent::Server_EndReloading()
 {
-	bReloading = false;
+	// 원래 상태로 돌려놓기
+	State = EHitscanEmitterState::IDLE;
 
 	// 총알 채우기
 	SetCurrentBullet(Owner->GetMaxBullet());
@@ -353,25 +369,30 @@ void UHitscanEmitterComponent::Server_EndReloading()
 
 void UHitscanEmitterComponent::DebugInfo()
 {
-	const FString bEnabledString = bEnabled ? TEXT("true") : TEXT("false");
-	const FString bTriggeredString = bTriggered ? TEXT("true") : TEXT("false");
-	const FString bReloadingString = bReloading ? TEXT("true") : TEXT("false");
+	// const FString logStr = FString::Printf(
+	// 	TEXT("HitscanEmitter State: %s\nCurrentBullet: %d\nCurrent Health: %f"),
+	// 	*UEnum::GetValueAsString<EHitscanEmitterState>(State), // 왜안되지
+	// 	CurrentBullet,
+	// 	Owner->GetHealth()
+	// );
+	
+	// DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Green, 0, true, 1);
+}
 
-	const FString logStr = FString::Printf(
-		TEXT("bEnabeld: %s\nbTriggered: %s\nCurrentBullet: %d\nbReloading: %s\nCurrent Health: %f"),
-		*bEnabledString,
-		*bTriggeredString,
-		CurrentBullet,
-		*bReloadingString,
-		Owner->GetHealth()
-	);
+void UHitscanEmitterComponent::ServerRPC_Enable_Implementation()
+{
+	State = EHitscanEmitterState::IDLE;
+}
 
-	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);
+void UHitscanEmitterComponent::ServerRPC_Disable_Implementation()
+{
+	State = EHitscanEmitterState::BLOCKED;
 }
 
 void UHitscanEmitterComponent::MultiRPC_PlaySoundShoot_Implementation()
 {
-	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundShoot, Owner->GetActorLocation(), 1, 1, 0, OriginSoundAttenuation);
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), OriginSoundShoot, Owner->GetActorLocation(), 1, 1, 0,
+	                                      OriginSoundAttenuation);
 }
 
 void UHitscanEmitterComponent::ClientRPC_PlaySoundReload_Implementation()

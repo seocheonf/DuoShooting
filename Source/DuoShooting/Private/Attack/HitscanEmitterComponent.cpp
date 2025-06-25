@@ -70,15 +70,6 @@ UHitscanEmitterComponent::UHitscanEmitterComponent()
 	}
 }
 
-void UHitscanEmitterComponent::SetHitScanSettings(float fireInterval, float damagePerBullet, float spread,
-                                                  float maxDist)
-{
-	FireInterval = fireInterval;
-	DamagePerBullet = damagePerBullet;
-	Spread = spread;
-	MaxDistance = maxDist;
-}
-
 // Called when the game starts
 void UHitscanEmitterComponent::BeginPlay()
 {
@@ -96,7 +87,25 @@ void UHitscanEmitterComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	TickHitScan(DeltaTime);
-	//DebugInfo();
+}
+
+void UHitscanEmitterComponent::SetState(EHitscanEmitterState newState)
+{
+	if (newState != State)
+	{
+		// EXIT
+		switch (State)
+		{
+			// 트리거 상태에서 나갈 때
+		case EHitscanEmitterState::TRIGGERED:
+			FireTimer = 1000.0f; // 충분히 큰 수로 타이머를 초기화 시켜준다
+			break;
+		default:
+			break;
+		}
+		
+		State = newState;
+	}
 }
 
 void UHitscanEmitterComponent::SetCurrentBullet(int32 bullets)
@@ -166,7 +175,7 @@ void UHitscanEmitterComponent::StartReload()
 {
 	// 이미 리로딩 중이면 리턴
 	if (State == EHitscanEmitterState::RELOADING || State == EHitscanEmitterState::BLOCKED) return;
-	State = EHitscanEmitterState::RELOADING;
+	SetState(EHitscanEmitterState::RELOADING);
 
 	ServerRPC_Reload();
 }
@@ -200,6 +209,13 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 		// 서버면 직접 Implementation 실행, 아니면 서버 RPC로 총 쏘기 리퀘스트
 		if (Owner->HasAuthority()) ServerRPC_RequestSingleLineTrace_Implementation();
 		else ServerRPC_RequestSingleLineTrace();
+
+		// Owner에게만 보일 시각 효과들
+		// 카메라 쉐이크
+		if (CameraShakeSourceComp && FireCameraShake)
+		{
+			//CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
+		}
 	}
 }
 
@@ -226,9 +242,10 @@ void UHitscanEmitterComponent::InputFire_Started()
 {
 	// 기본 상태에서만 총 쏘기 가능
 	if (State != EHitscanEmitterState::IDLE) return;
-	State = EHitscanEmitterState::TRIGGERED;
+	SetState(EHitscanEmitterState::TRIGGERED);
 
 	ServerRPC_InputFireStarted();
+	
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackStart);
 }
 
@@ -236,12 +253,19 @@ void UHitscanEmitterComponent::InputFire_Completed()
 {
 	// 트리거되어있을 때만 실행
 	if (State != EHitscanEmitterState::TRIGGERED) return;
-	State = EHitscanEmitterState::IDLE;
-
-	FireTimer = 1000.0f; // 충분히 큰 수
+	SetState(EHitscanEmitterState::IDLE);
 
 	ServerRPC_InputFireCompleted();
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::NormalAttackEnd);
+}
+
+void UHitscanEmitterComponent::SetHitScanSettings(float fireInterval, float damagePerBullet, float spread,
+	float maxDist)
+{
+	FireInterval = fireInterval;
+	DamagePerBullet = damagePerBullet;
+	Spread = spread;
+	MaxDistance = maxDist;
 }
 
 void UHitscanEmitterComponent::InputReload()
@@ -255,7 +279,7 @@ void UHitscanEmitterComponent::InputReload()
 	// 히트스킨의 인풋 자체가 막혀있어도 리턴
 	if (State == EHitscanEmitterState::BLOCKED) return;
 
-	State = EHitscanEmitterState::RELOADING;
+	SetState(EHitscanEmitterState::RELOADING);
 
 	ServerRPC_Reload();
 }
@@ -264,7 +288,7 @@ void UHitscanEmitterComponent::Enable()
 {
 	if (State == EHitscanEmitterState::BLOCKED)
 	{
-		State = EHitscanEmitterState::IDLE;
+		SetState(EHitscanEmitterState::IDLE);
 		ServerRPC_Enable();
 	}
 }
@@ -273,7 +297,7 @@ void UHitscanEmitterComponent::Disable()
 {
 	if (State != EHitscanEmitterState::BLOCKED)
 	{
-		State = EHitscanEmitterState::BLOCKED;
+		SetState(EHitscanEmitterState::BLOCKED);
 		ServerRPC_Disable();
 	}
 }
@@ -282,7 +306,7 @@ void UHitscanEmitterComponent::ServerRPC_RequestSingleLineTrace_Implementation()
 {
 	// 총알 쓰기
 	SetCurrentBullet(CurrentBullet - 1);
-	ClientRPC_FireHitScan(CurrentBullet);
+	ClientRPC_ReceiveSingleLineTraceResult(CurrentBullet);
 
 	// 라인트레이스 쏘기
 	SingleLineTrace();
@@ -290,13 +314,12 @@ void UHitscanEmitterComponent::ServerRPC_RequestSingleLineTrace_Implementation()
 	//총기 사운드 발생 요청
 	MultiRPC_PlaySoundShoot();
 
-	//UE_LOG(LogTemp, Warning, TEXT("남은 총알: %d"), CurrentBullet);
 	Owner->ServerRPC_DoAfterAction_Implementation(EHeroActionType::NormalAttackSuccess);
 }
 
 void UHitscanEmitterComponent::ServerRPC_InputFireCompleted_Implementation()
 {
-	State = EHitscanEmitterState::IDLE;
+	SetState(EHitscanEmitterState::IDLE);
 }
 
 void UHitscanEmitterComponent::MultiRPC_ReceiveSingleLineTraceResult_Implementation(FVector hitLocation)
@@ -308,37 +331,32 @@ void UHitscanEmitterComponent::MultiRPC_ReceiveSingleLineTraceResult_Implementat
 	}
 }
 
-void UHitscanEmitterComponent::ClientRPC_FireHitScan_Implementation(int bulletCount)
+void UHitscanEmitterComponent::ClientRPC_ReceiveSingleLineTraceResult_Implementation(int bulletCount)
 {
 	// 총알 개수 적용
 	SetCurrentBullet(bulletCount);
 
-	// Owner에게만 보일 시각 효과들
-	// 카메라 쉐이크
-	if (CameraShakeSourceComp && FireCameraShake)
-	{
-		CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("Fire_Requester called - CurrentBullet %d"), CurrentBullet);
+	// 총알이 다 닳으면 자동 재장전
+	if (CurrentBullet <= 0) InputReload();
 }
 
 void UHitscanEmitterComponent::ServerRPC_InputFireStarted_Implementation()
 {
-	State = EHitscanEmitterState::TRIGGERED;
+	SetState(EHitscanEmitterState::TRIGGERED);
 }
 
 void UHitscanEmitterComponent::ServerRPC_Reload_Implementation()
 {
-	State = EHitscanEmitterState::RELOADING;
+	SetState(EHitscanEmitterState::RELOADING);
 
-	// 1초후에 리로딩 완료해주는것
+	// 1초후에 리로딩 완료 예약
 	FTimerHandle TempReloadHandle;
 	GetWorld()->GetTimerManager().SetTimer(TempReloadHandle, this, &UHitscanEmitterComponent::Server_EndReloading, 1.0f,
 	                                       false);
 
 	// 총기 장전 사운드 시작 요청
 	ClientRPC_PlaySoundReload();
+	
 	// 장전 시작 시점 트리거
 	Owner->ServerRPC_DoAfterAction(EHeroActionType::ReloadStart);
 }
@@ -349,17 +367,13 @@ void UHitscanEmitterComponent::ClientRPC_ReloadEnd_Implementation(int bulletCoun
 	SetCurrentBullet(bulletCount);
 
 	// 원래 상태로 돌려놓기
-	State = EHitscanEmitterState::IDLE;
-}
-
-void UHitscanEmitterComponent::ClientRPC_ReceiveSingleLineTraceResult_Implementation()
-{
+	SetState(EHitscanEmitterState::IDLE);
 }
 
 void UHitscanEmitterComponent::Server_EndReloading()
 {
 	// 원래 상태로 돌려놓기
-	State = EHitscanEmitterState::IDLE;
+	SetState(EHitscanEmitterState::IDLE);
 
 	// 총알 채우기
 	SetCurrentBullet(Owner->GetMaxBullet());
@@ -367,26 +381,14 @@ void UHitscanEmitterComponent::Server_EndReloading()
 	ClientRPC_ReloadEnd(CurrentBullet);
 }
 
-void UHitscanEmitterComponent::DebugInfo()
-{
-	// const FString logStr = FString::Printf(
-	// 	TEXT("HitscanEmitter State: %s\nCurrentBullet: %d\nCurrent Health: %f"),
-	// 	*UEnum::GetValueAsString<EHitscanEmitterState>(State), // 왜안되지
-	// 	CurrentBullet,
-	// 	Owner->GetHealth()
-	// );
-	
-	// DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Green, 0, true, 1);
-}
-
 void UHitscanEmitterComponent::ServerRPC_Enable_Implementation()
 {
-	State = EHitscanEmitterState::IDLE;
+	SetState(EHitscanEmitterState::IDLE);
 }
 
 void UHitscanEmitterComponent::ServerRPC_Disable_Implementation()
 {
-	State = EHitscanEmitterState::BLOCKED;
+	SetState(EHitscanEmitterState::BLOCKED);
 }
 
 void UHitscanEmitterComponent::MultiRPC_PlaySoundShoot_Implementation()

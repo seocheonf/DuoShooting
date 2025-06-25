@@ -41,6 +41,7 @@ public:
 	/// ==========공통==========
 private:
 	EHitscanEmitterState State = EHitscanEmitterState::IDLE;
+	void SetState(EHitscanEmitterState newState);
 
 	UPROPERTY()
 	class AHeroBase* Owner;
@@ -51,7 +52,7 @@ private:
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;
 
-	// 현재 총알 개수
+	// 현재 총알 개수 * MaxBullet 정보는 Hero가 가지고 있다
 	UPROPERTY(EditAnywhere)
 	int32 CurrentBullet = 100;
 	void SetCurrentBullet(int32 bullets);
@@ -77,14 +78,11 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_RequestSingleLineTrace();
 	UFUNCTION(Client, Reliable)
-	void ClientRPC_ReceiveSingleLineTraceResult();
+	void ClientRPC_ReceiveSingleLineTraceResult(int bulletCount);
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_ReceiveSingleLineTraceResult(FVector hitLocation);	
 	UFUNCTION(Server, Reliable)
 	void ServerRPC_InputFireCompleted();
-
-	UFUNCTION(Client, Reliable)
-	void ClientRPC_FireHitScan(int bulletCount);
 	
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* IA_Fire;
@@ -124,7 +122,7 @@ private:
 	void ClientRPC_PlaySoundReload();
 
 public:
-	void SetHitScanSettings(float fireInterval, float damagePerBullet, float spread, float maxDist);
+	void SetHitScanSettings(float fireInterval, float damagePerBullet, float spread, float maxDist = 10000.0f);
 	
 	/// ==========리로드==========
 private:
@@ -152,8 +150,4 @@ private:
 public:
 	void Enable();
 	void Disable();
-
-	/// ==========기타==========
-private:
-	void DebugInfo();
 };

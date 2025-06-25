@@ -69,9 +69,6 @@ private:
 	// 1인칭 카메라
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	class UCameraComponent* FirstPersonCameraComp;
-	// 히트스캔 발사기 컴포넌트
-	UPROPERTY(VisibleAnywhere, Blueprintable, Category = Shooting)
-	class UHitscanEmitterComponent* HitscanEmitterComp;
 	// 카메라 흔들림 컴포넌트
 	UPROPERTY()
 	class UCameraShakeSourceComponent* CameraShakeSourceComp;
@@ -99,6 +96,9 @@ protected:
 	int32 MaxBullet = 100;
 	UPROPERTY(EditAnywhere)	// 기본 스피드
 	float DefaultSpeed = 400.0f;
+	// 히트스캔 발사기 컴포넌트
+	UPROPERTY(VisibleAnywhere, Blueprintable, Category = Shooting)
+	class UHitscanEmitterComponent* HitscanEmitterComp;
 	// 공통 UI (체력, 총탄, 조준선 등)
 	UPROPERTY()
 	class UShootingMainWidget* ShootingMainWidget;

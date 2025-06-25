@@ -8,6 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "UI/ShootingMainWidget.h"
 #include "NiagaraComponent.h"
+#include "Attack/HitscanEmitterComponent.h"
 #include "Camera/CameraComponent.h"
 
 // Sets default values
@@ -23,7 +24,7 @@ ATracerHero::ATracerHero()
 		TEXT("'/Game/LargeFile/ParagonDrongo/Characters/Heroes/Drongo/Meshes/Drongo_GDC.Drongo_GDC'"));
 	if (sm.Succeeded()) GetMesh()->SetSkeletalMeshAsset(sm.Object);
 	ConstructorHelpers::FClassFinder<UAnimInstance> animInstance(
-		TEXT("'/Game/DuoShooting/Blueprints/Characters/Animation/Tracer/ABP_Tracer.ABP_Tracer_C'"));
+		TEXT("'/Game/DuoShooting/Blueprints/Characters/Animation/Tracer/EditedDrongoAssets/ABP_Tracer_LargeFileEdited.ABP_Tracer_LargeFileEdited_C'"));
 	if (animInstance.Succeeded()) GetMesh()->SetAnimInstanceClass(animInstance.Class);
 	GetMesh()->SetRelativeLocation(FVector(0, 0, -90));
 	GetMesh()->SetRelativeRotation(FRotator(0, 0, -90));
@@ -61,17 +62,20 @@ ATracerHero::ATracerHero()
 // Called when the game starts or when spawned
 void ATracerHero::BeginPlay()
 {
-	// 기본값 설정 // 생성자에서 하면 네트워크 동기화가 안돼서 BeginPlay로 이전
+	// 기본값 설정 // 생성자에서 하면 네트워크 동기화가 안돼서 BeginPlay로 이전 // 꼭 부모의 BeginPlay보다 먼저 설정할 것
 	MaxBullet = 40;
 	MaxHealth = 175;
 	CurrentHealth = 175;
-
-	UE_LOG(LogTemp, Warning, TEXT("ATracerHero BeginPlay with MaxBullet %d"), MaxBullet);
 
 	Super::BeginPlay();
 
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
 	TracerAnimInstance = Cast<UTracerAnimInstance>(GetMesh()->GetAnimInstance());
+
+	if (HitscanEmitterComp)
+	{
+		HitscanEmitterComp->SetHitScanSettings(0.5f, 15.0f, 2.0f);
+	}
 }
 
 void ATracerHero::InputMove(const struct FInputActionValue& value)

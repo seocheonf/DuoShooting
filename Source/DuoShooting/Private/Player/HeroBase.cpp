@@ -127,12 +127,11 @@ void AHeroBase::BeginPlay()
 	GetCharacterMovement()->MaxWalkSpeed = DefaultSpeed;
 	GetCharacterMovement()->AirControl = 0.9f;
 
-	UE_LOG(LogTemp, Warning, TEXT("[%s] [%d]Begin Play ---------------"), GetNetMode()==NM_Client?TEXT("Clienit"):TEXT("Server"),IsLocallyControlled());
 	// 로컬이면 체력바를 끄고 메인위젯을 생성
 	if (IsLocallyControlled())
 	{
 		if (HealthBarWidgetComp) HealthBarWidgetComp->SetVisibility(false);
-
+		
 		CreateShootingMainWidget();
 	}
 	// 로컬이 아니면 체력바를 초기화

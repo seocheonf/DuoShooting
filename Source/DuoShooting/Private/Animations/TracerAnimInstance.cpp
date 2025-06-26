@@ -8,15 +8,22 @@
 
 UTracerAnimInstance::UTracerAnimInstance()
 {
+	// ConstructorHelpers::FObjectFinder<UAnimMontage> tempFireMontage(TEXT(
+	// 	"'/Game/DuoShooting/Blueprints/Characters/Animation/Tracer/EditedDrongoAssets/Primary_Fire_Montage_Edited.Primary_Fire_Montage_Edited'"));
+	// if (tempFireMontage.Succeeded()) FireMontage = tempFireMontage.Object;
+
 	ConstructorHelpers::FObjectFinder<UAnimMontage> tempFireMontage(TEXT(
-		"'/Game/DuoShooting/Blueprints/Characters/Animation/Tracer/EditedDrongoAssets/Primary_Fire_Montage_Edited.Primary_Fire_Montage_Edited'"));
+		"'/Game/LargeFile/ParagonDrongo/Characters/Heroes/Drongo/Animations/LevelStart_Montage.LevelStart_Montage'"));
 	if (tempFireMontage.Succeeded()) FireMontage = tempFireMontage.Object;
 }
 
 void UTracerAnimInstance::PlayFireMontage()
 {
-	if (FireMontage) Montage_Play(FireMontage);
-	else UE_LOG(LogTemp, Error, TEXT("PlayFireMontage failed"));
+	float test = -777.7f;
+	if (FireMontage) test = Montage_Play(FireMontage);
+	//else UE_LOG(LogTemp, Error, TEXT("PlayFireMontage failed"));
+	
+	UE_LOG(LogTemp, Log, TEXT("Montage Play Result: %f"), test);
 }
 
 void UTracerAnimInstance::NativeInitializeAnimation()
@@ -40,7 +47,7 @@ void UTracerAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 		float rawDir = FMath::GetMappedRangeValueClamped(FVector2D(-1.0f, 1.0f), FVector2D(0.0f, 100.0f),
 		                                                 FVector::DotProduct(vel, Tracer->GetActorRightVector()));
-
+		
 		Speed = FMath::FInterpTo(Speed, rawSpeed, DeltaSeconds, LegsBlendSpaceInterpSpeed);
 		Direction = FMath::FInterpTo(Direction, rawDir, DeltaSeconds, LegsBlendSpaceInterpSpeed);
 

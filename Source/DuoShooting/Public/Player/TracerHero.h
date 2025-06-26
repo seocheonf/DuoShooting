@@ -54,6 +54,9 @@ protected:
 	float FirstViewSkeletalMeshCompLookDownRetractScalar = 110.0f;
 public:
 	//=====함수=====
+private:
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_PlayFireMontage();
 protected:
 	virtual void DoAfterAction(EHeroActionType actionType) override;
 	virtual void DieAfterAction() override;

@@ -95,7 +95,7 @@ protected:
 	UPROPERTY(EditAnywhere)	// 최대 총알 개수
 	int32 MaxBullet = 100;
 	UPROPERTY(EditAnywhere)	// 기본 스피드
-	float DefaultSpeed = 400.0f;
+	float DefaultSpeed = 500.0f;
 	// 히트스캔 발사기 컴포넌트
 	UPROPERTY(VisibleAnywhere, Blueprintable, Category = Shooting)
 	class UHitscanEmitterComponent* HitscanEmitterComp;

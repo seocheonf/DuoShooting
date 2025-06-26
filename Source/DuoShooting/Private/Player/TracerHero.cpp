@@ -127,6 +127,11 @@ void ATracerHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
 
+void ATracerHero::MultiRPC_PlayFireMontage_Implementation()
+{
+	if (TracerAnimInstance) TracerAnimInstance->PlayFireMontage();
+}
+
 void ATracerHero::DoAfterAction(EHeroActionType actionType)
 {
 	switch (actionType)
@@ -136,7 +141,7 @@ void ATracerHero::DoAfterAction(EHeroActionType actionType)
 	case EHeroActionType::NormalAttackEnd:
 		break;
 	case EHeroActionType::NormalAttackSuccess:
-		if (TracerAnimInstance) TracerAnimInstance->PlayFireMontage();
+		MultiRPC_PlayFireMontage();
 		break;
 	default:
 		break;

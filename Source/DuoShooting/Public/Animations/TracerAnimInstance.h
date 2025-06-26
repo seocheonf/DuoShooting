@@ -27,7 +27,7 @@ protected:
 	UPROPERTY()
 	class ATracerHero* Tracer;
 
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly)
 	class UAnimMontage* FireMontage;
 	
 public:
@@ -50,6 +50,6 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool ShouldLand;
-
+	
 	void PlayFireMontage();
 };

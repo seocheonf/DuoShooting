@@ -19,7 +19,6 @@ private:
 	float LandingDistanceFromGround = 200.0f;
 	
 protected:
-	
 	virtual void NativeInitializeAnimation() override;
 
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
@@ -29,6 +28,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly)
 	class UAnimMontage* FireMontage;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UAnimMontage* ReloadMontage;
+
+	UPROPERTY(EditDefaultsOnly)
+	class UAnimMontage* ThrowMontage;
 	
 public:
 	UTracerAnimInstance();
@@ -50,6 +55,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	bool ShouldLand;
-	
+
+	// 몽타주
 	void PlayFireMontage();
+	void PlayReloadMontage();
+	void PlayThrowMontage();
 };

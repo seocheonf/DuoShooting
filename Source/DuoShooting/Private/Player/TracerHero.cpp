@@ -70,7 +70,8 @@ void ATracerHero::BeginPlay()
 	Super::BeginPlay();
 
 	TracerSkillSystemComp = Cast<UTracerSkillSystemComponent>(GetSkillSystemComponent());
-	TracerAnimInstance = Cast<UTracerAnimInstance>(GetMesh()->GetAnimInstance());
+	TracerAnimInstance_ThirdView = Cast<UTracerAnimInstance>(GetMesh()->GetAnimInstance());
+	TracerAnimInstance_FirstView = Cast<UTracerAnimInstance>(FirstViewSkeletalMeshComp->GetAnimInstance());
 
 	if (HitscanEmitterComp)
 	{
@@ -129,7 +130,19 @@ void ATracerHero::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 void ATracerHero::MultiRPC_PlayFireMontage_Implementation()
 {
-	if (TracerAnimInstance) TracerAnimInstance->PlayFireMontage();
+	if (TracerAnimInstance_FirstView) TracerAnimInstance_FirstView->PlayFireMontage();
+	if (TracerAnimInstance_ThirdView) TracerAnimInstance_ThirdView->PlayFireMontage();
+}
+
+void ATracerHero::ClientRPC_PlayReloadMontage_Implementation()
+{
+	if (TracerAnimInstance_FirstView) TracerAnimInstance_FirstView->PlayReloadMontage();
+}
+
+void ATracerHero::MultiRPC_PlayThrowMontage_Implementation()
+{
+	if (TracerAnimInstance_FirstView) TracerAnimInstance_FirstView->PlayThrowMontage();
+	if (TracerAnimInstance_ThirdView) TracerAnimInstance_ThirdView->PlayThrowMontage();
 }
 
 void ATracerHero::DoAfterAction(EHeroActionType actionType)
@@ -142,6 +155,9 @@ void ATracerHero::DoAfterAction(EHeroActionType actionType)
 		break;
 	case EHeroActionType::NormalAttackSuccess:
 		MultiRPC_PlayFireMontage();
+		break;
+	case EHeroActionType::ReloadStart:
+		ClientRPC_PlayReloadMontage();
 		break;
 	default:
 		break;

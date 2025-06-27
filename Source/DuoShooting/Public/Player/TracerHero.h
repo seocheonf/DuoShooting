@@ -40,7 +40,9 @@ private:
 	UPROPERTY()
 	class UTracerSkillSystemComponent* TracerSkillSystemComp;
 	UPROPERTY()
-	class UTracerAnimInstance* TracerAnimInstance;
+	class UTracerAnimInstance* TracerAnimInstance_ThirdView;
+	UPROPERTY()
+	class UTracerAnimInstance* TracerAnimInstance_FirstView;
 protected:
 	// 점멸 이펙트
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -57,10 +59,14 @@ public:
 private:
 	UFUNCTION(NetMulticast, Reliable)
 	void MultiRPC_PlayFireMontage();
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_PlayReloadMontage();
 protected:
 	virtual void DoAfterAction(EHeroActionType actionType) override;
 	virtual void DieAfterAction() override;
 public:
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_PlayThrowMontage();
 	//==고유 함수 영역==
 private:
 protected:

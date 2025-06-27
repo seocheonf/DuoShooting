@@ -470,7 +470,6 @@ void UTracerSkillSystemComponent::DeactivateRecall()
 
 ETracerSkillState UTracerSkillSystemComponent::GetCurrentSkillState() const { return CurrentSkillState; }
 
-
 void UTracerSkillSystemComponent::SetBlinkTimer()
 {
 	UE_LOG(LogTemp, Error, TEXT("%d"), BlinkCoolTimerHandle.IsValid());
@@ -617,6 +616,8 @@ void UTracerSkillSystemComponent::ServerRPC_ThrowPulseBomb_Implementation()
 	TempDir.Z = TempDir.Z + 1.0f;
 	if (bomb)
 		bomb->Launch(TempDir, 550.0f, Owner->Controller);
+
+	Owner->MultiRPC_PlayThrowMontage();
 }
 
 void UTracerSkillSystemComponent::ServerRPC_BlinkStart_Implementation(FVector StartPos, FVector Direction)

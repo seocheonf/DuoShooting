@@ -4,8 +4,35 @@
 
 #include "CoreMinimal.h"
 #include "SkillSystemComponent.h"
+#include "Tool/FixedDeque.h"
 #include "TracerSkillSystemComponent.generated.h"
 
+UENUM(BlueprintType)
+enum class ETracerSkillState : uint8
+{
+	NONE UMETA(DisplayName = "없음"),
+	BLINK UMETA(DisplayName = "점멸"),
+	RECALL UMETA(DisplayName = "시간 역행")
+};
+
+// 트레이서가 시간역행을 위해 일정 주기로 기록할 정보 구조체
+USTRUCT(BlueprintType)
+struct FTracerRecallInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVector Location;
+
+	UPROPERTY()
+	float Health;
+
+	UPROPERTY()
+	FVector2D ControlRotation;
+
+	FTracerRecallInfo();
+	FTracerRecallInfo(const FVector& location, float controlRot_Pitch, float controlRot_Yaw, float health);
+};
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class DUOSHOOTING_API UTracerSkillSystemComponent : public USkillSystemComponent
@@ -20,6 +47,7 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	// Called every frame
@@ -28,13 +56,152 @@ public:
 
 	//=====변수=====
 private:
+	UPROPERTY()
+	class ATracerHero* Owner;
+	// Input
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_PulseBomb;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Blink;
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* IA_Recall;
+	// 펄스 폭탄(궁극기) 관련
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<class APulseBomb> PulseBombFactory;
+	// 현재 상태
+	ETracerSkillState CurrentSkillState;
+	// 점멸 관련
+	UPROPERTY(EditDefaultsOnly)
+	float BlinkDuration = 0.1f; // 걸리는 시간
+	UPROPERTY(EditDefaultsOnly)
+	int32 BlinkSpeed = 6500; // 점멸 속도
+	UPROPERTY(VisibleAnywhere)
+	FTimerHandle BlinkTimerHandle;
+	FVector BlinkStartPos; // 점멸 시작시의 시작방향 저장 (보다 정확한 동기화를 위해)
+	FVector BlinkDirection; // 점멸 방향
+	//FVector TestStartLocation;
+	// 시간 역행 관련
+	// 리콜할 레코드(기록) 정보
+	UPROPERTY(EditDefaultsOnly)
+	float RecordInterval = 0.1f; // 몇초마다 기록할것인지
+	UPROPERTY(EditDefaultsOnly)
+	int32 RecordLength = 30; // 몇개까지 기록할 것인지
+	FixedDeque<FTracerRecallInfo> Records; // 기록 컨테이너
+	UPROPERTY(EditDefaultsOnly)
+	float RecallInterval = 0.91f; // 몇초만에 역행할것인지?
+	UPROPERTY(VisibleAnywhere)
+	FTimerHandle RecallTimerHandle;
+	// 시간역행 보간용 변수들
+	float TimeSinceLastRecallInterval;
+	FTracerRecallInfo IntervalOrigin;
+	FTracerRecallInfo IntervalTarget;
+	float RecallStepDuration;
+	// 사운드
+	UPROPERTY()
+	class USoundBase* BlinkSound;
+	UPROPERTY()
+	class USoundBase* RecallSound_Start;
+	UPROPERTY()
+	class USoundBase* RecallSound_End;
 protected:
 public:
 	//=====함수=====
 protected:
+	virtual void SetupHeroInputInfo(class UEnhancedInputComponent* enhancedInputComponent) override;
+
 public:
 	//==고유 함수 영역==
 private:
+	// Input
+	void InputBlink(const struct FInputActionValue& value);
+	void InputRecall(const struct FInputActionValue& value);
+	void InputPulseBomb(const struct FInputActionValue& value);
+	// 점멸 관련
+	void TickBlink();
+	void DeactivateBlink();
+	// 시간 역행 관련
+	void ActivateRecall();
+	void TickRecall(float DeltaTime);
+	void DeactivateRecall();
+	void RecordInfo();
+	void RecallInfo();
+	void ToggleRecallOwnerSettings(bool isRecall);
+
+	void DebugInfo();
+
 protected:
 public:
+	ETracerSkillState GetCurrentSkillState() const;
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_BlinkStart(FVector StartPos, FVector Direction);
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_BlinkStart(FVector StartPos, FVector Direction);
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_BlinkEnd();
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_RecallStart();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_RecallStart();
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiRPC_RecallEnd();
+	UFUNCTION(Server, Reliable)
+	void ServerRPC_ThrowPulseBomb();
+	// UFUNCTION(Client, Reliable)
+	// void ClientRPC_FireHitScan(int bulletCount);
+	// UFUNCTION(NetMulticast, Reliable)
+	// void MultiRPC_FireEffects(FVector hitLocation);
+
+
+
+	//====김형모====
+private:
+	//스킬 아이콘 인덱스
+	int32 BlinkIconIndex;
+	int32 RecallIconIndex;
+	int32 PulseBombIconIndex;
+	//스킬 아이콘 원본 텍스쳐
+	class UTexture2D* OriginBlinkTexture2D;
+	class UTexture2D* OriginRecallTexture2D;
+	class UTexture2D* OriginPulseBombTexture2D;
+
+	//Blink용 쿨타임 UI
+	class UMiniSkillCoolTimeUI* BlinkCoolTimeUI;
+	TSubclassOf<class UMiniSkillCoolTimeUI> OriginBlinkCoolTimeUI;
+	
+	//트레이서 전용 스킬 UI
+	//class UTracerSkillSystemUI* TracerSkillUI;
+	//스킬 UI 기본 정보
+	//TSubclassOf<class UTracerSkillSystemUI> OriginTracerSkillUI;
+	
+private:
+	//==스킬 쿨타임==
+	bool bBlink = true;
+	bool bRecall = true;
+	bool bPulseBomb = true;
+
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float BlinkCoolTime = 3.f;
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float RecallCoolTime = 12.f;
+	UPROPERTY(EditDefaultsOnly, meta = (AllowPrivateAccess = true))
+	float PulseBombCoolTime = 30.f;
+
+	//점멸 카운트
+	int32 BlinkCount = 3.f;
+	int32 MaxBlinkCount = 3.f;
+	
+	//블링크 아이콘 요청 RPC함수
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetBlinkIconGage(float upper, float lower);
+	UFUNCTION(Client, Reliable)
+	void ClientRPC_SetBlinkCountUI(int32 count);
+
+	//블링크 쿨 타이머 핸들
+	FTimerHandle BlinkCoolTimerHandle;
+	//블링크 쿨 타이머
+	void SetBlinkTimer();
+	
+protected:
+	//트레이서는 전용 UI를 자기가 지우도록
+	//virtual void DoAfterTargetPlayerDie() override;
 };

@@ -1,0 +1,1 @@
+C:\UnrealEngine\UE_5.5\Engine\Binaries\Win64\UnrealEditor.exe C:\hngmo.kim\project_LargeFile\3rd\DuoShooting\DuoShooting.uproject -game 172.16.7.4 -log -ResX=1920 -ResY=1080 -WinX=100 -WinY=100 -WINDOWED

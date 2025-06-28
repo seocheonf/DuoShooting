@@ -214,7 +214,7 @@ void UHitscanEmitterComponent::TickHitScan(float dt)
 		// 카메라 쉐이크
 		if (CameraShakeSourceComp && FireCameraShake)
 		{
-			//CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
+			CameraShakeSourceComp->StartCameraShake(FireCameraShake, 1.0f);
 		}
 	}
 }

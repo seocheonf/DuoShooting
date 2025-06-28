@@ -12,6 +12,7 @@
 #include "Player/HeroBase.h"
 #include "Player/SombraHero.h"
 #include "Skill/SombraSkill/TranslocatorProjectile.h"
+#include "Tool/CoolTimerManager.h"
 #include "Tool/CoolTimerManagerComponent.h"
 
 // Sets default values for this component's properties
@@ -274,13 +275,13 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 	FDoTimerTick doTimerTick;
 	FNotifyTimerEnd notifyTimerEnd;
 	
-	auto TickTranslocator = [&, start, end](float deltaTime, float currentTime)->void
+	auto tickTranslocator = [&, start, end](float deltaTime, float currentTime)->void
 	{
 		FVector nextEnd = FMath::Lerp(start, end, currentTime / MoveTime);
 		TargetPlayer->SetActorLocation(nextEnd);
 	};
 	
-	auto EndTranslocator = [&, end](float deltaTime)->void
+	auto endTranslocator = [&, end](float deltaTime)->void
 	{
 		SombraPlayer->MultiRPC_SetAppearanceTP(true);
 		
@@ -317,7 +318,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 			cool_timerEnd.BindLambda(cool_end);
 
 			//만들어둔 쿨타이머 기능을 활용
-			CoolTimerManagerComp->RegisterCoolTimerAll(cool_TimerHandle, 0, TranslocatorCoolTime, 0.003f, cool_timerDo, cool_timerEnd);
+			CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), cool_TimerHandle, cool_tick, cool_end, 0.003f, 0, TranslocatorCoolTime);\
 		}
 		
 		StartStealth();
@@ -326,11 +327,7 @@ void USombraSkillSystemComponent::TriggerTranslocator(FVector end)
 		MultiRPC_EndTranslocatorPlayerSimulate(end);
 	};
 
-	doTimerTick.BindLambda(TickTranslocator);
-	notifyTimerEnd.BindLambda(EndTranslocator);
-	
-	CoolTimerManagerComp->RegisterCoolTimerAll(timerHandle, 0.f, MoveTime, 0.0003f, doTimerTick, notifyTimerEnd);
-
+	CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), timerHandle, tickTranslocator, endTranslocator, 0.003f, 0, MoveTime);
 	
 	//클라이언트에 움직임 시뮬레이션을 요청해 두세요.
 	MultiRPC_StartTranslocatorPlayerSimulate(start, end, MoveTime);
@@ -394,14 +391,22 @@ void USombraSkillSystemComponent::SetDetectionLayer(EDetection newDetection, boo
 void USombraSkillSystemComponent::StartStealth()
 {
 	SombraPlayer->EnterStealth();
-	CoolTimerManagerComp->RegisterCoolTimerAll(this, CoolTimer_StealthTimerHandle, 0, StealthTime, 0.0003f, &USombraSkillSystemComponent::StealthTick, &USombraSkillSystemComponent::NotifyStealthEnd);
+	auto cool_tick = [&](float deltaTime, float currentTime)
+	{
+		StealthTick(deltaTime, currentTime);
+	};
+	auto cool_end = [&](float exceedTime)
+	{
+		NotifyStealthEnd(exceedTime);
+	};
+	CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), CoolTimer_StealthTimerHandle, cool_tick, cool_end, 0.003f, 0, StealthTime);
 }
 
 void USombraSkillSystemComponent::EndStealth()
 {
 	DetectionLayer = 0;
 	if (CoolTimer_StealthTimerHandle.IsValid())
-		CoolTimerManagerComp->RemoveTimer(CoolTimer_StealthTimerHandle);
+		CoolTimerManager::ClearCoolTimer(CoolTimer_StealthTimerHandle);
 	SombraPlayer->ExitStealth();
 }
 
@@ -603,7 +608,7 @@ void USombraSkillSystemComponent::MultiRPC_StartTranslocatorPlayerSimulate_Imple
 
 	//만약 이전에 한게 남아있다면 없애주세요
 	if (CoolTimer_TranslocatorPlayerSimulationTimerHandle.IsValid())
-		CoolTimerManagerComp->RemoveTimer(CoolTimer_TranslocatorPlayerSimulationTimerHandle);		
+		CoolTimerManager::ClearCoolTimer(CoolTimer_TranslocatorPlayerSimulationTimerHandle);	
 
 
 	//캐릭터 이동에 대한 서버에서의 lerp로직을 클라이언트에서 쓸 겁니다.
@@ -617,13 +622,10 @@ void USombraSkillSystemComponent::MultiRPC_StartTranslocatorPlayerSimulate_Imple
 	{
 		TargetPlayer->SetActorLocation(end);	
 	};
+	
+	//이동 시간만큼 지나면 알아서 꺼지도록 하는 커스텀 쿨 타이머를 쓸거에요.
+	CoolTimerManager::RegisterCoolTimerAll(this, GetWorld(), CoolTimer_TranslocatorPlayerSimulationTimerHandle, timerTick, timerEnd, 0.003f, 0, moveTime);
 
-	FDoTimerTick doTimerTick;
-	doTimerTick.BindLambda(timerTick);
-	FNotifyTimerEnd doNotifyEnd;
-	doNotifyEnd.BindLambda(timerEnd);
-	//이동 시간만큼 지나면 알아서 꺼지도록 하는 커스텀 쿨 타이머를 쓸거에요.	
-	CoolTimerManagerComp->RegisterCoolTimerAll(CoolTimer_TranslocatorPlayerSimulationTimerHandle, 0, moveTime, 0.003f, doTimerTick, doNotifyEnd);
 }
 
 void USombraSkillSystemComponent::MultiRPC_EndTranslocatorPlayerSimulate_Implementation(FVector end)
@@ -634,7 +636,7 @@ void USombraSkillSystemComponent::MultiRPC_EndTranslocatorPlayerSimulate_Impleme
 
 	//만약 이전에 한게 남아있다면 없애주세요
 	if (CoolTimer_TranslocatorPlayerSimulationTimerHandle.IsValid())
-		CoolTimerManagerComp->RemoveTimer(CoolTimer_TranslocatorPlayerSimulationTimerHandle);
+		CoolTimerManager::ClearCoolTimer(CoolTimer_TranslocatorPlayerSimulationTimerHandle);
 
 	//마지막으로 혹시모르니 직접 동기화를 해줘 봅시다.
 	TargetPlayer->SetActorLocation(end);

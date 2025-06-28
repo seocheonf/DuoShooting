@@ -31,9 +31,6 @@ public:
 	virtual void InitializeComponent() override;
 
 	//============쿨타임 계산 매니저===========//
-protected:
-	class UCoolTimerManagerComponent* CoolTimerManagerComp;
-
 
 	//===========스킬 공통 정보===========/
 private:

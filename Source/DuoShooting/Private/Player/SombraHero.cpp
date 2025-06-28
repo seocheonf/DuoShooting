@@ -2,6 +2,7 @@
 
 #include "DuoShooting/Public/Player/SombraHero.h"
 
+#include "Attack/HitscanEmitterComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/ArrowComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -101,6 +102,10 @@ void ASombraHero::BeginPlay()
 
 	FirstViewSkeletalAnimInstance = Cast<USombraAnimInstance>(FirstViewSkeletalMeshComp->GetAnimInstance());
 	ThirdViewSkeletalAnimInstance = Cast<USombraAnimInstance>(GetMesh()->GetAnimInstance());
+
+	//==
+
+	GetHitscanEmitter()->SetHitScanSettings(0.25f, 10.f, 2.f, 10000.f);
 }
 
 // Called every frame

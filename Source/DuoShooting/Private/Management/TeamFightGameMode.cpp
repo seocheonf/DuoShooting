@@ -64,7 +64,7 @@ void ATeamFightGameMode::RespawnPlayer(APlayerController* playerController)
 	//플레이어 폰을 가져와 둔다.
 	APawn* beforePawn = playerController->GetPawn();
 	
-	DrawDebugString(GetWorld(), FVector::Zero(), beforePawn->GetName(), beforePawn, FColor::Red);
+	//DrawDebugString(GetWorld(), FVector::Zero(), beforePawn->GetName(), beforePawn, FColor::Red);
 	//플레이어 포제스를 푼다.
 	playerController->UnPossess();
 	//플레이어 기존 폰을 파괴한다.

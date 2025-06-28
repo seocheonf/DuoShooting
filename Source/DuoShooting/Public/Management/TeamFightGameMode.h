@@ -28,12 +28,12 @@ private:
 	// 팀 관련
 
 	// 최소 시작 인원
-	int32 StartPlayerCount = 1;
+	int32 StartPlayerCount = 0;
 	// 현재 입장 인원
 	int32 CurrentPlayerCount = 0;
 
 	// 이기기 위해 모아야할 점수
-	int32 TargetWinScore = 2;
+	int32 TargetWinScore = 3;
 
 	// 팀 A의 멤버들
 	UPROPERTY()

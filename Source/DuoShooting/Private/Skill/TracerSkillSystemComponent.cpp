@@ -685,5 +685,5 @@ void UTracerSkillSystemComponent::DebugInfo()
 		*bIsFallingString
 	);
 
-	DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);
+	//DrawDebugString(GetWorld(), Owner->GetActorLocation(), logStr, nullptr, FColor::Red, 0, true, 1);
 }

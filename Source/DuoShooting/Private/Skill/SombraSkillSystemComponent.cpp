@@ -187,7 +187,7 @@ void USombraSkillSystemComponent::OnHack(const struct FInputActionValue& value)
 	{
 		UE_LOG(LogTemp, Error, TEXT("S"));
 		//실제 해킹을 걸었을 때 해야 할 일.
-		DrawDebugLine(GetWorld(), HackTarget->GetActorLocation(), HackTarget->GetActorLocation() + FVector::UpVector * 1000.f, FColor::Yellow, false, 1.f);
+		//DrawDebugLine(GetWorld(), HackTarget->GetActorLocation(), HackTarget->GetActorLocation() + FVector::UpVector * 1000.f, FColor::Yellow, false, 1.f);
 		FTimerHandle timerHandle;
 		if (nullptr != Cast<APlayerController>(HackTarget->Controller))
 		{
